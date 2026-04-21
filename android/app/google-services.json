@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "193282547247",
+    "project_id": "uptula-d1894",
+    "storage_bucket": "uptula-d1894.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:193282547247:android:54aee546fa7e7e4bbbb0da",
+        "android_client_info": {
+          "package_name": "com.uptula"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "193282547247-a4qt8aitmlmh5d2ol8il6pr6tr6v06vj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.uptula",
+            "certificate_hash": "3f1569b5dfa82de5391ffdd5a19687ba6f550eb2"
+          }
+        },
+        {
+          "client_id": "193282547247-p4o3lcs39kb63i9uvuhcm10dqgau8g32.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.uptula",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "193282547247-o8ccoi23uh80eb4vnb8sdnit0hnvd10l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxDi368BvYNPrFb0n_OWN54iw16-eTSaM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "193282547247-o8ccoi23uh80eb4vnb8sdnit0hnvd10l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

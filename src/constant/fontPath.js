@@ -1,0 +1,12 @@
+export const CANTARELLBOLD = "Cantarell-BoldItalic";
+export const CANTARELL = "Cantarell-Regular";
+export const FIRASANSBOLD = "FiraSans-Bold";
+export const FIRASANS = "FiraSans-Regular";
+export const FIRASANSSEMIBOLD = "FiraSans-SemiBold";
+export const OXYGENBOLD = "Oxygen-Bold";
+export const OXYGEN = "Oxygen-Regular";
+export const ROBOTOBOLD = "Roboto_SemiCondensed-Bold";
+export const ROBOTOSEMIBOLD = "Roboto_Condensed-SemiBold";
+export const ROBOTO = "Roboto-Regular";
+export const UBUNTUBOLD = "Ubuntu-Bold";
+export const UBUNTU = "Ubuntu-Regular";
