@@ -1691,6 +1691,11 @@ const HomeScreen = ({ navigation }) => {
     msg: "",
     visible: false,
   });
+
+  // Profile completion alert state
+  const [profileCompletionAlertVisible, setProfileCompletionAlertVisible] = useState(false);
+  const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(100);
+  const [profileCompletionCheckDone, setProfileCompletionCheckDone] = useState(false);
  
   // Request location permission
   const requestLocationPermission = async () => {
@@ -1989,6 +1994,135 @@ const HomeScreen = ({ navigation }) => {
     }
   }, []);
 
+  // Calculate profile completion percentage
+  const calculateCompletionPercentage = useCallback((profileData) => {
+    if (!profileData) return 0;
+
+    let percentage = 0;
+
+    // Helper function to check if field is truly filled
+    const isFieldFilled = (field) => {
+      if (!field) return false;
+      const strValue = String(field).trim();
+      return strValue !== '' && strValue !== 'N/A';
+    };
+
+    // Personal Details Section: 20% (if name, email, phone, address, gender, dob are filled)
+    const personalDetailsFields = [
+      profileData.name || profileData.firstName || profileData.first_name,
+      profileData.email,
+      profileData.phone || profileData.phoneNumber || profileData.phone_number,
+      profileData.address,
+      profileData.gender,
+      profileData.dob || profileData.dateOfBirth || profileData.date_of_birth
+    ];
+    const personalDetailsFilled = personalDetailsFields.filter(isFieldFilled).length;
+    if (personalDetailsFilled === personalDetailsFields.length) {
+      percentage += 20;
+    }
+
+    // Profile Picture: 10% (if profilePicture is set)
+    const profilePicture = profileData.profilePicture || profileData.profile_picture || profileData.avatar;
+    if (profilePicture) {
+      const hasPicture = profilePicture.uri ? true : (typeof profilePicture === 'string' && profilePicture.trim() !== '');
+      if (hasPicture) {
+        percentage += 10;
+      }
+    }
+
+    // Career Preference Section: 10% (if preferredLocation, currentSalary, expectedSalary, noticePeriod, bio are filled)
+    const careerFields = [
+      profileData.preferredLocation || profileData.preferred_location,
+      profileData.currentSalary || profileData.current_salary,
+      profileData.expectedSalary || profileData.expected_salary,
+      profileData.noticePeriod || profileData.notice_period,
+      profileData.bio
+    ];
+    const careerFieldsFilled = careerFields.filter(isFieldFilled).length;
+    if (careerFieldsFilled === careerFields.length) {
+      percentage += 10;
+    }
+
+    // Profile Summary Section: 5% (if slogan is filled)
+    if (isFieldFilled(profileData.slogan)) {
+      percentage += 5;
+    }
+
+    // Resume Added: 10% (if resume is added and not empty)
+    const resume = profileData.resume || profileData.resumeUrl || profileData.resume_url;
+    if (resume && String(resume).trim() !== '') {
+      percentage += 10;
+    }
+
+    // Employment History: 10% (if experienceItems has at least one filled entry)
+    const experienceItems = profileData.experienceItems || profileData.experience || profileData.experiences || [];
+    const filledExperience = Array.isArray(experienceItems)
+      ? experienceItems.filter((exp) => exp && (exp.companyName || exp.company_name) && String(exp.companyName || exp.company_name).trim() !== '').length
+      : 0;
+    if (filledExperience > 0) {
+      percentage += 10;
+    }
+
+    // Certification: 2% (if certificationItems has at least one filled entry)
+    const certificationItems = profileData.certificationItems || profileData.certifications || profileData.certification || [];
+    const filledCertifications = Array.isArray(certificationItems)
+      ? certificationItems.filter((cert) => cert && (cert.name) && String(cert.name).trim() !== '').length
+      : 0;
+    if (filledCertifications > 0) {
+      percentage += 2;
+    }
+
+    // Education: 20% (if educationItems has at least one filled entry)
+    const educationItems = profileData.educationItems || profileData.education || profileData.educations || [];
+    const filledEducation = Array.isArray(educationItems)
+      ? educationItems.filter((edu) => edu && (edu.degree) && String(edu.degree).trim() !== '').length
+      : 0;
+    if (filledEducation > 0) {
+      percentage += 20;
+    }
+
+    // Skills: 20% (if keySkills array has at least one skill)
+    const keySkills = profileData.keySkills || profileData.key_skills || profileData.skills || profileData.skill || [];
+    if (Array.isArray(keySkills) && keySkills.length > 0) {
+      percentage += 20;
+    }
+
+    // Language: 13% (if languages array has at least one language)
+    const languages = profileData.languages || profileData.language || [];
+    if (Array.isArray(languages) && languages.length > 0) {
+      percentage += 13;
+    }
+
+    return Math.min(Math.round(percentage), 100);
+  }, []);
+
+  // Check profile completion and show alert if not complete
+  const checkProfileCompletion = useCallback(async () => {
+    try {
+      const token = await getObjByKey("loginResponse");
+      if (!token) {
+        return;
+      }
+
+      const url = `${BASE_URL}profile`;
+      const result = await GETNETWORK(url, true);
+
+      if (result && !result.message) {
+        const profileData = result?.profile || result?.data || result?.user || result || {};
+        const completionPercentage = calculateCompletionPercentage(profileData);
+        setProfileCompletionPercentage(completionPercentage);
+
+        // Show alert only if profile is not 100% complete and not already checked
+        if (completionPercentage < 100 && !profileCompletionCheckDone) {
+          setProfileCompletionAlertVisible(true);
+          setProfileCompletionCheckDone(true);
+        }
+      }
+    } catch (error) {
+      // Silently fail
+    }
+  }, [calculateCompletionPercentage, profileCompletionCheckDone]);
+
   // Fetch jobs based on applied jobs (same jobTitle from other companies)
   const fetchJobsBasedOnApplied = useCallback(async () => {
     try {
@@ -2262,7 +2396,8 @@ const HomeScreen = ({ navigation }) => {
       fetchJobsBasedOnApplied();
       fetchJobsBasedOnProfile();
       fetchTopCompanies();
-    }, [checkLoginStatus, fetchRecommendedJobs, fetchLatestJobs, fetchSponsorships, fetchCategories, fetchWishlistStatus, fetchAppliedJobs, fetchUserProfile, fetchJobsBasedOnApplied, fetchJobsBasedOnProfile, fetchTopCompanies])
+      checkProfileCompletion();
+    }, [checkLoginStatus, fetchRecommendedJobs, fetchLatestJobs, fetchSponsorships, fetchCategories, fetchWishlistStatus, fetchAppliedJobs, fetchUserProfile, fetchJobsBasedOnApplied, fetchJobsBasedOnProfile, fetchTopCompanies, checkProfileCompletion])
   );
 
   // Check login status on mount
@@ -3292,6 +3427,7 @@ const HomeScreen = ({ navigation }) => {
         message="Please login or register to continue."
         textLeft="Login"
         textRight="Register"
+        image={LOGO}
         onPressLeft={() => {
           setLoginPromptVisible(false);
           navigation.navigate("Login");
@@ -3311,9 +3447,33 @@ const HomeScreen = ({ navigation }) => {
         textRight="Yes"
         showLeftButton
         showRightButton
+        image={LOGO}
         onPressLeft={() => setExitAlertVisible(false)}
         onPressRight={() => BackHandler.exitApp()}
         onRequestClose={() => setExitAlertVisible(false)}
+      />
+
+      {/* Profile Completion Alert */}
+      <MyAlert
+        visible={profileCompletionAlertVisible}
+        title="Complete Your Profile"
+        message={`Your profile is ${profileCompletionPercentage}% complete. Please update your profile to get better job recommendations.`}
+        textLeft="Cancel"
+        textRight="Update"
+        showLeftButton
+        showRightButton
+        image={LOGO}
+        onPressLeft={() => setProfileCompletionAlertVisible(false)}
+        onPressRight={() => {
+          setProfileCompletionAlertVisible(false);
+          navigation.navigate("EditUserProfile", {
+            onProfileUpdate: () => {
+              setProfileCompletionCheckDone(false);
+              checkProfileCompletion();
+            },
+          });
+        }}
+        onRequestClose={() => setProfileCompletionAlertVisible(false)}
       />
 
       {/* Apply Job Form Modal */}
