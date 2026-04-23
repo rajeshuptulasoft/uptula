@@ -60,6 +60,7 @@ import {
   GC,
   UPTULASOFT,
   VIKASHFOUNDATION,
+  VERIFIEDPROVIDER,
 } from "../../../constant/imagePath";
 import { HEIGHT, WIDTH } from "../../../constant/config";
 import { getObjByKey } from "../../../utils/Storage";
@@ -138,6 +139,31 @@ const getCompanyLocationText = (item) => {
   return formatLocation(item.state, item.city);
 };
 
+const toBoolean = (value) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return value.trim().toLowerCase() === 'true';
+  if (typeof value === 'number') return value === 1;
+  return false;
+};
+
+const getVerifiedStatus = (item) => {
+  if (!item) return false;
+  const directValues = [
+    item.isVerified,
+    item.is_verified,
+    item.verified,
+    item.rawCompany?.isVerified,
+    item.rawCompany?.is_verified,
+    item.company?.isVerified,
+    item.company?.is_verified,
+    item.companyDetails?.isVerified,
+    item.companyDetails?.is_verified,
+    item.companyData?.isVerified,
+    item.companyData?.is_verified,
+  ];
+  return directValues.some((value) => toBoolean(value));
+};
+
 // Format salary (no INR prefix, icon shows currency)
 const formatSalary = (salaryRange) => {
   if (!salaryRange) return 'Salary not specified';
@@ -185,6 +211,7 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, appl
         ? item.companyLogoUrl 
         : `${BASE_URL.replace('/api/', '/')}${item.companyLogoUrl.replace(/^\//, '')}`)
     : null;
+  const isVerified = getVerifiedStatus(item);
 
   // Get status stages
   const getStatusStages = () => {
@@ -242,7 +269,12 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, appl
           activeOpacity={0.7}
         >
           <Text style={styles.cardTitle}>{item.jobTitle || 'N/A'}</Text>
-          <Text style={styles.cardSubtitle}>{item.companyName || 'N/A'}</Text>
+          <View style={styles.cardSubtitleRow}>
+            <Text style={styles.cardSubtitle}>{item.companyName || 'N/A'}</Text>
+            {isVerified ? (
+              <Image source={VERIFIEDPROVIDER} style={styles.cardVerifiedIcon} />
+            ) : null}
+          </View>
           {item.jobType && (
             <View style={styles.cardInfoRow}>
               <MaterialCommunityIcons name="briefcase-outline" size={WIDTH * 0.035} color={BRANDCOLOR} />
@@ -341,6 +373,7 @@ const LatestJobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied
         ? logoSource 
         : `${BASE_URL.replace('/api/', '/')}${logoSource.replace(/^\//, '')}`)
     : null;
+  const isVerified = getVerifiedStatus(item);
 
   // Get status stages
   const getStatusStages = () => {
@@ -397,9 +430,14 @@ const LatestJobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied
         ) : (
           <Image source={LOGO} style={styles.latestCardLogo} />
         )}
-        <Text style={styles.latestCardCompany} numberOfLines={1}>
-          {item.company || item.companyName || 'N/A'}
-        </Text>
+        <View style={styles.latestCardCompanyRow}>
+          <Text style={styles.latestCardCompany} numberOfLines={1}>
+            {item.company || item.companyName || 'N/A'}
+          </Text>
+          {isVerified ? (
+            <Image source={VERIFIEDPROVIDER} style={styles.latestCardVerifiedIcon} />
+          ) : null}
+        </View>
         <Text style={styles.latestCardTitle} numberOfLines={2}>
           {item.title || item.jobTitle || 'N/A'}
         </Text>
@@ -1454,23 +1492,36 @@ const JobsBasedOnProfileSection = ({ jobs, loading, onJobPress, onApply, onSave,
 };
 
 const CompanyCard = ({ item }) => {
+  const navigation = useNavigation();
   const logoUrl = item.logo
     ? (item.logo.startsWith('http://') || item.logo.startsWith('https://')
         ? item.logo
         : `${BASE_URL.replace('/api/', '/')}${item.logo.replace(/^\//, '')}`)
     : null;
   const locationText = getCompanyLocationText(item);
+  const isVerified = getVerifiedStatus(item);
+  const handleCompanyPress = () => {
+    navigation.navigate("DisplayCompanyProfile", {
+      companyData: item,
+      company: item.rawCompany || item,
+    });
+  };
 
   return (
-    <View style={styles.companyCard}>
+    <TouchableOpacity style={styles.companyCard} activeOpacity={0.85} onPress={handleCompanyPress}>
       {logoUrl ? (
         <Image source={{ uri: logoUrl }} style={styles.companyCardLogo} defaultSource={LOGO} />
       ) : (
         <Image source={LOGO} style={styles.companyCardLogo} />
       )}
-      <Text style={styles.companyCardName} numberOfLines={1}>
-        {item.companyName || 'N/A'}
-      </Text>
+      <View style={styles.companyNameRow}>
+        <Text style={styles.companyCardName} numberOfLines={1}>
+          {item.companyName || 'N/A'}
+        </Text>
+        {isVerified ? (
+          <Image source={VERIFIEDPROVIDER} style={styles.companyVerifiedIcon} />
+        ) : null}
+      </View>
       {locationText ? (
         <View style={styles.companyLocationRow}>
           <MaterialCommunityIcons name="map-marker-outline" size={WIDTH * 0.032} color={BRANDCOLOR} />
@@ -1482,7 +1533,7 @@ const CompanyCard = ({ item }) => {
       <Text style={styles.companyCardOpenings} numberOfLines={2}>
         {item.jobCount ? `${item.jobCount} openings` : 'No openings'}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -2356,6 +2407,7 @@ const HomeScreen = ({ navigation }) => {
             logo: logoUrl,
             location,
             jobCount,
+            isVerified: toBoolean(company.isVerified),
             rawCompany: company,
           };
         });
@@ -3852,6 +3904,17 @@ const styles = StyleSheet.create({
     color: "#444",
     marginTop: HEIGHT * 0.005,
   },
+  cardSubtitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: HEIGHT * 0.005,
+  },
+  cardVerifiedIcon: {
+    width: WIDTH * 0.035,
+    height: WIDTH * 0.035,
+    marginLeft: WIDTH * 0.01,
+    resizeMode: "contain",
+  },
   cardInfoRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -4032,7 +4095,19 @@ const styles = StyleSheet.create({
     color: "#444",
     fontFamily: FIRASANSSEMIBOLD,
     textAlign: "center",
+    maxWidth: "90%",
+  },
+  latestCardCompanyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: HEIGHT * 0.005,
+  },
+  latestCardVerifiedIcon: {
+    width: WIDTH * 0.032,
+    height: WIDTH * 0.032,
+    marginLeft: WIDTH * 0.01,
+    resizeMode: "contain",
   },
   latestCardTitle: {
     fontSize: WIDTH * 0.035,
@@ -4800,8 +4875,22 @@ const styles = StyleSheet.create({
     fontFamily: UBUNTUBOLD,
     color: BLACK,
     textAlign: "center",
+    flexShrink: 1,
+    lineHeight: WIDTH * 0.042,
+  },
+  companyNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
     marginBottom: HEIGHT * 0.008,
-    minHeight: HEIGHT * 0.04,
+  },
+  companyVerifiedIcon: {
+    width: WIDTH * 0.04,
+    height: WIDTH * 0.04,
+    marginLeft: WIDTH * 0.01,
+    alignSelf: "center",
+    resizeMode: "contain",
   },
   companyLocationRow: {
     flexDirection: "row",

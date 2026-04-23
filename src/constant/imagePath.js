@@ -83,3 +83,4 @@ export const KEY = require("../assets/images/key.png");
 export const BASIC = require("../assets/images/basic.png");
 export const CERTIFICATION = require("../assets/images/certificate.png");
 export const PROJECTS = require("../assets/images/project.png");
+export const VERIFIEDPROVIDER = require("../assets/images/verifiedaccount.png");

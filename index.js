@@ -45,5 +45,6 @@ try {
 
 import { name as appName } from './app.json';
 import Navigation from './src/navigations/Navigation';
+import DisplayCompanyProfileScreen from './src/screens/userScreens/jobSeekerScreens/DisplayCompanyProfileScreen';
 
 AppRegistry.registerComponent(appName, () => Navigation);

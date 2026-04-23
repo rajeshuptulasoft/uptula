@@ -48,6 +48,7 @@ import {
   EXPERIENCED,
   CITY,
   JOBTYPE,
+  VERIFIEDPROVIDER,
 } from "../../../constant/imagePath";
 import { HEIGHT, WIDTH } from "../../../constant/config";
 import { MyHeader } from "../../../components/commonComponents/MyHeader";
@@ -79,6 +80,23 @@ const JobDetailsScreen = ({ navigation, route }) => {
   );
   const [similarJobs, setSimilarJobs] = useState([]);
   const [similarJobsWishlist, setSimilarJobsWishlist] = useState(new Map());
+  const toBoolean = (value) => {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") return value.trim().toLowerCase() === "true";
+    if (typeof value === "number") return value === 1;
+    return false;
+  };
+  const isCompanyVerified = [
+    jobDetails?.isVerified,
+    jobDetails?.is_verified,
+    jobDetails?.verified,
+    jobDetails?.company?.isVerified,
+    jobDetails?.company?.is_verified,
+    jobDetails?.companyData?.isVerified,
+    jobDetails?.companyData?.is_verified,
+    jobDetails?.rawCompany?.isVerified,
+    jobDetails?.rawCompany?.is_verified,
+  ].some((value) => toBoolean(value));
 
   // Ensure applied flag from navigation persists
   useEffect(() => {
@@ -891,11 +909,16 @@ const JobDetailsScreen = ({ navigation, route }) => {
               <Text style={styles.jobTitleHeader}>
                 {jobDetails.title || jobDetails.jobTitle || "NA"}
               </Text>
-              <Text style={styles.companyNameHeader}>
-                {(jobDetails.companyName || jobDetails.company) && (jobDetails.companyName || jobDetails.company).trim() !== "" 
-                  ? (jobDetails.companyName || jobDetails.company) 
-                  : "NA"}
-              </Text>
+              <View style={styles.companyNameHeaderRow}>
+                <Text style={styles.companyNameHeader}>
+                  {(jobDetails.companyName || jobDetails.company) && (jobDetails.companyName || jobDetails.company).trim() !== "" 
+                    ? (jobDetails.companyName || jobDetails.company) 
+                    : "NA"}
+                </Text>
+                {isCompanyVerified ? (
+                  <Image source={VERIFIEDPROVIDER} style={styles.companyVerifiedIcon} />
+                ) : null}
+              </View>
               <View style={styles.ratingContainer}>
                 <MaterialCommunityIcons name="star" size={16} color="#FFB800" />
                 <Text style={styles.ratingText}>3.8</Text>
@@ -1449,6 +1472,17 @@ const styles = StyleSheet.create({
     fontFamily: FIRASANSSEMIBOLD,
     color: BRANDCOLOR,
     marginBottom: HEIGHT * 0.008,
+  },
+  companyNameHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  companyVerifiedIcon: {
+    width: WIDTH * 0.04,
+    height: WIDTH * 0.04,
+    marginLeft: WIDTH * 0.01,
+    marginBottom: HEIGHT * 0.008,
+    resizeMode: "contain",
   },
   ratingContainer: {
     flexDirection: "row",
