@@ -55,6 +55,7 @@ import {
   GC,
   UPTULASOFT,
   VIKASHFOUNDATION,
+  VERIFIEDPROVIDER,
 } from "../../../constant/imagePath";
 import { getObjByKey } from "../../../utils/Storage";
 import { BASE_URL } from "../../../constant/url";
@@ -1336,9 +1337,13 @@ const CompanyCard = ({ item }) => {
         ? logo
         : `${BASE_URL.replace('/api/', '/')}${logo.replace(/^\//, '')}`)
     : null;
-  const companyName = item.company_name || item.company || item.name || 'N/A';
+  const industryText = typeof item?.industry === "string" && item.industry.trim()
+    ? item.industry.trim().charAt(0).toUpperCase() + item.industry.trim().slice(1).toLowerCase()
+    : "";
+  const companyName = item.company_name || item.company || item.name || industryText || 'N/A';
   const locationText = getCompanyLocationText(item) || formatLocation(item.state, item.city);
   const openings = item.openings || item.no_of_vacancy || item.vacancy || item.jobs_count || item.total_jobs || item.total_job_openings || 0;
+  const isVerified = item?.isVerified === true || item?.is_verified === true || String(item?.isVerified).toLowerCase() === "true";
 
   return (
     <View style={styles.companyCard}>
@@ -1347,7 +1352,12 @@ const CompanyCard = ({ item }) => {
       ) : (
         <Image source={LOGO} style={styles.companyLogo} />
       )}
-      <Text style={styles.companyName} numberOfLines={1}>{companyName}</Text>
+      <View style={styles.companyNameRow}>
+        <Text style={styles.companyName} numberOfLines={1}>{companyName}</Text>
+        {isVerified ? (
+          <Image source={VERIFIEDPROVIDER} style={styles.companyVerifiedIcon} />
+        ) : null}
+      </View>
       {locationText ? (
         <View style={styles.companyLocationRow}>
           <MaterialCommunityIcons name="map-marker-outline" size={WIDTH * 0.032} color={BRANDCOLOR} />
@@ -1758,6 +1768,12 @@ const HomeScreen = ({ navigation }) => {
     msg: "",
     visible: false,
   });
+
+  // Profile completion alert state
+  const [profileCompletionAlertVisible, setProfileCompletionAlertVisible] = useState(false);
+  const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(100);
+  const [profileCompletionCheckDone, setProfileCompletionCheckDone] = useState(false);
+
   // New state for recommended jobs, latest jobs, sponsorships, categories
   const [recommendedJobs, setRecommendedJobs] = useState([]);
   const [latestJobs, setLatestJobs] = useState([]);
@@ -1778,13 +1794,13 @@ const HomeScreen = ({ navigation }) => {
 
   // Static companies data
   const companies = [
-    { name: "Mukti", logo: require("../../../assets/images/mukti.png") },
-    { name: "Vikash", logo: require("../../../assets/images/vikash.png") },
-    { name: "VDeal", logo: require("../../../assets/images/vdeal.png") },
-    { name: "Yubi", logo: require("../../../assets/images/yubi.png") },
-    { name: "GC", logo: require("../../../assets/images/gc2.png") },
-    { name: "UptulaSoft", logo: require("../../../assets/images/uptulasoft1.png") },
-    { name: "Vikash Foundation", logo: require("../../../assets/images/vf.png") },
+    { name: "Mukti", logo: require("../../../assets/images/mukti.png"), location: "Bhubaneswar, Odisha", openings: 5, isVerified: true },
+    { name: "Vikash", logo: require("../../../assets/images/vikash.png"), location: "Bhubaneswar, Odisha", openings: 4, isVerified: true },
+    { name: "VDeal", logo: require("../../../assets/images/vdeal.png"), location: "Mumbai, Maharashtra", openings: 3, isVerified: false },
+    { name: "Yubi", logo: require("../../../assets/images/yubi.png"), location: "Bengaluru, Karnataka", openings: 6, isVerified: true },
+    { name: "GC", logo: require("../../../assets/images/gc2.png"), location: "Kolkata, West Bengal", openings: 2, isVerified: false },
+    { name: "UptulaSoft", logo: require("../../../assets/images/uptulasoft1.png"), location: "Bhubaneswar, Odisha", openings: 7, isVerified: true },
+    { name: "Vikash Foundation", logo: require("../../../assets/images/vf.png"), location: "Puri, Odisha", openings: 1, isVerified: false },
   ];
 
   const topCompanies = companies;
@@ -1849,6 +1865,117 @@ const HomeScreen = ({ navigation }) => {
     fetchJobs();
     fetchCompanies();
   }, [fetchJobs, fetchCompanies]);
+
+  // Calculate profile completion percentage
+  const calculateCompletionPercentage = useCallback((profileData) => {
+    if (!profileData) return 0;
+
+    let percentage = 0;
+
+    // Helper function to check if field is truly filled
+    const isFieldFilled = (field) => {
+      if (!field) return false;
+      const strValue = String(field).trim();
+      return strValue !== '' && strValue !== 'N/A';
+    };
+
+    // Company Details Section: 20% (if companyName, email, phone are filled)
+    const companyDetailsFields = [
+      profileData.companyName || profileData.company_name,
+      profileData.email,
+      profileData.phone || profileData.phoneNumber || profileData.phone_number
+    ];
+    const companyDetailsFilled = companyDetailsFields.filter(isFieldFilled).length;
+    if (companyDetailsFilled === companyDetailsFields.length) {
+      percentage += 20;
+    }
+
+    // Profile Picture: 10% (if companyLogo is set)
+    const companyLogo = profileData.companyLogo || profileData.company_logo || profileData.logo;
+    if (companyLogo) {
+      const hasLogo = companyLogo.uri ? true : (typeof companyLogo === 'string' && companyLogo.trim() !== '');
+      if (hasLogo) {
+        percentage += 10;
+      }
+    }
+
+    // Company Information Section: 15% (if address, city, state are filled)
+    const companyInfoFields = [
+      profileData.address,
+      profileData.city,
+      profileData.state || profileData.state_name
+    ];
+    const companyInfoFilled = companyInfoFields.filter(isFieldFilled).length;
+    if (companyInfoFilled === companyInfoFields.length) {
+      percentage += 15;
+    }
+
+    // Company Description: 10% (if description/about is filled)
+    if (isFieldFilled(profileData.description || profileData.about || profileData.company_description)) {
+      percentage += 10;
+    }
+
+    // Website: 5% (if website is filled)
+    if (isFieldFilled(profileData.website || profileData.website_url)) {
+      percentage += 5;
+    }
+
+    // Social Media Links: 10% (if at least one social link is filled)
+    const socialLinks = [
+      profileData.facebook || profileData.facebook_url,
+      profileData.twitter || profileData.twitter_url,
+      profileData.linkedin || profileData.linkedin_url,
+      profileData.instagram || profileData.instagram_url
+    ];
+    const filledSocialLinks = socialLinks.filter(isFieldFilled).length;
+    if (filledSocialLinks > 0) {
+      percentage += 10;
+    }
+
+    // Company Size: 5% (if company size/employees is filled)
+    if (isFieldFilled(profileData.companySize || profileData.company_size || profileData.employees)) {
+      percentage += 5;
+    }
+
+    // Industry: 5% (if industry/category is filled)
+    if (isFieldFilled(profileData.industry || profileData.category)) {
+      percentage += 5;
+    }
+
+    // Founded Year: 5% (if founded year is filled)
+    if (isFieldFilled(profileData.foundedYear || profileData.founded_year)) {
+      percentage += 5;
+    }
+
+    return Math.min(Math.round(percentage), 100);
+  }, []);
+
+  // Check profile completion and show alert if not complete
+  const checkProfileCompletion = useCallback(async () => {
+    try {
+      const token = await getObjByKey("loginResponse");
+      if (!token) {
+        return;
+      }
+
+      const url = `${BASE_URL}employer/profile`;
+      const result = await GETNETWORK(url, true);
+
+      if (result && !result.message) {
+        const profileData = result?.profile || result?.data || result?.user || result || {};
+        const completionPercentage = calculateCompletionPercentage(profileData);
+        setProfileCompletionPercentage(completionPercentage);
+
+        // Show alert only if profile is not 100% complete and not already checked
+        if (completionPercentage < 100 && !profileCompletionCheckDone) {
+          setProfileCompletionAlertVisible(true);
+          setProfileCompletionCheckDone(true);
+        }
+      }
+    } catch (error) {
+      // Silently fail
+    }
+  }, [calculateCompletionPercentage, profileCompletionCheckDone]);
 
   // Fetch recommended jobs
   const fetchRecommendedJobs = useCallback(async () => {
@@ -2000,7 +2127,8 @@ const HomeScreen = ({ navigation }) => {
       fetchLatestJobs();
       fetchSponsorships();
       fetchCategories();
-    }, [fetchJobs, fetchCompanies, fetchRecommendedJobs, fetchLatestJobs, fetchSponsorships, fetchCategories])
+      checkProfileCompletion();
+    }, [fetchJobs, fetchCompanies, fetchRecommendedJobs, fetchLatestJobs, fetchSponsorships, fetchCategories, checkProfileCompletion])
   );
 
   // Request location permission
@@ -2577,6 +2705,7 @@ const HomeScreen = ({ navigation }) => {
         message="Please login or register to continue."
         textLeft="Login"
         textRight="Register"
+        image={LOGO}
         onPressLeft={() => {
           setLoginPromptVisible(false);
           navigation.navigate("Login");
@@ -2595,6 +2724,7 @@ const HomeScreen = ({ navigation }) => {
           message="Are you sure you want to delete this job posting?"
           textLeft="Cancel"
           textRight="Delete"
+          image={LOGO}
           onPressLeft={() => {
             setDeleteAlertVisible(false);
             setSelectedJob(null);
@@ -2613,6 +2743,7 @@ const HomeScreen = ({ navigation }) => {
           message="Are you sure you want to exit the app?"
           textLeft="No"
           textRight="Yes"
+          image={LOGO}
           onPressLeft={() => {
             setExitAlertVisible(false);
           }}
@@ -2620,6 +2751,29 @@ const HomeScreen = ({ navigation }) => {
           onRequestClose={() => {
             setExitAlertVisible(false);
           }}
+        />
+
+        {/* Profile Completion Alert */}
+        <MyAlert
+          visible={profileCompletionAlertVisible}
+          title="Complete Your Profile"
+          message={`Your profile is ${profileCompletionPercentage}% complete. Please update your profile to get better job matches.`}
+          textLeft="Cancel"
+          textRight="Update"
+          showLeftButton
+          showRightButton
+          image={LOGO}
+          onPressLeft={() => setProfileCompletionAlertVisible(false)}
+          onPressRight={() => {
+            setProfileCompletionAlertVisible(false);
+            navigation.navigate("EditEmployerProfile", {
+              onProfileUpdate: () => {
+                setProfileCompletionCheckDone(false);
+                checkProfileCompletion();
+              },
+            });
+          }}
+          onRequestClose={() => setProfileCompletionAlertVisible(false)}
         />
 
 
@@ -3786,6 +3940,20 @@ const styles = StyleSheet.create({
     color: BLACK,
     textAlign: "center",
     marginBottom: HEIGHT * 0.006,
+    maxWidth: "88%",
+  },
+  companyNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
+  companyVerifiedIcon: {
+    width: WIDTH * 0.035,
+    height: WIDTH * 0.035,
+    marginLeft: WIDTH * 0.01,
+    marginBottom: HEIGHT * 0.006,
+    resizeMode: "contain",
   },
   companyMeta: {
     fontSize: HEIGHT * 0.014,
