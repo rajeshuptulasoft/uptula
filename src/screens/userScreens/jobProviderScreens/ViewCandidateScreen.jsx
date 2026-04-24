@@ -38,7 +38,7 @@ import { MyHeader } from "../../../components/commonComponents/MyHeader";
 import { MyAlert } from "../../../components/commonComponents/MyAlert";
 import { CustomButton } from "../../../components/commonComponents/Button";
 import { ToastMessage } from "../../../components/commonComponents/ToastMessage";
-import { DELETE, LOGO, FILTER } from "../../../constant/imagePath";
+import { DELETE, LOGO, FILTER, VIEW } from "../../../constant/imagePath";
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK, POSTNETWORK, DELETENETWORK } from "../../../utils/Network";
 import { getObjByKey } from "../../../utils/Storage";
@@ -64,6 +64,7 @@ const ViewCandidate = () => {
     msg: "",
     visible: false,
   });
+  const [applicationDecisionMap, setApplicationDecisionMap] = useState({});
 
   // Fetch applications from API
   const fetchApplications = useCallback(async () => {
@@ -93,6 +94,12 @@ const ViewCandidate = () => {
       
       if (applicationsData && applicationsData.length > 0) {
         setCandidates(applicationsData);
+        applicationsData.forEach((candidate) => {
+          const applicationId = candidate?.applicationId || candidate?.id || candidate?._id;
+          if (applicationId) {
+            fetchApplicationDecision(applicationId);
+          }
+        });
       } else {
         setCandidates([]);
       }
@@ -108,6 +115,53 @@ const ViewCandidate = () => {
       setRefreshing(false);
     }
   }, []);
+
+  const normalizeDecision = (decisionValue) => {
+    const decision = (decisionValue || "").toString().trim().toLowerCase();
+    if (!decision) return "";
+    if (decision === "accepted") return "accept";
+    if (decision === "rejected") return "reject";
+    if (decision === "viewed") return "view";
+    return decision;
+  };
+
+  const fetchApplicationDecision = useCallback(async (applicationId) => {
+    if (!applicationId) return;
+    try {
+      const loginResponse = await getObjByKey("loginResponse");
+      if (!loginResponse || !loginResponse.token) return;
+
+      const url = `${BASE_URL}applications/${applicationId}`;
+      const result = await GETNETWORK(url, true);
+      const decision =
+        result?.decision ||
+        result?.data?.decision ||
+        result?.application?.decision ||
+        result?.data?.application?.decision ||
+        result?.status ||
+        result?.data?.status ||
+        "";
+
+      setApplicationDecisionMap((prev) => ({
+        ...prev,
+        [String(applicationId)]: normalizeDecision(decision),
+      }));
+    } catch (error) {
+      // Keep card actions usable if one decision lookup fails
+    }
+  }, []);
+
+  const getActionVisibility = (candidate) => {
+    const applicationId = candidate?.applicationId || candidate?.id || candidate?._id;
+    const decision = normalizeDecision(applicationDecisionMap[String(applicationId)]);
+    if (decision === "accept" || decision === "reject") {
+      return { showApprove: false, showReject: true, showView: false };
+    }
+    if (decision === "view") {
+      return { showApprove: true, showReject: true, showView: false };
+    }
+    return { showApprove: true, showReject: true, showView: true };
+  };
 
   // Format category name: replace underscores, capitalize each word, keep acronyms uppercase
   const formatCategoryName = (category) => {
@@ -294,6 +348,24 @@ const ViewCandidate = () => {
   const handleDelete = (candidate) => {
     setSelectedCandidate(candidate);
     setDeleteAlertVisible(true);
+  };
+
+  const handleApproveCandidate = (candidate) => {
+    const candidateName = candidate?.name || "Candidate";
+    setToastMessage({
+      type: "success",
+      msg: `${candidateName} approved`,
+      visible: true,
+    });
+  };
+
+  const handleRejectCandidate = (candidate) => {
+    const candidateName = candidate?.name || "Candidate";
+    setToastMessage({
+      type: "error",
+      msg: `${candidateName} rejected`,
+      visible: true,
+    });
   };
 
   const confirmDelete = async () => {
@@ -595,6 +667,7 @@ const ViewCandidate = () => {
     const candidateName = item?.name || "Candidate";
     const jobTitle = item?.job_title || "Job Title";
     const companyName = item?.company_name || "";
+    const actionVisibility = getActionVisibility(item);
 
     return (
       <Pressable 
@@ -615,17 +688,44 @@ const ViewCandidate = () => {
             ) : null}
       </View>
 
-          {/* View Resume Button */}
-        <Pressable
-          style={styles.viewBtn}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleViewResume(item);
-            }}
-        >
-            <MaterialCommunityIcons name="eye" size={HEIGHT * 0.018} color={WHITE} />
-            <Text style={styles.viewText}>View</Text>
-        </Pressable>
+          {/* Card Action Buttons */}
+          <View style={styles.cardActionRow}>
+            {actionVisibility.showApprove ? (
+              <Pressable
+                style={[styles.actionIconBtn, styles.approveBtn]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleApproveCandidate(item);
+                }}
+              >
+                <MaterialCommunityIcons name="check" size={HEIGHT * 0.022} color={WHITE} />
+              </Pressable>
+            ) : null}
+
+            {actionVisibility.showReject ? (
+              <Pressable
+                style={[styles.actionIconBtn, styles.rejectBtn]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleRejectCandidate(item);
+                }}
+              >
+                <MaterialCommunityIcons name="close" size={HEIGHT * 0.022} color={WHITE} />
+              </Pressable>
+            ) : null}
+
+            {actionVisibility.showView ? (
+              <Pressable
+                style={[styles.actionIconBtn, styles.viewBtn]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleViewResume(item);
+                }}
+              >
+                <Image source={VIEW} style={styles.viewIcon} />
+              </Pressable>
+            ) : null}
+          </View>
         </View>
         </Pressable>
     );
@@ -1471,23 +1571,34 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: HEIGHT * 0.01,
   },
-  viewBtn: {
+  cardActionRow: {
+    width: "100%",
     flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: WIDTH * 0.02,
+  },
+  actionIconBtn: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: BRANDCOLOR,
-    paddingVertical: HEIGHT * 0.01,
-    paddingHorizontal: WIDTH * 0.04,
     borderRadius: WIDTH * 0.02,
-    backgroundColor: BRANDCOLOR,
-    width: "100%",
-    gap: WIDTH * 0.015,
+    paddingVertical: HEIGHT * 0.01,
   },
-  viewText: {
-    color: WHITE,
-    fontSize: HEIGHT * 0.014,
-    fontFamily: FIRASANSSEMIBOLD,
+  approveBtn: {
+    backgroundColor: "#26AE61",
+  },
+  rejectBtn: {
+    backgroundColor: "#E53935",
+  },
+  viewBtn: {
+    backgroundColor: BRANDCOLOR,
+  },
+  viewIcon: {
+    width: HEIGHT * 0.022,
+    height: HEIGHT * 0.022,
+    resizeMode: "contain",
+    tintColor: WHITE,
   },
 
   modalWrapper: {

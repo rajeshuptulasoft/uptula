@@ -6,6 +6,7 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
+    ImageBackground,
     Platform,
     StatusBar,
     BackHandler,
@@ -19,7 +20,7 @@ import { MyHeader } from '../../../components/commonComponents/MyHeader';
 import { TextInputComponent } from '../../../components/commonComponents/TextInputComponent';
 import { CustomButton } from '../../../components/commonComponents/Button';
 import { BRANDCOLOR, WHITE, BLACK } from '../../../constant/color';
-import { KEYWORD, DROPDOWN } from '../../../constant/imagePath';
+import { KEYWORD, DROPDOWN, PREMIUM } from '../../../constant/imagePath';
 import { HEIGHT, WIDTH } from '../../../constant/config';
 import { 
     COMICSBOLD, 
@@ -431,55 +432,19 @@ const BooleanSearchScreen = ({ navigation }) => {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Search Status Section - At Top */}
-                    <View style={styles.statusContainer}>
-                        <Text style={styles.statusTitle}>Search Status</Text>
-                        {loadingSearchStatus ? (
-                            <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="small" color={BRANDCOLOR} />
-                                <Text style={styles.loadingText}>Loading status...</Text>
-                            </View>
-                        ) : searchStatus ? (
-                            <>
-                                <Text style={styles.statusPlan}>
-                                    Plan: {searchStatus?.membershipType ? searchStatus.membershipType.charAt(0).toUpperCase() + searchStatus.membershipType.slice(1) : 'Premium'}
+                    {/* Premium Card Section */}
+                    <View style={styles.premiumCardContainer}>
+                        <ImageBackground 
+                            source={PREMIUM}
+                            style={styles.premiumCardBackground}
+                            resizeMode="cover"
+                        >
+                            <View style={styles.premiumCardContent}>
+                                <Text style={styles.premiumCardText}>
+                                    Unlimited{'\n'}Boolean Search
                                 </Text>
-                                <View style={styles.statusFeature}>
-                                    <Text style={styles.checkmark}>
-                                        {searchStatus?.isPremium ? '✓' : '✗'}
-                                    </Text>
-                                    <Text style={styles.statusFeatureText}>
-                                        {searchStatus?.isPremium ? 'Premium Member' : 'Free Member'}
-                                    </Text>
-                                </View>
-                                <View style={styles.statusFeature}>
-                                    <Text style={styles.checkmark}>
-                                        {searchStatus?.canUseProFeatures ? '✓' : '✗'}
-                                    </Text>
-                                    <Text style={styles.statusFeatureText}>
-                                        {searchStatus?.canUseProFeatures ? 'Can Use Pro Features' : 'Pro Features Not Available'}
-                                    </Text>
-                                </View>
-                                {searchStatus?.hasUsedProTrial !== undefined && (
-                                    <View style={styles.statusFeature}>
-                                        <Text style={styles.checkmark}>
-                                            {searchStatus?.hasUsedProTrial ? '✓' : '○'}
-                                        </Text>
-                                        <Text style={styles.statusFeatureText}>
-                                            {searchStatus?.hasUsedProTrial ? 'Pro Trial Used' : 'Pro Trial Available'}
-                                        </Text>
-                                    </View>
-                                )}
-                            </>
-                        ) : (
-                            <>
-                        <Text style={styles.statusPlan}>Plan: Premium</Text>
-                        <View style={styles.statusFeature}>
-                            <Text style={styles.checkmark}>✓</Text>
-                            <Text style={styles.statusFeatureText}>Unlimited Boolean Search</Text>
-                        </View>
-                            </>
-                        )}
+                            </View>
+                        </ImageBackground>
                     </View>
 
                     {/* Search Candidates Section */}
@@ -1291,6 +1256,30 @@ const styles = StyleSheet.create({
         color: WHITE,
         fontSize: HEIGHT * 0.014,
         fontFamily: FIRASANSBOLD,
+    },
+    premiumCardContainer: {
+        marginVertical: HEIGHT * 0.01,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    premiumCardBackground: {
+        height: HEIGHT * 0.35,
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+        paddingRight: WIDTH * 0.08,
+        paddingBottom: HEIGHT * 0.02,
+    },
+    premiumCardContent: {
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        paddingRight: WIDTH * 0.03,
+    },
+    premiumCardText: {
+        fontSize: HEIGHT * 0.024,
+        fontFamily: ROBOTOBOLD,
+        color: WHITE,
+        textAlign: 'right',
+        lineHeight: HEIGHT * 0.035,
     },
 });
 

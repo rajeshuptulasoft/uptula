@@ -164,6 +164,15 @@ const getVerifiedStatus = (item) => {
   return directValues.some((value) => toBoolean(value));
 };
 
+const normalizeDecision = (value) => {
+  const decision = (value || '').toString().trim().toLowerCase();
+  if (!decision) return '';
+  if (decision === 'accept') return 'accepted';
+  if (decision === 'accpeted') return 'accepted';
+  if (decision === 'rejectd') return 'rejected';
+  return decision;
+};
+
 // Format salary (no INR prefix, icon shows currency)
 const formatSalary = (salaryRange) => {
   if (!salaryRange) return 'Salary not specified';
@@ -216,29 +225,40 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, appl
   // Get status stages
   const getStatusStages = () => {
     const status = applicationStatus || {};
-    return [
+    const decision = normalizeDecision(status.decision || status.statusDecision || status.finalDecision);
+    const stages = [
       { 
         label: 'Applied', 
         completed: true,
         date: status.appliedAt || status.appliedDate || status.createdAt 
       },
-      { 
-        label: 'Resume Viewed By Recruiter', 
-        completed: status.resumeViewed || status.resumeViewedAt || false,
-        date: status.resumeViewedAt 
-      },
-      { 
-        label: 'Recruiter Contacted Through Mail', 
-        completed: status.recruiterContacted || status.recruiterContactedAt || false,
-        date: status.recruiterContactedAt 
-      },
-      { 
-        label: status.status === 'enrolled' ? 'Enrolled' : status.status === 'rejected' ? 'Rejected' : 'Pending',
-        completed: status.status === 'enrolled' || status.status === 'rejected',
-        date: status.statusUpdatedAt,
-        isFinal: true
-      }
     ];
+
+    if (decision === 'viewed' || decision === 'accepted' || decision === 'rejected') {
+      stages.push({
+        label: 'Resume Viewed By Recruiter',
+        completed: true,
+        date: status.resumeViewedAt || status.statusUpdatedAt || status.updatedAt,
+      });
+    }
+
+    if (decision === 'accepted') {
+      stages.push({
+        label: 'Approved',
+        completed: true,
+        date: status.statusUpdatedAt || status.updatedAt,
+        isFinal: true,
+      });
+    } else if (decision === 'rejected') {
+      stages.push({
+        label: 'Rejected',
+        completed: true,
+        date: status.statusUpdatedAt || status.updatedAt,
+        isFinal: true,
+      });
+    }
+
+    return stages;
   };
 
   const statusStages = getStatusStages();
@@ -378,29 +398,40 @@ const LatestJobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied
   // Get status stages
   const getStatusStages = () => {
     const status = applicationStatus || {};
-    return [
+    const decision = normalizeDecision(status.decision || status.statusDecision || status.finalDecision);
+    const stages = [
       { 
         label: 'Applied', 
         completed: true,
         date: status.appliedAt || status.appliedDate || status.createdAt 
       },
-      { 
-        label: 'Resume Viewed By Recruiter', 
-        completed: status.resumeViewed || status.resumeViewedAt || false,
-        date: status.resumeViewedAt 
-      },
-      { 
-        label: 'Recruiter Contacted Through Mail', 
-        completed: status.recruiterContacted || status.recruiterContactedAt || false,
-        date: status.recruiterContactedAt 
-      },
-      { 
-        label: status.status === 'enrolled' ? 'Enrolled' : status.status === 'rejected' ? 'Rejected' : 'Pending',
-        completed: status.status === 'enrolled' || status.status === 'rejected',
-        date: status.statusUpdatedAt,
-        isFinal: true
-      }
     ];
+
+    if (decision === 'viewed' || decision === 'accepted' || decision === 'rejected') {
+      stages.push({
+        label: 'Resume Viewed By Recruiter',
+        completed: true,
+        date: status.resumeViewedAt || status.statusUpdatedAt || status.updatedAt,
+      });
+    }
+
+    if (decision === 'accepted') {
+      stages.push({
+        label: 'Approved',
+        completed: true,
+        date: status.statusUpdatedAt || status.updatedAt,
+        isFinal: true,
+      });
+    } else if (decision === 'rejected') {
+      stages.push({
+        label: 'Rejected',
+        completed: true,
+        date: status.statusUpdatedAt || status.updatedAt,
+        isFinal: true,
+      });
+    }
+
+    return stages;
   };
 
   const statusStages = getStatusStages();
@@ -2001,7 +2032,27 @@ const HomeScreen = ({ navigation }) => {
         const appliedJobsMap = new Map();
         
         if (Array.isArray(applications)) {
-          applications.forEach((application) => {
+          const detailedApplications = await Promise.all(
+            applications.map(async (application) => {
+              const applicationId = application.id || application._id || application.applicationId;
+              if (!applicationId) return application;
+              try {
+                const detailUrl = `${BASE_URL}applications/${applicationId}`;
+                const detailResult = await GETNETWORK(detailUrl, true);
+                const decision =
+                  detailResult?.decision ||
+                  detailResult?.data?.decision ||
+                  detailResult?.application?.decision ||
+                  detailResult?.data?.application?.decision ||
+                  application?.decision;
+                return { ...application, decision };
+              } catch (_) {
+                return application;
+              }
+            })
+          );
+
+          detailedApplications.forEach((application) => {
             const jobId = (application.jobId || application.job_id || application.job?.id || application.job?._id)?.toString();
             if (jobId) {
               appliedJobsMap.set(jobId, {
@@ -2012,6 +2063,7 @@ const HomeScreen = ({ navigation }) => {
                 recruiterContacted: application.recruiterContacted || false,
                 recruiterContactedAt: application.recruiterContactedAt,
                 statusUpdatedAt: application.statusUpdatedAt || application.updatedAt,
+                decision: normalizeDecision(application.decision),
                 ...application
               });
             }

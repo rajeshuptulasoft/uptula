@@ -34,6 +34,7 @@ export const MyHeader = ({
     const [dynamicProfileImage, setDynamicProfileImage] = useState(null);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
     const [unreadCount, setUnreadCount] = useState(0);
+    const safeUnreadCount = Number(unreadCount) > 0 ? Number(unreadCount) : 0;
 
     const extractUserId = (loginData) => {
         return loginData?.user?.id
@@ -277,9 +278,9 @@ export const MyHeader = ({
             {/* Right: Notification */}
                 <Pressable onPress={onNotificationPress} style={styles.notificationContainer}>
                     <Image style={styles.notificationIcon} source={NOTIFICATION} />
-                    {unreadCount > 0 && (
+                    {safeUnreadCount > 0 && (
                         <View style={styles.notificationBadge}>
-                            <Text style={styles.notificationBadgeText}>{unreadCount}</Text>
+                            <Text style={styles.notificationBadgeText}>{safeUnreadCount}</Text>
                         </View>
                     )}
                 </Pressable>

@@ -55,6 +55,7 @@ import {
   GC,
   UPTULASOFT,
   VIKASHFOUNDATION,
+  VERIFIEDPROVIDER,
 } from "../../../constant/imagePath";
 import { getObjByKey } from "../../../utils/Storage";
 import { BASE_URL } from "../../../constant/url";
@@ -1336,9 +1337,13 @@ const CompanyCard = ({ item }) => {
         ? logo
         : `${BASE_URL.replace('/api/', '/')}${logo.replace(/^\//, '')}`)
     : null;
-  const companyName = item.company_name || item.company || item.name || 'N/A';
+  const industryText = typeof item?.industry === "string" && item.industry.trim()
+    ? item.industry.trim().charAt(0).toUpperCase() + item.industry.trim().slice(1).toLowerCase()
+    : "";
+  const companyName = item.company_name || item.company || item.name || industryText || 'N/A';
   const locationText = getCompanyLocationText(item) || formatLocation(item.state, item.city);
   const openings = item.openings || item.no_of_vacancy || item.vacancy || item.jobs_count || item.total_jobs || item.total_job_openings || 0;
+  const isVerified = item?.isVerified === true || item?.is_verified === true || String(item?.isVerified).toLowerCase() === "true";
 
   return (
     <View style={styles.companyCard}>
@@ -1347,7 +1352,12 @@ const CompanyCard = ({ item }) => {
       ) : (
         <Image source={LOGO} style={styles.companyLogo} />
       )}
-      <Text style={styles.companyName} numberOfLines={1}>{companyName}</Text>
+      <View style={styles.companyNameRow}>
+        <Text style={styles.companyName} numberOfLines={1}>{companyName}</Text>
+        {isVerified ? (
+          <Image source={VERIFIEDPROVIDER} style={styles.companyVerifiedIcon} />
+        ) : null}
+      </View>
       {locationText ? (
         <View style={styles.companyLocationRow}>
           <MaterialCommunityIcons name="map-marker-outline" size={WIDTH * 0.032} color={BRANDCOLOR} />
@@ -1784,13 +1794,13 @@ const HomeScreen = ({ navigation }) => {
 
   // Static companies data
   const companies = [
-    { name: "Mukti", logo: require("../../../assets/images/mukti.png") },
-    { name: "Vikash", logo: require("../../../assets/images/vikash.png") },
-    { name: "VDeal", logo: require("../../../assets/images/vdeal.png") },
-    { name: "Yubi", logo: require("../../../assets/images/yubi.png") },
-    { name: "GC", logo: require("../../../assets/images/gc2.png") },
-    { name: "UptulaSoft", logo: require("../../../assets/images/uptulasoft1.png") },
-    { name: "Vikash Foundation", logo: require("../../../assets/images/vf.png") },
+    { name: "Mukti", logo: require("../../../assets/images/mukti.png"), location: "Bhubaneswar, Odisha", openings: 5, isVerified: true },
+    { name: "Vikash", logo: require("../../../assets/images/vikash.png"), location: "Bhubaneswar, Odisha", openings: 4, isVerified: true },
+    { name: "VDeal", logo: require("../../../assets/images/vdeal.png"), location: "Mumbai, Maharashtra", openings: 3, isVerified: false },
+    { name: "Yubi", logo: require("../../../assets/images/yubi.png"), location: "Bengaluru, Karnataka", openings: 6, isVerified: true },
+    { name: "GC", logo: require("../../../assets/images/gc2.png"), location: "Kolkata, West Bengal", openings: 2, isVerified: false },
+    { name: "UptulaSoft", logo: require("../../../assets/images/uptulasoft1.png"), location: "Bhubaneswar, Odisha", openings: 7, isVerified: true },
+    { name: "Vikash Foundation", logo: require("../../../assets/images/vf.png"), location: "Puri, Odisha", openings: 1, isVerified: false },
   ];
 
   const topCompanies = companies;
@@ -3930,6 +3940,20 @@ const styles = StyleSheet.create({
     color: BLACK,
     textAlign: "center",
     marginBottom: HEIGHT * 0.006,
+    maxWidth: "88%",
+  },
+  companyNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
+  companyVerifiedIcon: {
+    width: WIDTH * 0.035,
+    height: WIDTH * 0.035,
+    marginLeft: WIDTH * 0.01,
+    marginBottom: HEIGHT * 0.006,
+    resizeMode: "contain",
   },
   companyMeta: {
     fontSize: HEIGHT * 0.014,
