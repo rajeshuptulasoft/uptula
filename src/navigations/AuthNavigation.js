@@ -30,6 +30,7 @@ import SeekerNotificationScreen from "../screens/userScreens/jobSeekerScreens/No
 import UserChatScreen from "../screens/userScreens/jobSeekerScreens/UserChatScreen";
 import RecommendedJobScreen from "../screens/userScreens/jobSeekerScreens/RecommendedJobScreen";
 import CompanyDetailsJobScreen from "../screens/userScreens/jobSeekerScreens/CompanyDetailsJobScreen";
+import DisplayCompanyProfileScreen from "../screens/userScreens/jobSeekerScreens/DisplayCompanyProfileScreen";
 
 const Stack = createStackNavigator();
 
@@ -72,6 +73,7 @@ const AuthNavigation = () => {
       <Stack.Screen name="SeekerChat" component={UserChatScreen} />
       <Stack.Screen name="RecommendedJob" component={RecommendedJobScreen} />
       <Stack.Screen name="CompanyDetailsJob" component={CompanyDetailsJobScreen} />
+      <Stack.Screen name="DisplayCompanyProfile" component={DisplayCompanyProfileScreen} />
     </Stack.Navigator>
   );
 };

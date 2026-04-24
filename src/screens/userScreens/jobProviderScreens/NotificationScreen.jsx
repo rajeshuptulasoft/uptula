@@ -39,7 +39,7 @@ const NotificationScreen = ({ navigation }) => {
   const [allNotifications, setAllNotifications] = useState([]);
   const [hasToken, setHasToken] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState(null);
+  const [fcmToken, setFcmToken] = useState("");
 
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -59,11 +59,12 @@ const NotificationScreen = ({ navigation }) => {
     checkLoginAndLoad();
   }, []);
 
-  const fetchNotifications = async (id) => {
-    if (!id) return;
+  const fetchNotifications = async (currentFcmToken = "") => {
     try {
       setRefreshing(true);
-      const url = `${BASE_URL}profile/notifications/${id}`;
+      const endpointId = 42;
+      const encodedFcmToken = encodeURIComponent(currentFcmToken || "");
+      const url = `${BASE_URL}profile/notifications/${endpointId}${encodedFcmToken ? `?fcmToken=${encodedFcmToken}` : ""}`;
       const result = await GETNETWORK(url, true);
       const notificationsData = result?.data || result?.notifications || result || [];
       const notificationsArray = Array.isArray(notificationsData) ? notificationsData : [];
@@ -92,36 +93,30 @@ const NotificationScreen = ({ navigation }) => {
     }
 
     setHasToken(true);
-    const storedUserId = loginResponse?.user?.id
-      || loginResponse?.user?._id
-      || loginResponse?.user?.userId
-      || loginResponse?.userId
-      || loginResponse?.id
-      || loginResponse?._id
-      || loginResponse?.data?.user?.id
-      || loginResponse?.data?.user?._id
-      || loginResponse?.data?.user?.userId
-      || loginResponse?.data?.userId
-      || loginResponse?.data?.id
-      || loginResponse?.data?._id
-      || null;
-    setUserId(storedUserId);
+    const storedFcmToken = loginResponse?.fcmToken
+      || loginResponse?.fcmtoken
+      || loginResponse?.fcm_token
+      || loginResponse?.user?.fcmToken
+      || loginResponse?.user?.fcmtoken
+      || loginResponse?.user?.fcm_token
+      || loginResponse?.data?.fcmToken
+      || loginResponse?.data?.fcmtoken
+      || loginResponse?.data?.fcm_token
+      || loginResponse?.data?.user?.fcmToken
+      || loginResponse?.data?.user?.fcmtoken
+      || loginResponse?.data?.user?.fcm_token
+      || "";
+    setFcmToken(storedFcmToken);
 
-    if (!storedUserId) {
-      setHasToken(false);
-      setLoading(false);
-      return;
-    }
-
-    await fetchNotifications(storedUserId);
+    await fetchNotifications(storedFcmToken);
   };
 
   const loadInitialData = async () => {
-    if (!hasToken || !userId) {
+    if (!hasToken) {
       setRefreshing(false);
       return;
     }
-    await fetchNotifications(userId);
+    await fetchNotifications(fcmToken);
   };
 
   const loadMore = () => {
@@ -159,11 +154,8 @@ const NotificationScreen = ({ navigation }) => {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  }, []);
+    loadInitialData();
+  }, [hasToken, fcmToken]);
 
   const filteredNotifications = selectedTab === "All"
     ? notifications
