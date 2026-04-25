@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,8 +14,10 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   BackHandler,
+  Image,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { MyHeader } from "../../../components/commonComponents/MyHeader";
 import { BRANDCOLOR, WHITE, BLACK } from "../../../constant/color";
@@ -28,7 +30,16 @@ import { LOGO } from "../../../constant/imagePath";
 import { WIDTH, HEIGHT } from "../../../constant/config";
 import { handleProfilePress } from "../../../navigations/CustomDrawerContent";
 
+const buildLogoUri = (raw) => {
+  if (!raw || typeof raw !== "string") return null;
+  const s = raw.trim();
+  if (!s) return null;
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  return `${BASE_URL.replace("/api/", "/")}${s.replace(/^\//, "")}`;
+};
+
 const UserChatScreen = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   const { chatId } = route?.params || {};
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -38,15 +49,50 @@ const UserChatScreen = ({ navigation, route }) => {
   const [messageText, setMessageText] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [processingAction, setProcessingAction] = useState(false);
-  const [hasToken, setHasToken] = useState(true); // Track if user has token
+  const [hasToken, setHasToken] = useState(true);
   const [toastMessage, setToastMessage] = useState({
     type: "",
     msg: "",
     visible: false,
   });
-  const [showDropdown, setShowDropdown] = useState(false); // Dropdown menu state
-  const [totalUnreadCount, setTotalUnreadCount] = useState(0); // Total unread messages count
-  const [currentUserId, setCurrentUserId] = useState(null); // Current user ID for message comparison
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [activeTab, setActiveTab] = useState("All");
+  const [searchText, setSearchText] = useState("");
+  const [selectedCompanyKey, setSelectedCompanyKey] = useState(null);
+
+  const uniqueCompanies = useMemo(() => {
+    const map = new Map();
+    chats.forEach((chat) => {
+      const name = (
+        chat.companyName ||
+        chat.company_name ||
+        chat.employerName ||
+        chat.employer_name ||
+        ""
+      ).trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      const rawLogo =
+        chat.companyLogo ||
+        chat.company_logo ||
+        chat.logoUrl ||
+        chat.logo ||
+        chat.employerLogo ||
+        chat.employer_logo ||
+        (chat.company && (chat.company.logo || chat.company.logoUrl)) ||
+        "";
+      const logoUri = buildLogoUri(typeof rawLogo === "string" ? rawLogo : "");
+      const prev = map.get(key);
+      if (!prev) {
+        map.set(key, { key, name, logoUri });
+      } else if (!prev.logoUri && logoUri) {
+        prev.logoUri = logoUri;
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [chats]);
 
   // Check if user has token and extract user ID
   const checkToken = useCallback(async () => {
@@ -590,6 +636,111 @@ const UserChatScreen = ({ navigation, route }) => {
     return status.toLowerCase().includes("approved") || status.toLowerCase().includes("active");
   };
 
+  // ── Get initials from name ───────────────────────────────────────────────
+  const getInitials = (name) => {
+    if (!name) return "?";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name[0].toUpperCase();
+  };
+
+  // ── Get avatar color based on name ────────────────────────────────────────
+  const getAvatarColor = (name) => {
+    const colors = [
+      "#4F6EF7", // Blue
+      "#00D4FF", // Cyan
+      "#FF6B35", // Orange
+      "#9D4EDD", // Purple
+      "#3A86FF", // Bright Blue
+      "#06D6A0", // Teal
+      "#EF476F", // Pink
+    ];
+    let hash = 0;
+    if (name) {
+      for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  // ── Filter and search chats ──────────────────────────────────────────────
+  const getFilteredChats = () => {
+    let filtered = chats;
+
+    if (activeTab !== "All") {
+      if (activeTab === "Applied") {
+        filtered = filtered.filter((chat) => {
+          const status = (chat.status || "").toLowerCase();
+          return status.includes("approved") || status.includes("active");
+        });
+      } else if (activeTab === "Rejected") {
+        filtered = filtered.filter((chat) => {
+          const s = (
+            chat.status ||
+            chat.applicationStatus ||
+            chat.application_status ||
+            ""
+          ).toLowerCase();
+          return s.includes("reject") || s.includes("declin") || s.includes("closed");
+        });
+      }
+    }
+
+    if (selectedCompanyKey) {
+      filtered = filtered.filter((chat) => {
+        const name = (
+          chat.companyName ||
+          chat.company_name ||
+          chat.employerName ||
+          chat.employer_name ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
+        return name === selectedCompanyKey;
+      });
+    }
+
+    if (searchText.trim()) {
+      const lowerSearch = searchText.toLowerCase();
+      filtered = filtered.filter((chat) => {
+        const title = (chat.jobTitle || chat.title || chat.job_title || "").toLowerCase();
+        const company = (
+          chat.companyName ||
+          chat.company_name ||
+          chat.employerName ||
+          ""
+        ).toLowerCase();
+        return title.includes(lowerSearch) || company.includes(lowerSearch);
+      });
+    }
+
+    return filtered;
+  };
+
+  // ── Separate pinned and recent chats ──────────────────────────────────────
+  const getPinnedAndRecentChats = () => {
+    const filtered = getFilteredChats();
+    const pinned = filtered.filter((chat) => chat.isPinned || chat.is_pinned);
+    const recent = filtered.filter((chat) => !chat.isPinned && !chat.is_pinned);
+    return { pinned, recent };
+  };
+
+  // ── Get category counts ──────────────────────────────────────────────────
+  const getCategoryCounts = () => {
+    const all = chats.length;
+    const applied = chats.filter((c) => {
+      const status = (c.status || "").toLowerCase();
+      return status.includes("approved") || status.includes("active");
+    }).length;
+    const rejected = chats.filter((c) => {
+      const s = (c.status || c.applicationStatus || c.application_status || "").toLowerCase();
+      return s.includes("reject") || s.includes("declin") || s.includes("closed");
+    }).length;
+    return { all, applied, rejected };
+  };
+
   const openDrawer = () => {
     // Try to open drawer
     try {
@@ -607,88 +758,147 @@ const UserChatScreen = ({ navigation, route }) => {
     handleProfilePress(navigation, openDrawer);
   };
 
-  // Get last message preview for chat
   const getLastMessage = (chat) => {
-    // This would ideally come from the chat object, but for now return empty
-    return chat?.lastMessage || chat?.last_message || "";
+    const lm = chat?.lastMessage || chat?.last_message;
+    if (typeof lm === "string") return lm;
+    if (lm && typeof lm === "object") {
+      return lm.text || lm.message || lm.content || lm.body || "";
+    }
+    return chat?.lastMessageText || chat?.last_message_text || chat?.preview || "";
   };
 
-  // Format time for chat list
   const formatChatTime = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "";
     const now = new Date();
-    const diff = now - date;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days === 0) {
-      return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-    } else if (days === 1) {
-      return "Yesterday";
-    } else if (days < 7) {
-      return date.toLocaleDateString("en-US", { weekday: "short" });
-    } else {
-      return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" });
-    }
+    const diffMs = now - date;
+    if (diffMs < 0) return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+    const diffM = Math.floor(diffMs / 60000);
+    const diffH = Math.floor(diffMs / 3600000);
+    const sameDay = date.toDateString() === now.toDateString();
+    if (diffM < 1) return "Now";
+    if (diffM < 60 && sameDay) return `${diffM}m`;
+    if (diffH < 24 && sameDay) return `${diffH}h`;
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (days < 7) return date.toLocaleDateString("en-US", { weekday: "short" });
+    return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" });
   };
 
-  // Render chat list item as WhatsApp-style horizontal item
-  const renderChatItem = ({ item, index }) => {
+  const renderChatItem = ({ item }) => {
     const isSelected = selectedChat?.id === item.id || selectedChat?._id === item._id;
     const status = item.status || "Waiting for employer approval";
-    const statusColor = getStatusColor(status);
     const statusBadgeColor = getStatusBadgeColor(status);
     const lastMessage = getLastMessage(item);
-    const lastMessageTime = item.updatedAt || item.updated_at || item.lastMessageTime || item.last_message_time;
+    const lastMessageTime =
+      item.updatedAt ||
+      item.updated_at ||
+      item.lastMessageTime ||
+      item.last_message_time ||
+      item.createdAt ||
+      item.created_at;
+    const jobTitle = item.jobTitle || item.title || item.job_title || "Role";
+    const companyName =
+      item.companyName ||
+      item.company_name ||
+      item.employerName ||
+      item.employer_name ||
+      "Employer";
+    const rawLogo =
+      item.companyLogo ||
+      item.company_logo ||
+      item.logoUrl ||
+      item.logo ||
+      item.employerLogo ||
+      item.employer_logo ||
+      "";
+    const logoUri = buildLogoUri(typeof rawLogo === "string" ? rawLogo : "");
+    const initials = getInitials(companyName);
+    const avatarColor = getAvatarColor(companyName);
+    const unreadCount =
+      item.unreadCount || item.unread_count || item.unreadMessages || item.unread_messages || 0;
+    const isCard = item.listSection === "recent";
+    const online =
+      item.isOnline === true ||
+      item.online === true ||
+      String(item.presence || "").toLowerCase() === "online";
 
-    // Format status text
-    const formatStatusText = (status) => {
-      const statusLower = status?.toLowerCase() || "";
+    const formatStatusText = (st) => {
+      const statusLower = st?.toLowerCase() || "";
       if (statusLower.includes("approved") || statusLower.includes("active")) {
         return "Approved";
-      } else if (statusLower.includes("closed")) {
-        return "Closed";
-      } else if (statusLower.includes("decline") || statusLower.includes("declined")) {
-        return "Declined";
       }
-      return status;
+      if (statusLower.includes("closed")) return "Closed";
+      if (statusLower.includes("decline") || statusLower.includes("declined")) return "Declined";
+      return "Pending";
     };
-
-    // Get unread count for this chat
-    const unreadCount = item.unreadCount || item.unread_count || item.unreadMessages || item.unread_messages || 0;
 
     return (
       <TouchableOpacity
-        style={[styles.whatsappChatItem, isSelected && styles.whatsappChatItemSelected]}
+        style={[
+          styles.chatItem,
+          isCard && styles.chatItemCard,
+          isSelected && styles.chatItemSelected,
+        ]}
         onPress={() => handleChatSelect(item)}
         activeOpacity={0.7}
       >
-        <View style={styles.whatsappChatAvatar}>
-          <MaterialCommunityIcons 
-            name="briefcase-outline" 
-            size={WIDTH * 0.06} 
-            color={statusColor}
+        <View style={styles.avatarWrap}>
+          {logoUri ? (
+            <Image
+              source={{ uri: logoUri }}
+              style={styles.companyAvatarImg}
+              defaultSource={LOGO}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+          )}
+          <View
+            style={[
+              styles.presenceDot,
+              { backgroundColor: online ? "#22C55E" : "#9CA3AF" },
+            ]}
           />
         </View>
-        <View style={styles.whatsappChatContent}>
-          <View style={styles.whatsappChatHeaderRow}>
-            <Text style={styles.whatsappChatName} numberOfLines={1}>
-              {item.jobTitle || item.title || item.job_title || "Job Title"}
+
+        <View style={styles.chatContent}>
+          <View style={styles.chatItemTopRow}>
+            <Text style={styles.chatTitle} numberOfLines={1}>
+              {companyName}
             </Text>
-            <View style={[styles.statusBadge, { backgroundColor: statusBadgeColor }]}>
-              <Text style={styles.statusBadgeText}>
+            <Text style={styles.chatTime}>{formatChatTime(lastMessageTime)}</Text>
+          </View>
+          <View style={styles.chatSubtitle}>
+            <Text style={styles.jobTitleAccent} numberOfLines={1}>
+              {jobTitle}
+            </Text>
+          </View>
+          {lastMessage ? (
+            <Text style={styles.lastMessagePreview} numberOfLines={1}>
+              {lastMessage}
+            </Text>
+          ) : null}
+          {statusBadgeColor ? (
+            <View style={styles.statusBadgeRow}>
+              <View style={[styles.statusDot, { backgroundColor: statusBadgeColor }]} />
+              <Text style={[styles.statusBadgeText, { color: statusBadgeColor }]}>
                 {formatStatusText(status)}
               </Text>
             </View>
-          </View>
-          {lastMessage && (
-            <View style={styles.whatsappChatFooter}>
-              <Text style={styles.whatsappChatPreview} numberOfLines={1}>
-                {lastMessage}
-              </Text>
-            </View>
-          )}
+          ) : null}
         </View>
+
+        {unreadCount > 0 ? (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+          </View>
+        ) : null}
       </TouchableOpacity>
     );
   };
@@ -964,40 +1174,264 @@ const UserChatScreen = ({ navigation, route }) => {
     );
   }
 
-  // Chat list view (WhatsApp style)
+  const activeConversationCount = chats.filter((c) => {
+    const s = (c.status || "").toLowerCase();
+    return s.includes("approved") || s.includes("active");
+  }).length;
+
+  // Chat list view
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={WHITE} translucent={false} />
+      <StatusBar barStyle="light-content" backgroundColor={BRANDCOLOR} translucent={false} />
       <View style={styles.container}>
-        {/* Header */}
-        <MyHeader
-          showCenterTitle={true}
-          title="Chats"
-          backgroundColor={WHITE}
-        />
+        <View style={[styles.messagesBrandHeader, { paddingTop: insets.top + 12 }]}>
+          <Text style={styles.messagesBrandTitle}>Messages</Text>
+          <Text style={styles.messagesBrandSubtitle}>
+            {activeConversationCount} active conversation{activeConversationCount === 1 ? "" : "s"}
+          </Text>
+        </View>
+
+        <View style={styles.searchBar}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#999" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search conversations…"
+            placeholderTextColor="#999"
+            value={searchText}
+            onChangeText={setSearchText}
+          />
+          <TouchableOpacity
+            style={styles.searchFilterBtn}
+            onPress={() => setSelectedCompanyKey(null)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <MaterialCommunityIcons name="tune-variant" size={22} color={BRANDCOLOR} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Filter Tabs */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabsContainer}
+          contentContainerStyle={styles.tabsContent}
+        >
+          {(() => {
+            const counts = getCategoryCounts();
+            return (
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    activeTab === "All" && styles.tabActive,
+                  ]}
+                  onPress={() => setActiveTab("All")}
+                >
+                  <Text
+                    style={[
+                      styles.tabText,
+                      activeTab === "All" && styles.tabTextActive,
+                    ]}
+                  >
+                    All
+                  </Text>
+                  <View
+                    style={[
+                      styles.tabBadge,
+                      activeTab === "All" && styles.tabBadgeActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.tabBadgeText,
+                        activeTab === "All" && styles.tabBadgeTextActive,
+                      ]}
+                    >
+                      {counts.all}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    activeTab === "Applied" && styles.tabActive,
+                  ]}
+                  onPress={() => setActiveTab("Applied")}
+                >
+                  <Text
+                    style={[
+                      styles.tabText,
+                      activeTab === "Applied" && styles.tabTextActive,
+                    ]}
+                  >
+                    Applied
+                  </Text>
+                  <View
+                    style={[
+                      styles.tabBadge,
+                      activeTab === "Applied" && styles.tabBadgeActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.tabBadgeText,
+                        activeTab === "Applied" && styles.tabBadgeTextActive,
+                      ]}
+                    >
+                      {counts.applied}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    activeTab === "Rejected" && styles.tabActive,
+                  ]}
+                  onPress={() => setActiveTab("Rejected")}
+                >
+                  <Text
+                    style={[
+                      styles.tabText,
+                      activeTab === "Rejected" && styles.tabTextActive,
+                    ]}
+                  >
+                    Rejected
+                  </Text>
+                  <View
+                    style={[
+                      styles.tabBadge,
+                      activeTab === "Rejected" && styles.tabBadgeActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.tabBadgeText,
+                        activeTab === "Rejected" && styles.tabBadgeTextActive,
+                      ]}
+                    >
+                      {counts.rejected}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            );
+          })()}
+        </ScrollView>
+
+        {uniqueCompanies.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoriesContainer}
+            contentContainerStyle={styles.categoriesContent}
+          >
+            {uniqueCompanies.map((co) => {
+              const selected = selectedCompanyKey === co.key;
+              const initials = getInitials(co.name);
+              const fallbackColor = getAvatarColor(co.name);
+              return (
+                <TouchableOpacity
+                  key={co.key}
+                  style={[styles.categoryAvatar, selected && styles.categoryAvatarSelected]}
+                  onPress={() =>
+                    setSelectedCompanyKey((prev) => (prev === co.key ? null : co.key))
+                  }
+                  activeOpacity={0.8}
+                >
+                  <View
+                    style={[
+                      styles.categoryCircle,
+                      selected && styles.categoryCircleSelected,
+                    ]}
+                  >
+                    {co.logoUri ? (
+                      <Image
+                        source={{ uri: co.logoUri }}
+                        style={styles.categoryLogoImage}
+                        defaultSource={LOGO}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.categoryInitialsFill,
+                          { backgroundColor: fallbackColor },
+                        ]}
+                      >
+                        <Text style={styles.categoryInitial}>{initials.slice(0, 2)}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.categoryLabel} numberOfLines={1}>
+                    {co.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : null}
 
         {/* Chat List */}
-        <FlatList
-          data={chats}
-          keyExtractor={(item, index) => item.id?.toString() || item._id?.toString() || index.toString()}
-          renderItem={renderChatItem}
-          contentContainerStyle={styles.whatsappChatList}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[BRANDCOLOR]}
-              tintColor={BRANDCOLOR}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons name="chat-outline" size={64} color="#999" />
-              <Text style={styles.emptyText}>No chats available</Text>
-            </View>
-          }
-        />
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={BRANDCOLOR} />
+          </View>
+        ) : (
+          (() => {
+            const { pinned, recent } = getPinnedAndRecentChats();
+            const flatListData = [];
+
+            if (pinned.length > 0) {
+              flatListData.push({ type: "header", label: "PINNED" });
+              flatListData.push(
+                ...pinned.map((chat) => ({ ...chat, type: "chat", listSection: "pinned" }))
+              );
+            }
+
+            if (recent.length > 0) {
+              flatListData.push({ type: "header", label: "RECENT" });
+              flatListData.push(
+                ...recent.map((chat) => ({ ...chat, type: "chat", listSection: "recent" }))
+              );
+            }
+
+            return (
+              <FlatList
+                data={flatListData.length > 0 ? flatListData : []}
+                keyExtractor={(item, index) => {
+                  if (item.type === "header") return `header-${item.label}`;
+                  return item.id?.toString() || item._id?.toString() || index.toString();
+                }}
+                renderItem={({ item }) => {
+                  if (item.type === "header") {
+                    return (
+                      <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionHeaderText}>{item.label}</Text>
+                      </View>
+                    );
+                  }
+                  return renderChatItem({ item });
+                }}
+                contentContainerStyle={styles.chatListContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    colors={[BRANDCOLOR]}
+                    tintColor={BRANDCOLOR}
+                  />
+                }
+                ListEmptyComponent={
+                  <View style={styles.emptyContainer}>
+                    <MaterialCommunityIcons name="chat-outline" size={64} color="#999" />
+                    <Text style={styles.emptyText}>No chats available</Text>
+                  </View>
+                }
+              />
+            );
+          })()
+        )}
 
         {/* Toast Message */}
         <ToastMessage
@@ -1022,123 +1456,379 @@ export default UserChatScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: WHITE,
+    backgroundColor: "#F7F8FA",
   },
-  // Header Wrapper Styles
-  headerWrapper: {
-    backgroundColor: WHITE,
-    position: "relative",
+
+  messagesBrandHeader: {
+    backgroundColor: BRANDCOLOR,
+    paddingHorizontal: 20,
+    paddingBottom: 18,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
-  headerActions: {
-    position: "absolute",
-    right: 10,
-    top: Platform.OS === "android" ? Math.max((StatusBar.currentHeight || 0) + 4, 10) : 10,
-    zIndex: 1,
+  messagesBrandTitle: {
+    fontSize: 26,
+    fontFamily: FIRASANSBOLD,
+    color: WHITE,
   },
-  whatsappListHeaderActions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  whatsappHeaderIconButton: {
-    marginLeft: WIDTH * 0.05,
-    padding: 4,
-  },
-  whatsappSearchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: WHITE,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: 8,
-  },
-  whatsappSearchIcon: {
-    marginRight: 8,
-  },
-  whatsappSearchInput: {
-    flex: 1,
+  messagesBrandSubtitle: {
+    marginTop: 4,
     fontSize: 14,
-    color: BLACK,
-    padding: 0,
+    fontFamily: UBUNTU,
+    color: "rgba(255,255,255,0.9)",
   },
-  // Simple Chat List Item Styles
-  whatsappChatList: {
-    paddingBottom: Platform.OS === "ios" ? HEIGHT * 0.1 : HEIGHT * 0.15,
-  },
-  whatsappChatItem: {
+
+  searchBar: {
     flexDirection: "row",
-    padding: 16,
+    alignItems: "center",
     backgroundColor: WHITE,
+    marginHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 0,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
   },
-  whatsappChatItemSelected: {
-    backgroundColor: WHITE,
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    fontFamily: UBUNTU,
+    color: BLACK,
+    paddingVertical: 0,
   },
-  whatsappChatAvatar: {
-    width: WIDTH * 0.13,
-    height: WIDTH * 0.13,
-    borderRadius: WIDTH * 0.065,
-    backgroundColor: "#F8F8F8",
+  searchFilterBtn: {
+    paddingLeft: 8,
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  // ── Tabs ────────────────────────────────────────────────────────────────
+  tabsContainer: {
+    backgroundColor: "#F7F8FA",
+    paddingHorizontal: 8,
+    paddingBottom: 0,
+    marginTop: 0,
+  },
+  tabsContent: {
+    paddingHorizontal: 8,
+    alignItems: "center",
+  },
+  tab: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    marginRight: 4,
+    backgroundColor: WHITE,
+  },
+  tabActive: {
+    backgroundColor: WHITE,
+    borderColor: BRANDCOLOR,
+    borderWidth: 1,
+  },
+  tabText: {
+    fontSize: 13,
+    fontFamily: FIRASANSSEMIBOLD,
+    color: "#666",
+    marginRight: 6,
+  },
+  tabTextActive: {
+    color: BRANDCOLOR,
+  },
+  tabBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#F0F0F0",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 2,
+  },
+  tabBadgeActive: {
+    backgroundColor: BRANDCOLOR,
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontFamily: FIRASANSSEMIBOLD,
+    color: "#666",
+  },
+  tabBadgeTextActive: {
+    color: WHITE,
+  },
+
+  // ── Categories ──────────────────────────────────────────────────────────
+  categoriesContainer: {
+    backgroundColor: "#F7F8FA",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    maxHeight: 100,
+  },
+  categoriesContent: {
+    paddingHorizontal: 8,
+    alignItems: "flex-start",
+  },
+  categoryAvatar: {
+    alignItems: "center",
+    marginRight: 16,
+    maxWidth: 76,
+  },
+  categoryAvatarSelected: {
+    opacity: 1,
+  },
+  categoryCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    backgroundColor: "#E8E8E8",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  categoryCircleSelected: {
+    borderWidth: 3,
+    borderColor: BRANDCOLOR,
+  },
+  categoryLogoImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  categoryInitialsFill: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  categoryInitial: {
+    fontSize: 18,
+    fontFamily: FIRASANSBOLD,
+    color: WHITE,
+  },
+  categoryLabel: {
+    fontSize: 11,
+    fontFamily: UBUNTU,
+    color: "#444",
+    textAlign: "center",
+    marginTop: 6,
+    maxWidth: 72,
+  },
+
+  // ── Chat List ───────────────────────────────────────────────────────────
+  chatListContent: {
+    paddingBottom: 24,
+    paddingTop: 4,
+  },
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "transparent",
+  },
+  sectionHeaderText: {
+    fontSize: 12,
+    fontFamily: FIRASANSSEMIBOLD,
+    color: "#888",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  chatItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: WHITE,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ECECEC",
+  },
+  chatItemCard: {
+    marginHorizontal: 12,
+    marginVertical: 6,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderBottomWidth: 0,
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  chatItemSelected: {
+    borderColor: BRANDCOLOR,
+    backgroundColor: "#FAFFFC",
+  },
+  avatarWrap: {
+    position: "relative",
     marginRight: 12,
   },
-  whatsappChatContent: {
-    flex: 1,
-    justifyContent: "center",
+  companyAvatarImg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#F0F0F0",
   },
-  whatsappChatHeaderRow: {
+  presenceDot: {
+    position: "absolute",
+    right: 2,
+    bottom: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: WHITE,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontFamily: FIRASANSBOLD,
+    color: WHITE,
+  },
+  chatContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  chatItemTopRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 4,
   },
-  whatsappChatName: {
+  chatTitle: {
     fontSize: 16,
-    fontWeight: "500",
-    color: BLACK,
+    fontFamily: FIRASANSBOLD,
+    color: "#1a2744",
     flex: 1,
+    marginRight: 8,
   },
-  whatsappChatFooter: {
+  chatTime: {
+    fontSize: 13,
+    fontFamily: UBUNTU,
+    color: "#999",
+  },
+  chatSubtitle: {
+    marginBottom: 2,
+  },
+  jobTitleAccent: {
+    fontSize: 13,
+    fontFamily: FIRASANSSEMIBOLD,
+    color: BRANDCOLOR,
+  },
+  lastMessagePreview: {
+    fontSize: 13,
+    fontFamily: UBUNTU,
+    color: "#64748B",
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  statusBadgeRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 2,
+    marginTop: 4,
   },
-  whatsappChatPreview: {
-    fontSize: 14,
-    color: "#666",
-    flex: 1,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 8,
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
   },
   statusBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FIRASANSSEMIBOLD,
+    textTransform: "capitalize",
+  },
+  unreadBadge: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: BRANDCOLOR,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  unreadBadgeText: {
+    fontSize: 12,
+    fontFamily: FIRASANSBOLD,
     color: WHITE,
-    textTransform: "uppercase",
+  },
+
+  // ── Loading ─────────────────────────────────────────────────────────────
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // ── Empty State ─────────────────────────────────────────────────────────
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: HEIGHT * 0.2,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#999",
+    marginTop: 16,
+    fontFamily: UBUNTU,
+  },
+
+  // ── Chat Detail View ────────────────────────────────────────────────────
+  headerWrapper: {
+    backgroundColor: WHITE,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+  },
+  headerActions: {
+    position: "absolute",
+    right: 16,
+    top: Platform.OS === "android" ? Math.max((StatusBar.currentHeight || 0) + 8, 8) : 16,
+    flexDirection: "row",
+    alignItems: "center",
   },
   whatsappHeaderActionButton: {
     padding: 8,
     marginLeft: 8,
   },
-  // Dropdown Menu Styles
   dropdownMenu: {
     position: "absolute",
-    top: 45,
+    top: 50,
     right: 0,
     backgroundColor: WHITE,
     borderRadius: 8,
-    minWidth: 120,
+    minWidth: 140,
     elevation: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
     borderWidth: 1,
     borderColor: "#E0E0E0",
     zIndex: 1000,
+    overflow: "hidden",
   },
   dropdownItem: {
     flexDirection: "row",
@@ -1156,7 +1846,8 @@ const styles = StyleSheet.create({
     color: BLACK,
     fontFamily: FIRASANSSEMIBOLD,
   },
-  // Simple Messages Area Styles
+
+  // ── Messages Area ───────────────────────────────────────────────────────
   whatsappMessagesArea: {
     flex: 1,
     backgroundColor: WHITE,
@@ -1167,7 +1858,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   whatsappMessagesContainer: {
-    padding: 10,
+    padding: 12,
     paddingBottom: 20,
   },
   whatsappMessageContainer: {
@@ -1191,32 +1882,30 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   whatsappMessageBubbleSent: {
-    backgroundColor: WHITE, // White background for sender (job seeker)
+    backgroundColor: "#E3F2FD",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderRadius: 18,
+    borderBottomRightRadius: 4,
   },
   whatsappMessageBubbleReceiver: {
-    backgroundColor: "#25D366", // Green background for receiver (job provider)
+    backgroundColor: BRANDCOLOR,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 8,
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
   },
   whatsappMessageTextSent: {
     fontSize: 15,
-    color: BLACK, // Black text for sender (white background)
+    color: BLACK,
     lineHeight: 20,
+    fontFamily: UBUNTU,
   },
   whatsappMessageTextReceiver: {
     fontSize: 15,
-    color: WHITE, // White text for receiver (green background)
+    color: WHITE,
     lineHeight: 20,
+    fontFamily: UBUNTU,
   },
   whatsappMessageTimeContainerSent: {
     flexDirection: "row",
@@ -1234,81 +1923,16 @@ const styles = StyleSheet.create({
   },
   whatsappMessageTimeSent: {
     fontSize: 11,
-    color: "#999", // Gray text for sender (white background)
+    color: "#999",
+    fontFamily: UBUNTU,
   },
   whatsappMessageTimeReceiver: {
     fontSize: 11,
-    color: "rgba(255, 255, 255, 0.8)", // White text for receiver (green background)
+    color: "rgba(255,255,255,0.8)",
+    fontFamily: UBUNTU,
   },
   whatsappMessageCheck: {
     marginLeft: 4,
-  },
-  // Simple Input Area Styles
-  whatsappInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: WHITE,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  whatsappInputWrapper: {
-    flex: 1,
-    backgroundColor: WHITE,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginRight: 12,
-    minHeight: 50,
-    maxHeight: 120,
-  },
-  whatsappInput: {
-    fontSize: 15,
-    color: BLACK,
-    padding: 0,
-    maxHeight: 84,
-  },
-  whatsappInputIconButton: {
-    padding: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  whatsappSendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#4D72DC",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 4,
-  },
-  whatsappSendButtonDisabled: {
-    opacity: 0.5,
-  },
-  // Common Styles
-  disabledInputContainer: {
-    padding: 16,
-    backgroundColor: "#FFF3E0",
-    borderTopWidth: 0.5,
-    borderTopColor: "#E0E0E0",
-  },
-  disabledInputText: {
-    fontSize: 14,
-    color: "#E65100",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: HEIGHT * 0.2,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#999",
-    marginTop: 16,
   },
   emptyMessagesContainer: {
     flex: 1,
@@ -1319,7 +1943,71 @@ const styles = StyleSheet.create({
   emptyMessagesText: {
     fontSize: 16,
     color: "#999",
+    fontFamily: UBUNTU,
   },
+
+  // ── Input Area ──────────────────────────────────────────────────────────
+  whatsappInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: WHITE,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+  },
+  whatsappInputWrapper: {
+    flex: 1,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginRight: 12,
+    minHeight: 44,
+    maxHeight: 100,
+    justifyContent: "center",
+  },
+  whatsappInput: {
+    fontSize: 15,
+    color: BLACK,
+    padding: 0,
+    fontFamily: UBUNTU,
+    maxHeight: 80,
+  },
+  whatsappSendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: BRANDCOLOR,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  whatsappSendButtonDisabled: {
+    opacity: 0.5,
+  },
+  whatsappInputIconButton: {
+    padding: 8,
+  },
+  disabledInputContainer: {
+    padding: 16,
+    backgroundColor: "#FFF3E0",
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+  },
+  disabledInputText: {
+    fontSize: 14,
+    color: "#E65100",
+    textAlign: "center",
+    lineHeight: 20,
+    fontFamily: UBUNTU,
+  },
+
+  // ── Guest/Login ────────────────────────────────────────────────────────
   guestContainer: {
     flex: 1,
     justifyContent: "center",
@@ -1341,18 +2029,19 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: WIDTH * 0.08,
     paddingHorizontal: WIDTH * 0.05,
+    fontFamily: UBUNTU,
   },
   loginButton: {
-    backgroundColor: "#4D72DC",
+    backgroundColor: BRANDCOLOR,
     paddingVertical: 14,
     paddingHorizontal: 32,
-    borderRadius: 25,
+    borderRadius: 24,
     minWidth: 200,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
+    shadowColor: BRANDCOLOR,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
   },
