@@ -18,7 +18,7 @@ import ManageJobDetailsScreen from "../screens/userScreens/jobProviderScreens/Ma
 import AnalyticsReportScreen from "../screens/userScreens/jobProviderScreens/AnalyticsRepost";
 import NotificationScreen from "../screens/userScreens/jobProviderScreens/NotificationScreen";
 import JobDetailsScreen from "../screens/userScreens/jobProviderScreens/JobDetailsScreen";
-import EmployerChatScreen from "../screens/userScreens/jobProviderScreens/EmployerChatScreen";
+// import EmployerChatScreen from "../screens/userScreens/jobProviderScreens/EmployerChatScreen";
 import CategoriesScreen from "../screens/userScreens/jobProviderScreens/CategoriesScreen";
 
 // Job Seeker Screens
@@ -31,6 +31,7 @@ import UserChatScreen from "../screens/userScreens/jobSeekerScreens/UserChatScre
 import RecommendedJobScreen from "../screens/userScreens/jobSeekerScreens/RecommendedJobScreen";
 import CompanyDetailsJobScreen from "../screens/userScreens/jobSeekerScreens/CompanyDetailsJobScreen";
 import DisplayCompanyProfileScreen from "../screens/userScreens/jobSeekerScreens/DisplayCompanyProfileScreen";
+import EmployerChatScreen from "../screens/userScreens/jobProviderScreens/EmployerChatScreen";
 
 const Stack = createStackNavigator();
 
