@@ -237,7 +237,7 @@ const LoginScreen = ({ navigation }) => {
                 msg: "Please enter email",
                 visible: true,
             });
-            console.log("[ForgotPassword] startOtpProcess failed: forgotEmail missing");
+            // console.log("[ForgotPassword] startOtpProcess failed: forgotEmail missing");
             return;
         }
 
@@ -248,7 +248,7 @@ const LoginScreen = ({ navigation }) => {
                 msg: "Maximum resend attempts reached.",
                 visible: true,
             });
-            console.log("[ForgotPassword] startOtpProcess blocked: max resend attempts reached", { resendCount, MAX_RESEND_ATTEMPTS });
+            // console.log("[ForgotPassword] startOtpProcess blocked: max resend attempts reached", { resendCount, MAX_RESEND_ATTEMPTS });
             return;
         }
 
@@ -261,9 +261,9 @@ const LoginScreen = ({ navigation }) => {
                 email: forgotEmail,
             };
 
-            console.log("[ForgotPassword] startOtpProcess calling API", { url, payload, isResend });
+            // console.log("[ForgotPassword] startOtpProcess calling API", { url, payload, isResend });
             const response = await POSTNETWORK(url, payload, false);
-            console.log("[ForgotPassword] startOtpProcess response", response);
+            // console.log("[ForgotPassword] startOtpProcess response", response);
 
             if (response?.success || response?.message) {
                 setOtpValue("");
@@ -285,14 +285,14 @@ const LoginScreen = ({ navigation }) => {
                     visible: true,
                 });
 
-                console.log("[ForgotPassword] OTP send success", { email: forgotEmail, isResend });
+                // console.log("[ForgotPassword] OTP send success", { email: forgotEmail, isResend });
             } else {
                 setToastMessage({
                     type: "error",
                     msg: response?.message || "Failed to send OTP",
                     visible: true,
                 });
-                console.log("[ForgotPassword] OTP send failed", { response });
+                // console.log("[ForgotPassword] OTP send failed", { response });
             }
 
         } catch (error) {
@@ -301,7 +301,7 @@ const LoginScreen = ({ navigation }) => {
                 msg: "Error sending OTP",
                 visible: true,
             });
-            console.log("[ForgotPassword] startOtpProcess error", error);
+            // console.log("[ForgotPassword] startOtpProcess error", error);
         }
     };
 
@@ -326,7 +326,7 @@ const LoginScreen = ({ navigation }) => {
 
     const handleResendOtp = async () => {
         if (otpTimer > 0) {
-            console.log("[ForgotPassword] resend blocked, timer active", { otpTimer });
+            // console.log("[ForgotPassword] resend blocked, timer active", { otpTimer });
             return;
         }
 
@@ -334,9 +334,9 @@ const LoginScreen = ({ navigation }) => {
             const url = `${BASE_URL}resend-otp`;
             const payload = { email: forgotEmail };
 
-            console.log("[ForgotPassword] handleResendOtp calling API", { url, payload });
+            // console.log("[ForgotPassword] handleResendOtp calling API", { url, payload });
             const response = await POSTNETWORK(url, payload, false);
-            console.log("[ForgotPassword] handleResendOtp response", response);
+            // console.log("[ForgotPassword] handleResendOtp response", response);
 
             if (response?.success || response?.message) {
                 setOtpTimer(60);
@@ -346,14 +346,14 @@ const LoginScreen = ({ navigation }) => {
                     msg: "OTP resent successfully",
                     visible: true,
                 });
-                console.log("[ForgotPassword] OTP resent", { email: forgotEmail });
+                // console.log("[ForgotPassword] OTP resent", { email: forgotEmail });
             } else {
                 setToastMessage({
                     type: "error",
                     msg: response?.message || "Failed to resend OTP",
                     visible: true,
                 });
-                console.log("[ForgotPassword] resend OTP failed", { response });
+                // console.log("[ForgotPassword] resend OTP failed", { response });
             }
 
         } catch (error) {
@@ -362,7 +362,7 @@ const LoginScreen = ({ navigation }) => {
                 msg: "Error resending OTP",
                 visible: true,
             });
-            console.log("[ForgotPassword] handleResendOtp error", error);
+            // console.log("[ForgotPassword] handleResendOtp error", error);
         }
     };
 
@@ -412,9 +412,9 @@ const LoginScreen = ({ navigation }) => {
                     const url = `${BASE_URL}auth/verify-otp`;
                     const payload = { email: forgotEmail, otp: otpValue };
 
-                    console.log("[ForgotPassword] verifyOtp calling API", { url, payload });
+                    // console.log("[ForgotPassword] verifyOtp calling API", { url, payload });
                     const response = await POSTNETWORK(url, payload, false);
-                    console.log("[ForgotPassword] verifyOtp response", response);
+                    // console.log("[ForgotPassword] verifyOtp response", response);
 
                     if (response?.success || response?.message) {
                         setOtpVerified(true);
@@ -426,7 +426,7 @@ const LoginScreen = ({ navigation }) => {
                             visible: true,
                         });
 
-                        console.log("[ForgotPassword] OTP verification success", { email: forgotEmail });
+                        // console.log("[ForgotPassword] OTP verification success", { email: forgotEmail });
                     } else {
                         setOtpVerified(false);
                         setOtpStatus("Invalid OTP");
@@ -437,7 +437,7 @@ const LoginScreen = ({ navigation }) => {
                             visible: true,
                         });
 
-                        console.log("[ForgotPassword] OTP verification failed", { response });
+                        // console.log("[ForgotPassword] OTP verification failed", { response });
                     }
                 } catch (error) {
                     setToastMessage({
@@ -445,7 +445,7 @@ const LoginScreen = ({ navigation }) => {
                         msg: "OTP verification failed",
                         visible: true,
                     });
-                    console.log("[ForgotPassword] verifyOtp error", error);
+                    // console.log("[ForgotPassword] verifyOtp error", error);
                 }
             }
         };
@@ -501,7 +501,7 @@ const LoginScreen = ({ navigation }) => {
                 msg: "Enter all fields",
                 visible: true,
             });
-            console.log("[ForgotPassword] handleResetPassword failed: empty password fields");
+            // console.log("[ForgotPassword] handleResetPassword failed: empty password fields");
             return;
         }
 
@@ -511,7 +511,7 @@ const LoginScreen = ({ navigation }) => {
                 msg: "Passwords do not match",
                 visible: true,
             });
-            console.log("[ForgotPassword] handleResetPassword failed: passwords mismatch");
+            // console.log("[ForgotPassword] handleResetPassword failed: passwords mismatch");
             return;
         }
 
@@ -523,9 +523,9 @@ const LoginScreen = ({ navigation }) => {
                 confirmPassword,
             };
 
-            console.log("[ForgotPassword] handleResetPassword calling API", { url, payload });
+            // console.log("[ForgotPassword] handleResetPassword calling API", { url, payload });
             const response = await POSTNETWORK(url, payload, false);
-            console.log("[ForgotPassword] handleResetPassword response", response);
+            // console.log("[ForgotPassword] handleResetPassword response", response);
 
             if (response?.success || response?.message) {
                 setToastMessage({
@@ -534,7 +534,7 @@ const LoginScreen = ({ navigation }) => {
                     visible: true,
                 });
 
-                console.log("[ForgotPassword] password reset success", { email: forgotEmail });
+                // console.log("[ForgotPassword] password reset success", { email: forgotEmail });
                 setForgotModalVisible(false);
             } else {
                 setToastMessage({
@@ -542,7 +542,7 @@ const LoginScreen = ({ navigation }) => {
                     msg: response?.message || "Reset failed",
                     visible: true,
                 });
-                console.log("[ForgotPassword] password reset failed", { response });
+                // console.log("[ForgotPassword] password reset failed", { response });
             }
 
         } catch (error) {
@@ -551,7 +551,7 @@ const LoginScreen = ({ navigation }) => {
                 msg: "Error resetting password",
                 visible: true,
             });
-            console.log("[ForgotPassword] handleResetPassword error", error);
+            // console.log("[ForgotPassword] handleResetPassword error", error);
         }
     };
 
@@ -636,44 +636,44 @@ const LoginScreen = ({ navigation }) => {
     // };
 
     const onGoogleLogin = async () => {
-        console.log("🔵 Google Login Started");
+        // console.log("🔵 Google Login Started");
 
         try {
-            console.log("🟡 Checking Google Play Services...");
+            // console.log("🟡 Checking Google Play Services...");
             await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-            console.log("✅ Play Services OK");
+            // console.log("✅ Play Services OK");
 
-            console.log("🟡 Signing out previous session...");
+            // console.log("🟡 Signing out previous session...");
             await GoogleSignin.signOut();
 
-            console.log("🟡 Signing in with Google...");
+            // console.log("🟡 Signing in with Google...");
             await GoogleSignin.signIn();
-            console.log("✅ Google Sign-In Success");
+            // console.log("✅ Google Sign-In Success");
 
-            console.log("🟡 Fetching Google ID Token...");
+            // console.log("🟡 Fetching Google ID Token...");
             const { idToken } = await GoogleSignin.getTokens();
 
             if (!idToken) {
-                console.log("❌ ERROR: No ID Token received");
+                // console.log("❌ ERROR: No ID Token received");
                 throw new Error("No ID token found");
             }
-            console.log("✅ ID Token received");
+            // console.log("✅ ID Token received");
 
-            console.log("🟡 Creating Firebase credential...");
+            // console.log("🟡 Creating Firebase credential...");
             const googleCredential = auth.GoogleAuthProvider.credential(idToken);
 
-            console.log("🟡 Signing into Firebase...");
+            // console.log("🟡 Signing into Firebase...");
             const userCredential = await auth().signInWithCredential(googleCredential);
-            console.log("✅ Firebase login success");
+            // console.log("✅ Firebase login success");
 
             const user = userCredential.user;
-            console.log("👤 Firebase User:", user);
+            // console.log("👤 Firebase User:", user);
 
-            console.log("🟡 Getting Firebase ID token...");
+            // console.log("🟡 Getting Firebase ID token...");
             const firebaseToken = await user.getIdToken();
-            console.log("✅ Firebase Token:", firebaseToken);
+            // console.log("✅ Firebase Token:", firebaseToken);
 
-            console.log("🟡 Sending token to backend...");
+            // console.log("🟡 Sending token to backend...");
             const response = await fetch(`${BASE_URL}auth/firebase`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -683,13 +683,13 @@ const LoginScreen = ({ navigation }) => {
                 })
             });
 
-            console.log("📡 API Response Status:", response.status);
+            // console.log("📡 API Response Status:", response.status);
 
             const data = await response.json();
-            console.log("📡 API Response Data:", data);
+            // console.log("📡 API Response Data:", data);
 
             if (response.ok) {
-                console.log("✅ Backend authentication success");
+                // console.log("✅ Backend authentication success");
 
                 const loginDataToStore = {
                     token: data.token,
@@ -702,9 +702,9 @@ const LoginScreen = ({ navigation }) => {
                     },
                 };
 
-                console.log("💾 Storing login data...");
+                // console.log("💾 Storing login data...");
                 await storeObjByKey("loginResponse", loginDataToStore);
-                console.log("✅ Data stored successfully");
+                // console.log("✅ Data stored successfully");
 
                 setToastMessage({
                     type: "success",
@@ -714,7 +714,7 @@ const LoginScreen = ({ navigation }) => {
 
                 dispatch(checkuserToken());
 
-                console.log("🧭 Navigating user...");
+                // console.log("🧭 Navigating user...");
                 if (userType === "JobProvider") {
                     navigation.navigate("EmployerProfile");
                 } else {
@@ -722,7 +722,7 @@ const LoginScreen = ({ navigation }) => {
                 }
 
             } else {
-                console.log("❌ Backend error:", data?.message);
+                // console.log("❌ Backend error:", data?.message);
 
                 setToastMessage({
                     type: "error",
@@ -732,9 +732,9 @@ const LoginScreen = ({ navigation }) => {
             }
 
         } catch (error) {
-            console.log("🔥 Google Login Error:", error);
-            console.log("🔥 Error Code:", error.code);
-            console.log("🔥 Error Message:", error.message);
+            // console.log("🔥 Google Login Error:", error);
+            // console.log("🔥 Error Code:", error.code);
+            // console.log("🔥 Error Message:", error.message);
 
             let errorMessage = "Google sign-in failed. Please try again.";
 
@@ -752,7 +752,7 @@ const LoginScreen = ({ navigation }) => {
                 visible: true,
             });
         } finally {
-            console.log("🔵 Google Login Finished");
+            // console.log("🔵 Google Login Finished");
         }
     };
 
@@ -882,7 +882,7 @@ const LoginScreen = ({ navigation }) => {
                     : { phone: email })
             };
 
-            console.log("Login request:", { url, payload });
+            // console.log("Login request:", { url, payload });
 
             POSTNETWORK(url, payload, false)
                 .then((result) => {

@@ -37,7 +37,7 @@ const PrivacyPoliciesScreen = () => {
 
   const handleContactSupport = () => {
     // Handle contact support logic here
-    console.log("Contact Support pressed");
+    // console.log("Contact Support pressed");
   };
 
   const Container = Platform.OS === "ios" ? SafeAreaView : View;

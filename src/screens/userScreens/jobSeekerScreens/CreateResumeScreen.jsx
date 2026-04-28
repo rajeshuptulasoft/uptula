@@ -460,7 +460,7 @@ ${objHtml}${expsHtml}${projsHtml}${skillsHtml}${certsHtml}${edusHtml}${langsHtml
       setLoading(true);
       const hasPerm = await requestStoragePermission();
       if (!hasPerm) {
-        console.log("[Resume download] FAILED: Storage permission denied.");
+        // console.log("[Resume download] FAILED: Storage permission denied.");
         toast("Storage permission needed to save", "error");
         return;
       }
@@ -469,16 +469,16 @@ ${objHtml}${expsHtml}${projsHtml}${skillsHtml}${certsHtml}${edusHtml}${langsHtml
       const saveDir = Platform.OS === "ios"
         ? ReactNativeBlobUtil.fs.dirs.DocumentDir
         : (ReactNativeBlobUtil.fs.dirs.DownloadDir || ReactNativeBlobUtil.fs.dirs.CacheDir);
-      console.log("[Resume download] saveDir:", saveDir);
+      // console.log("[Resume download] saveDir:", saveDir);
 
       let RNHTMLtoPDF = null;
       try { RNHTMLtoPDF = require("react-native-html-to-pdf").default; } catch (err) {
-        console.log("[Resume download] PDF library not available — reason:", err?.message || err);
+        // console.log("[Resume download] PDF library not available — reason:", err?.message || err);
       }
 
       if (RNHTMLtoPDF) {
         try {
-          console.log("[Resume download] Generating PDF...");
+          // console.log("[Resume download] Generating PDF...");
           // Target A4 size (~595x842 points) for exported PDF
           const options = {
             html: buildHtml(),
@@ -489,10 +489,10 @@ ${objHtml}${expsHtml}${projsHtml}${skillsHtml}${certsHtml}${edusHtml}${langsHtml
           const file = await RNHTMLtoPDF.convert(options);
           const base64Data = file?.base64;
           if (!base64Data) {
-            console.log("[Resume download] FAILED: PDF convert returned no base64. file:", JSON.stringify(file));
+            // console.log("[Resume download] FAILED: PDF convert returned no base64. file:", JSON.stringify(file));
           } else {
             const filePath = `${saveDir}/${baseName}.pdf`;
-            console.log("[Resume download] Writing PDF to:", filePath);
+            // console.log("[Resume download] Writing PDF to:", filePath);
             await ReactNativeBlobUtil.fs.writeFile(filePath, base64Data, "base64");
             if (Platform.OS === "android") {
               // Use two-argument form to avoid Activity context error
@@ -500,18 +500,18 @@ ${objHtml}${expsHtml}${projsHtml}${skillsHtml}${certsHtml}${edusHtml}${langsHtml
             } else {
               await Linking.openURL(`file://${filePath}`);
             }
-            console.log("[Resume download] PDF saved and opened successfully.");
+            // console.log("[Resume download] PDF saved and opened successfully.");
             toast("Resume saved. Open with your preferred app.", "success");
             fetchDL();
             return;
           }
         } catch (pdfErr) {
-          console.log("[Resume download] PDF failed — reason:", pdfErr?.message || pdfErr);
-          console.log("[Resume download] PDF error stack:", pdfErr?.stack);
+          // console.log("[Resume download] PDF failed — reason:", pdfErr?.message || pdfErr);
+          // console.log("[Resume download] PDF error stack:", pdfErr?.stack);
         }
       }
 
-      console.log("[Resume download] Falling back to HTML save.");
+      // console.log("[Resume download] Falling back to HTML save.");
       const filePath = `${saveDir}/${baseName}.html`;
       await ReactNativeBlobUtil.fs.writeFile(filePath, buildHtml(), "utf8");
       if (Platform.OS === "android") {
@@ -523,8 +523,8 @@ ${objHtml}${expsHtml}${projsHtml}${skillsHtml}${certsHtml}${edusHtml}${langsHtml
       toast("Resume saved. Open in browser, then Print → Save as PDF.", "success");
       fetchDL();
     } catch (e) {
-      console.log("[Resume download] FAILED — reason:", e?.message || e);
-      console.log("[Resume download] Error stack:", e?.stack);
+      // console.log("[Resume download] FAILED — reason:", e?.message || e);
+      // console.log("[Resume download] Error stack:", e?.stack);
       toast("Failed to save resume.", "error");
     } finally { setLoading(false); }
   };

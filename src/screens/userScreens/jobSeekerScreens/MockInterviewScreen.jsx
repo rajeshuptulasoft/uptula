@@ -320,18 +320,18 @@ export default MockInterviewScreen = () => {
     const handleNextQuestion = () => {
         // console.log("➡️ Next Question Button Pressed");
         // console.log("Current Question Index:", currentQuestionIndex);
-        console.log("Recording Status:", recordedAnswers[currentQuestionIndex] ? "✅ Recorded" : "⭕ Not Recorded");
+        // console.log("Recording Status:", recordedAnswers[currentQuestionIndex] ? "✅ Recorded" : "⭕ Not Recorded");
         
         if (isPlayingAudio) {
             setIsPlayingAudio(false);
         }
         
         if (currentQuestionIndex < MOCK_QUESTIONS.length - 1) {
-            console.log("Moving to Question:", currentQuestionIndex + 2);
+            // console.log("Moving to Question:", currentQuestionIndex + 2);
             setCurrentQuestionIndex(currentQuestionIndex + 1);
             setIsRecording(false);
         } else {
-            console.log("🏁 No more questions - showing unanswered alert");
+            // console.log("🏁 No more questions - showing unanswered alert");
             // Show unanswered questions before completing interview
             setShowUnansweredAlert(true);
         }
@@ -341,10 +341,10 @@ export default MockInterviewScreen = () => {
         // Save interview to previous interviews - allow finishing even with no answers
         if (interviewData) {
             const answeredCount = Object.keys(recordedAnswers).length;
-            console.log("🎉 INTERVIEW COMPLETED!");
-            console.log("📊 Total Questions Answered:", answeredCount, "out of", MOCK_QUESTIONS.length);
-            console.log("📝 Recorded Answers:", recordedAnswers);
-            console.log("🎵 Recording Paths:", recordingPaths);
+            // console.log("🎉 INTERVIEW COMPLETED!");
+            // console.log("📊 Total Questions Answered:", answeredCount, "out of", MOCK_QUESTIONS.length);
+            // console.log("📝 Recorded Answers:", recordedAnswers);
+            // console.log("🎵 Recording Paths:", recordingPaths);
             
             const completedInterview = {
                 ...interviewData,
@@ -818,12 +818,12 @@ export default MockInterviewScreen = () => {
                                         styles.tabButtonActive,
                                     ]}
                                     onPress={() => {
-                                        console.log("📌 Switched to Question:", index + 1);
-                                        console.log("❓ Question:", MOCK_QUESTIONS[index].question);
+                                        // console.log("📌 Switched to Question:", index + 1);
+                                        // console.log("❓ Question:", MOCK_QUESTIONS[index].question);
                                         if (recordedAnswers[index]) {
-                                            console.log("✅ This question has a recording!");
+                                            // console.log("✅ This question has a recording!");
                                         } else {
-                                            console.log("⭕ This question has NO recording yet");
+                                            // console.log("⭕ This question has NO recording yet");
                                         }
                                         setCurrentQuestionIndex(index);
                                         setIsRecording(false);

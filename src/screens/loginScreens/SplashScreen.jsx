@@ -18,7 +18,7 @@ import {
 } from "../../constant/fontPath";
 // import 'firebase/auth'
 import { PermissionsAndroid } from 'react-native';
-import { getStringByKey } from "../../utils/Storage";
+import { getObjByKey, getStringByKey } from "../../utils/Storage";
 import { NotificationListener, requestUserPermission } from "../../utils/PushNotification";
 import SpInAppUpdates, { IAUUpdateKind } from "sp-react-native-in-app-updates";
 import { BASE_URL } from "../../constant/url";
@@ -34,27 +34,50 @@ export default SplashScreen = ({ navigation }) => {
     const inAppUpdates = new SpInAppUpdates(false);
 
     /* ✅ PlayStore Update Concept Start */
+    const isPlayStoreOwnershipError = (error) => {
+        const errorText = String(error?.message || error || "").toLowerCase();
+        return (
+            errorText.includes("error_app_not_owned") ||
+            errorText.includes("install error(-10)") ||
+            errorText.includes("installexception: -10") ||
+            errorText.includes("not owned by any user") ||
+            errorText.includes("app is not owned")
+        );
+    };
+
     const triggerInAppUpdate = async () => {
+        if (Platform.OS !== "android") return;
+
+        if (__DEV__) {
+            // console.log("ℹ️ In-app update skipped in debug/dev build. Test with Play Store installed release build.");
+            return;
+        }
+
         try {
-            console.log("🔍 Checking for update...");
+            // console.log("🔍 Checking for update...");
 
             const result = await inAppUpdates.checkNeedsUpdate();
 
-            console.log("📦 Update result:", result);
+            // console.log("📦 Update result:", result);
 
             if (result.shouldUpdate) {
-                console.log("🚀 Update available → launching Play Store UI");
+                // console.log("🚀 Update available → launching Play Store UI");
 
                 await inAppUpdates.startUpdate({
                     updateType: IAUUpdateKind.FLEXIBLE,
                 });
 
-                console.log("✅ Update flow started");
+                // console.log("✅ Update flow started");
             } else {
-                console.log("✅ App is already up to date");
+                // console.log("✅ App is already up to date");
             }
         } catch (error) {
-            console.log("❌ Update error:", error);
+            if (isPlayStoreOwnershipError(error)) {
+                // console.log("ℹ️ Update check skipped: this app build is not owned by Play Store on this device.");
+                // console.log("✅ App update status cannot be verified via in-app updates for this build.");
+                return;
+            }
+            // console.log("❌ Update error:", error);
         }
     };
     /* ✅ PlayStore Update Concept Start */
@@ -64,10 +87,10 @@ export default SplashScreen = ({ navigation }) => {
         triggerInAppUpdate();
     
         inAppUpdates.addStatusUpdateListener((status) => {
-            console.log("📊 Update status:", status);
+            // console.log("📊 Update status:", status);
     
             if (status === 11) {
-                console.log("✅ Update downloaded (ready to install)");
+                // console.log("✅ Update downloaded (ready to install)");
             }
         });
     
@@ -75,7 +98,7 @@ export default SplashScreen = ({ navigation }) => {
             try {
                 inAppUpdates.removeStatusUpdateListener();
             } catch (e) {
-                console.log("⚠️ Listener cleanup error:", e);
+                // console.log("⚠️ Listener cleanup error:", e);
             }
         };
     }, []);
@@ -163,34 +186,44 @@ export default SplashScreen = ({ navigation }) => {
                 );
             }
 
-            console.log('📱 Initializing push notifications...');
+            // console.log('📱 Initializing push notifications...');
             await requestUserPermission();
             NotificationListener();
 
             // ✅ GET FCM TOKEN
             const token = await messaging().getToken();
-            console.log('🔥 FCM Token:', token);
+            // console.log('🔥 FCM Token:', token);
 
-            // ⚠️ make sure you have user info
-            const user = await getStringByKey("user"); // or however you store user
-            const parsedUser = user ? JSON.parse(user) : null;
+            // Read login response stored after login
+            const loginResponse = await getObjByKey("loginResponse");
+            const authToken = loginResponse?.token || null;
+            const userId = loginResponse?.user?.id || loginResponse?.id || null;
 
             // ✅ SEND TO BACKEND USING BASE_URL
-            await fetch(`${BASE_URL}profile/save-fcm-token`, {
+            const saveFcmResponse = await fetch(`${BASE_URL}profile/save-fcm-token`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // optionally add auth token
-                    // Authorization: `Bearer ${parsedUser?.token}`
+                    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
                 },
                 body: JSON.stringify({
-                    userId: parsedUser?.id,
+                    userId: userId,
                     token: token
                 })
             });
 
+            // console.log('📡 Save FCM token response status:', saveFcmResponse.status);
+            const saveFcmData = await saveFcmResponse.json().catch(() => null);
+
+            if (saveFcmResponse.ok) {
+                // console.log('✅ FCM token posted successfully:', saveFcmData?.message || 'Success');
+            } else {
+                // console.log('❌ FCM token post failed:', saveFcmData?.message || 'Unknown server error');
+                // console.log('🧾 FCM token post debug:', { hasAuthToken: !!authToken, userId });
+            }
+
         } catch (error) {
-            console.error('❌ Error initializing notifications:', error);
+            // console.log('❌ Error initializing notifications:', error);
         }
     };
         initializeNotifications();
