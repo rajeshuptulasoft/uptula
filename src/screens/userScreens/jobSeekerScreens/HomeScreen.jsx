@@ -2615,10 +2615,10 @@ const HomeScreen = ({ navigation }) => {
     try {
       const loginResponse = await getObjByKey("loginResponse");
       
-      console.log("🔍 ApplyForm: Full loginResponse:", JSON.stringify(loginResponse, null, 2));
+      // console.log("🔍 ApplyForm: Full loginResponse:", JSON.stringify(loginResponse, null, 2));
       
       if (!loginResponse) {
-        console.log("❌ ApplyForm: No loginResponse found");
+        // console.log("❌ ApplyForm: No loginResponse found");
         setApplyName("");
         setApplyEmail("");
         setApplyPhone("");
@@ -2637,13 +2637,13 @@ const HomeScreen = ({ navigation }) => {
       // Always fetch fresh profile data from API
       try {
         const profileUrl = `${BASE_URL}profile`;
-        console.log("📡 ApplyForm: Fetching profile from:", profileUrl);
+        // console.log("📡 ApplyForm: Fetching profile from:", profileUrl);
         const profileResult = await GETNETWORK(profileUrl, true);
-        console.log("📥 ApplyForm: Profile response:", JSON.stringify(profileResult, null, 2));
+        // console.log("📥 ApplyForm: Profile response:", JSON.stringify(profileResult, null, 2));
         
         // Extract profile data from various possible response structures
         const profileData = profileResult?.profile || profileResult?.data || profileResult?.user || profileResult || {};
-        console.log("📋 ApplyForm: Extracted profile data:", JSON.stringify(profileData, null, 2));
+        // console.log("📋 ApplyForm: Extracted profile data:", JSON.stringify(profileData, null, 2));
           
         // Get firstName and lastName from profile (check all possible field names)
         firstName = profileData.firstName || profileData.first_name || profileData.firstName || "";
@@ -2655,7 +2655,7 @@ const HomeScreen = ({ navigation }) => {
         // Get email from profile (check all possible field names)
         email = profileData.email || profileData.emailAddress || "";
           
-        console.log("✅ ApplyForm: From profile API - firstName:", firstName, "lastName:", lastName, "phone:", phone, "email:", email);
+        // console.log("✅ ApplyForm: From profile API - firstName:", firstName, "lastName:", lastName, "phone:", phone, "email:", email);
         
         // If still no firstName/lastName, try to get from fullName in profile
         if (!firstName && !lastName) {
@@ -2669,13 +2669,13 @@ const HomeScreen = ({ navigation }) => {
               firstName = nameParts[0];
               lastName = "";
             }
-            console.log("✅ ApplyForm: Split fullName - firstName:", firstName, "lastName:", lastName);
+            // console.log("✅ ApplyForm: Split fullName - firstName:", firstName, "lastName:", lastName);
           }
         }
         
         // Fallback to loginResponse if profile API didn't return data
         if (!firstName && !lastName && !phone && !email) {
-          console.log("⚠️ ApplyForm: Profile API returned empty, trying loginResponse");
+          // console.log("⚠️ ApplyForm: Profile API returned empty, trying loginResponse");
           const userData = loginResponse?.user || loginResponse?.data || loginResponse || {};
           firstName = firstName || userData.firstName || userData.first_name || "";
           lastName = lastName || userData.lastName || userData.last_name || "";
@@ -2698,7 +2698,7 @@ const HomeScreen = ({ navigation }) => {
           }
         }
       } catch (profileError) {
-        console.error("❌ ApplyForm: Error fetching profile:", profileError);
+        // console.error("❌ ApplyForm: Error fetching profile:", profileError);
         // If profile fetch fails, try to get from loginResponse
         const userData = loginResponse?.user || loginResponse?.data || loginResponse || {};
         firstName = userData.firstName || userData.first_name || "";
@@ -2722,7 +2722,7 @@ const HomeScreen = ({ navigation }) => {
         }
       }
       
-      console.log("✅ ApplyForm: Final extracted - firstName:", firstName, "lastName:", lastName, "email:", email, "phone:", phone);
+      // console.log("✅ ApplyForm: Final extracted - firstName:", firstName, "lastName:", lastName, "email:", email, "phone:", phone);
       
       // Capitalize first letter of each word
       const capitalizeWords = (str) => {
@@ -2739,7 +2739,7 @@ const HomeScreen = ({ navigation }) => {
       // Combine firstName + lastName for Full Name
       const fullName = `${firstNameCapitalized} ${lastNameCapitalized}`.trim();
       
-      console.log("✅ ApplyForm: Setting form - Full Name:", fullName, "Email:", email, "Phone:", phone);
+      // console.log("✅ ApplyForm: Setting form - Full Name:", fullName, "Email:", email, "Phone:", phone);
       
       // Pre-fill form fields
       setApplyName(fullName);
@@ -2835,7 +2835,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleCloseApplyForm = () => {
-    console.log("🔒 ApplyForm: Closing form and resetting all fields");
+    // console.log("🔒 ApplyForm: Closing form and resetting all fields");
     setApplyFormVisible(false);
     setSelectedJob(null);
     setApplyName("");
@@ -2926,41 +2926,41 @@ const HomeScreen = ({ navigation }) => {
 
   // Submit application
   const handleSubmitApplication = async () => {
-    console.log("🚀 ApplyForm: Starting application submission...");
+    // console.log("🚀 ApplyForm: Starting application submission...");
     
     if (!validateApplyForm()) {
-      console.log("❌ ApplyForm: Form validation failed");
+      // console.log("❌ ApplyForm: Form validation failed");
       return;
     }
 
     if (!selectedJob) {
-      console.log("❌ ApplyForm: No selected job");
+      // console.log("❌ ApplyForm: No selected job");
       Alert.alert("Error", "Job information is missing");
       return;
     }
 
     const jobId = selectedJob.id || selectedJob._id;
     if (!jobId) {
-      console.log("❌ ApplyForm: No job ID found");
+      // console.log("❌ ApplyForm: No job ID found");
       Alert.alert("Error", "Job ID is missing");
       return;
     }
 
-    console.log("📋 ApplyForm: Job ID:", jobId);
-    console.log("📋 ApplyForm: Form data - Name:", applyName, "Email:", applyEmail, "Phone:", applyPhone);
-    console.log("📋 ApplyForm: Has file:", !!applyFile, "File name:", applyFile?.name);
-    console.log("📋 ApplyForm: Cover letter length:", applyCoverLetter.length);
+    // console.log("📋 ApplyForm: Job ID:", jobId);
+    // console.log("📋 ApplyForm: Form data - Name:", applyName, "Email:", applyEmail, "Phone:", applyPhone);
+    // console.log("📋 ApplyForm: Has file:", !!applyFile, "File name:", applyFile?.name);
+    // console.log("📋 ApplyForm: Cover letter length:", applyCoverLetter.length);
 
     try {
       setApplyLoading(true);
-      console.log("⏳ ApplyForm: Loading state set to true");
+      // console.log("⏳ ApplyForm: Loading state set to true");
 
       // Get token from storage
       const loginResponse = await getObjByKey('loginResponse');
-      console.log("🔑 ApplyForm: LoginResponse retrieved:", !!loginResponse);
+      // console.log("🔑 ApplyForm: LoginResponse retrieved:", !!loginResponse);
       
       if (!loginResponse) {
-        console.log("❌ ApplyForm: No loginResponse found");
+        // console.log("❌ ApplyForm: No loginResponse found");
         setApplyToastMessage({
           type: "error",
           msg: "Please login to apply for jobs",
@@ -2975,21 +2975,21 @@ const HomeScreen = ({ navigation }) => {
       if (loginResponse.data) {
         if (typeof loginResponse.data === 'string') {
           token = loginResponse.data;
-          console.log("🔑 ApplyForm: Token from loginResponse.data (string)");
+          // console.log("🔑 ApplyForm: Token from loginResponse.data (string)");
         } else if (typeof loginResponse.data === 'object' && loginResponse.data !== null) {
           token = loginResponse.data.token || loginResponse.data.data;
-          console.log("🔑 ApplyForm: Token from loginResponse.data (object)");
+          // console.log("🔑 ApplyForm: Token from loginResponse.data (object)");
         }
       }
       if (!token || (typeof token === 'string' && token.trim() === '')) {
         if (loginResponse.token && typeof loginResponse.token === 'string') {
           token = loginResponse.token;
-          console.log("🔑 ApplyForm: Token from loginResponse.token");
+          // console.log("🔑 ApplyForm: Token from loginResponse.token");
         }
       }
 
       if (!token || typeof token !== 'string' || token.trim() === '') {
-        console.log("❌ ApplyForm: No valid token found");
+        // console.log("❌ ApplyForm: No valid token found");
         setApplyToastMessage({
           type: "error",
           msg: "Authentication token not found. Please login again.",
@@ -2999,8 +2999,8 @@ const HomeScreen = ({ navigation }) => {
         return;
       }
 
-      console.log("✅ ApplyForm: Token extracted, length:", token.length);
-      console.log("✅ ApplyForm: Token preview:", token.substring(0, 20) + "...");
+      // console.log("✅ ApplyForm: Token extracted, length:", token.length);
+      // console.log("✅ ApplyForm: Token preview:", token.substring(0, 20) + "...");
 
       // Create FormData
       const formData = new FormData();
@@ -3016,7 +3016,7 @@ const HomeScreen = ({ navigation }) => {
         // On Android, if it's a content:// URI, we might need to handle it differently
         // But DocumentPicker with copyTo: 'cachesDirectory' should give us file:// URI
         if (Platform.OS === 'android' && fileUri.startsWith('content://')) {
-          console.log("⚠️ ApplyForm: Content URI detected, this might cause issues");
+          // console.log("⚠️ ApplyForm: Content URI detected, this might cause issues");
         }
         
         // Prepare file object for FormData
@@ -3035,30 +3035,30 @@ const HomeScreen = ({ navigation }) => {
         }
         
         formData.append('resume', fileObject);
-        console.log("📎 ApplyForm: Resume file added to FormData");
-        console.log("📎 ApplyForm: File name:", fileObject.name);
-        console.log("📎 ApplyForm: File type:", fileObject.type);
-        console.log("📎 ApplyForm: File URI:", fileObject.uri);
+        // console.log("📎 ApplyForm: Resume file added to FormData");
+        // console.log("📎 ApplyForm: File name:", fileObject.name);
+        // console.log("📎 ApplyForm: File type:", fileObject.type);
+        // console.log("📎 ApplyForm: File URI:", fileObject.uri);
       }
 
-      console.log("📦 ApplyForm: FormData created with fields:");
-      console.log("   - name:", applyName.trim());
-      console.log("   - email:", applyEmail.trim());
-      console.log("   - phone:", applyPhone.trim());
-      console.log("   - pastedCv length:", applyCoverLetter.trim().length);
-      console.log("   - resume:", applyFile ? applyFile.name : "No file");
+      // console.log("📦 ApplyForm: FormData created with fields:");
+      // console.log("   - name:", applyName.trim());
+      // console.log("   - email:", applyEmail.trim());
+      // console.log("   - phone:", applyPhone.trim());
+      // console.log("   - pastedCv length:", applyCoverLetter.trim().length);
+      // console.log("   - resume:", applyFile ? applyFile.name : "No file");
 
       // Submit using react-native-blob-util (most reliable for file uploads on Android)
       const url = `${BASE_URL}jobs/${jobId}/apply`;
-      console.log("📡 ApplyForm: Submitting to URL:", url);
-      console.log("📡 ApplyForm: Request method: POST");
-      console.log("📡 ApplyForm: Headers - Authorization: Bearer", token.substring(0, 20) + "...");
+      // console.log("📡 ApplyForm: Submitting to URL:", url);
+      // console.log("📡 ApplyForm: Request method: POST");
+      // console.log("📡 ApplyForm: Headers - Authorization: Bearer", token.substring(0, 20) + "...");
       
       // Log file URI for debugging
       if (applyFile && applyFile.uri) {
-        console.log("📎 ApplyForm: File URI:", applyFile.uri);
-        console.log("📎 ApplyForm: File name:", applyFile.name);
-        console.log("📎 ApplyForm: File type:", applyFile.type);
+        // console.log("📎 ApplyForm: File URI:", applyFile.uri);
+        // console.log("📎 ApplyForm: File name:", applyFile.name);
+        // console.log("📎 ApplyForm: File type:", applyFile.type);
       }
       
       // Prepare form data for react-native-blob-util
@@ -3102,7 +3102,7 @@ const HomeScreen = ({ navigation }) => {
         }, null, 2));
       }
       
-      console.log("📦 ApplyForm: Form data array prepared with", formDataArray.length, "fields");
+      // console.log("📦 ApplyForm: Form data array prepared with", formDataArray.length, "fields");
       
       // Use react-native-blob-util for upload
       const result = await ReactNativeBlobUtil.fetch(
@@ -3115,17 +3115,17 @@ const HomeScreen = ({ navigation }) => {
         formDataArray
       );
       
-      console.log("📥 ApplyForm: Response status:", result.info().status);
-      console.log("📥 ApplyForm: Response headers:", JSON.stringify(result.info().headers, null, 2));
+      // console.log("📥 ApplyForm: Response status:", result.info().status);
+      // console.log("📥 ApplyForm: Response headers:", JSON.stringify(result.info().headers, null, 2));
       
       let parsedResult;
       try {
         const responseText = result.text();
-        console.log("📥 ApplyForm: Response text length:", responseText?.length || 0);
-        console.log("📥 ApplyForm: Response text preview:", responseText?.substring(0, 200) || '');
+        // console.log("📥 ApplyForm: Response text length:", responseText?.length || 0);
+        // console.log("📥 ApplyForm: Response text preview:", responseText?.substring(0, 200) || '');
         
         parsedResult = JSON.parse(responseText);
-        console.log("📥 ApplyForm: Parsed response:", JSON.stringify(parsedResult, null, 2));
+        // console.log("📥 ApplyForm: Parsed response:", JSON.stringify(parsedResult, null, 2));
       } catch (parseError) {
         console.error("❌ ApplyForm: Error parsing response:", parseError);
         parsedResult = {
@@ -3149,14 +3149,14 @@ const HomeScreen = ({ navigation }) => {
         parsedResult?.message?.toLowerCase().includes('success') ||
         (!parsedResult?.error && !parsedResult?.errors);
 
-      console.log("✅ ApplyForm: Response status:", responseStatus);
-      console.log("✅ ApplyForm: Success check result:", isSuccess);
+      // console.log("✅ ApplyForm: Response status:", responseStatus);
+      // console.log("✅ ApplyForm: Success check result:", isSuccess);
 
       if (isSuccess) {
         const successMessage = parsedResult?.message || "Your application has been submitted successfully!";
-        console.log("✅ ApplyForm: Application submitted successfully!");
-        console.log("✅ ApplyForm: Success message:", successMessage);
-        
+        // console.log("✅ ApplyForm: Application submitted successfully!");
+        // console.log("✅ ApplyForm: Success message:", successMessage);
+
         setApplyToastMessage({
           type: "success",
           msg: successMessage,
@@ -3171,22 +3171,22 @@ const HomeScreen = ({ navigation }) => {
         setApplyCoverLetter("");
         setApplyLoading(false);
         
-        console.log("🔄 ApplyForm: Form reset, closing in 2 seconds...");
+        // console.log("🔄 ApplyForm: Form reset, closing in 2 seconds...");
         
         // Refresh applied jobs list
         fetchAppliedJobs();
         
         // Close form after delay
         setTimeout(() => {
-          console.log("🔒 ApplyForm: Closing form modal");
+          // console.log("🔒 ApplyForm: Closing form modal");
           handleCloseApplyForm();
         }, 2000);
       } else {
         const errorMessage = parsedResult?.errors?.[0]?.msg || parsedResult?.message || parsedResult?.error || "Failed to submit application. Please try again.";
-        console.log("❌ ApplyForm: Application submission failed");
-        console.log("❌ ApplyForm: Response status:", responseStatus);
-        console.log("❌ ApplyForm: Error message:", errorMessage);
-        console.log("❌ ApplyForm: Full error response:", JSON.stringify(parsedResult, null, 2));
+        // console.log("❌ ApplyForm: Application submission failed");
+        // console.log("❌ ApplyForm: Response status:", responseStatus);
+        // console.log("❌ ApplyForm: Error message:", errorMessage);
+        // console.log("❌ ApplyForm: Full error response:", JSON.stringify(parsedResult, null, 2));
         
         setApplyToastMessage({
           type: "error",
@@ -3196,10 +3196,10 @@ const HomeScreen = ({ navigation }) => {
         setApplyLoading(false);
       }
     } catch (error) {
-      console.error("❌ ApplyForm: Exception during application submission");
-      console.error("❌ ApplyForm: Error:", error);
-      console.error("❌ ApplyForm: Error message:", error?.message);
-      console.error("❌ ApplyForm: Error stack:", error?.stack);
+      // console.error("❌ ApplyForm: Exception during application submission");
+      // console.error("❌ ApplyForm: Error:", error);
+      // console.error("❌ ApplyForm: Error message:", error?.message);
+      // console.error("❌ ApplyForm: Error stack:", error?.stack);
       
       const errorMessage = error?.message || "An error occurred while submitting your application. Please try again.";
       setApplyToastMessage({
@@ -3265,7 +3265,7 @@ const HomeScreen = ({ navigation }) => {
   const handleCategoryPress = (category) => {
     // Navigate to jobs filtered by category
     // You can implement category-specific job listing screen
-    console.log('Category pressed:', category);
+    // console.log('Category pressed:', category);
     // navigation.navigate('CategoryJobs', { category: category.category });
   };
 

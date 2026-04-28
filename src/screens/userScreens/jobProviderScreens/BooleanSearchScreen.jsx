@@ -145,16 +145,16 @@ const BooleanSearchScreen = ({ navigation }) => {
                 
                 if (Array.isArray(candidatesData) && candidatesData.length > 0) {
                     setCandidates(candidatesData);
-                    console.log('✅ Success: Found', candidatesData.length, 'candidates');
+                    // console.log('✅ Success: Found', candidatesData.length, 'candidates');
                 } else {
                     setCandidates([]);
                 }
             } else {
                 setCandidates([]);
-                console.log('❌ Error: Search failed -', result?.message || result?.error || 'Unknown error');
+                // console.log('❌ Error: Search failed -', result?.message || result?.error || 'Unknown error');
             }
         } catch (error) {
-            console.log('❌ Error: Exception occurred during search -', error.message);
+            // console.log('❌ Error: Exception occurred during search -', error.message);
             setCandidates([]);
         } finally {
             setLoading(false);
@@ -343,16 +343,16 @@ const BooleanSearchScreen = ({ navigation }) => {
                 
                 if (Array.isArray(candidatesData) && candidatesData.length > 0) {
                     setCandidates(candidatesData);
-                    console.log('✅ Success: Found', candidatesData.length, 'candidates');
+                    // console.log('✅ Success: Found', candidatesData.length, 'candidates');
                 } else {
                     setCandidates([]);
                 }
             } else {
                 setCandidates([]);
-                console.log('❌ Error: Search failed -', result?.message || result?.error || 'Unknown error');
+                // console.log('❌ Error: Search failed -', result?.message || result?.error || 'Unknown error');
             }
         } catch (error) {
-            console.log('❌ Error: Exception occurred during search -', error.message);
+            // console.log('❌ Error: Exception occurred during search -', error.message);
             setCandidates([]);
         } finally {
             setLoading(false);

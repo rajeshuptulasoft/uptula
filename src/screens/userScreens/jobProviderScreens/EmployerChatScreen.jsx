@@ -181,9 +181,9 @@ const EmployerChatScreen = ({ navigation, route }) => {
       if (userId) setCurrentUserId(userId);
 
       const url = `${BASE_URL}chat/threads`;
-      console.log("📡 EmployerChatScreen: Fetching chat threads from:", url);
+      // console.log("📡 EmployerChatScreen: Fetching chat threads from:", url);
       const result = await GETNETWORK(url, true);
-      console.log("📥 EmployerChatScreen: Chat threads response:", JSON.stringify(result, null, 2));
+      // console.log("📥 EmployerChatScreen: Chat threads response:", JSON.stringify(result, null, 2));
 
       if (result && !result.message) {
         const threadsData =
@@ -213,17 +213,17 @@ const EmployerChatScreen = ({ navigation, route }) => {
             thread.status?.toLowerCase().includes("rejected")
         );
 
-        console.log("✅ EmployerChatScreen: Successfully fetched chat threads");
-        console.log("✅ EmployerChatScreen: Pending requests:", pending.length);
-        console.log("✅ EmployerChatScreen: Active chats:", active.length);
-        console.log("✅ EmployerChatScreen: Rejected chats:", rejected.length);
-        console.log("📋 EmployerChatScreen: Sample thread structure:", JSON.stringify(threads[0], null, 2));
+        // console.log("✅ EmployerChatScreen: Successfully fetched chat threads");
+        // console.log("✅ EmployerChatScreen: Pending requests:", pending.length);
+        // console.log("✅ EmployerChatScreen: Active chats:", active.length);
+        // console.log("✅ EmployerChatScreen: Rejected chats:", rejected.length);
+        // console.log("📋 EmployerChatScreen: Sample thread structure:", JSON.stringify(threads[0], null, 2));
 
         setPendingRequests(pending);
         setActiveChats(active);
         setRejectedChats(rejected);
       } else {
-        console.log("⚠️ EmployerChatScreen: No threads data or error in response");
+        // console.log("⚠️ EmployerChatScreen: No threads data or error in response");
         setPendingRequests([]);
         setActiveChats([]);
         setRejectedChats([]);
@@ -240,7 +240,7 @@ const EmployerChatScreen = ({ navigation, route }) => {
 
   const fetchMessages = useCallback(async (threadId) => {
     if (!threadId) {
-      console.log("❌ EmployerChatScreen: No thread ID provided for fetching messages");
+      // console.log("❌ EmployerChatScreen: No thread ID provided for fetching messages");
       setMessages([]);
       return;
     }
@@ -248,7 +248,7 @@ const EmployerChatScreen = ({ navigation, route }) => {
     try {
       const token = await getObjByKey("loginResponse");
       if (!token) {
-        console.log("❌ EmployerChatScreen: No login token found for fetching messages");
+        // console.log("❌ EmployerChatScreen: No login token found for fetching messages");
         setMessages([]);
         return;
       }
@@ -264,20 +264,20 @@ const EmployerChatScreen = ({ navigation, route }) => {
       if (userId) setCurrentUserId(userId);
 
       const url = `${BASE_URL}chat/threads/${threadId}/messages`;
-      console.log("📡 EmployerChatScreen: Fetching messages from:", url);
+      // console.log("📡 EmployerChatScreen: Fetching messages from:", url);
       const result = await GETNETWORK(url, true);
-      console.log("📥 EmployerChatScreen: Messages response:", JSON.stringify(result, null, 2));
+      // console.log("📥 EmployerChatScreen: Messages response:", JSON.stringify(result, null, 2));
 
       if (result && !result.message) {
         const messagesData = result?.data || result?.messages || result || [];
-        console.log("✅ EmployerChatScreen: Successfully fetched messages");
+        // console.log("✅ EmployerChatScreen: Successfully fetched messages");
         setMessages(Array.isArray(messagesData) ? messagesData : []);
       } else {
-        console.log("⚠️ EmployerChatScreen: No messages data or error in response");
+        // console.log("⚠️ EmployerChatScreen: No messages data or error in response");
         setMessages([]);
       }
     } catch (error) {
-      console.error("❌ EmployerChatScreen: Error fetching messages:", error);
+      // console.error("❌ EmployerChatScreen: Error fetching messages:", error);
       setMessages([]);
     }
   }, []);
@@ -487,14 +487,14 @@ const EmployerChatScreen = ({ navigation, route }) => {
   };
 
   const handleChatSelect = (chat) => {
-    console.log("📋 EmployerChatScreen: Chat selected:", JSON.stringify(chat, null, 2));
+    // console.log("📋 EmployerChatScreen: Chat selected:", JSON.stringify(chat, null, 2));
     const threadId = chat.id || chat._id || chat.threadId || chat.thread_id || chat.chatId || chat.chat_id;
-    console.log("📋 EmployerChatScreen: Extracted thread ID:", threadId);
+    // console.log("📋 EmployerChatScreen: Extracted thread ID:", threadId);
     setSelectedChat(chat);
     if (threadId) {
       fetchMessages(threadId);
     } else {
-      console.log("❌ EmployerChatScreen: No valid thread ID found in chat object");
+      // console.log("❌ EmployerChatScreen: No valid thread ID found in chat object");
     }
   };
 
@@ -515,7 +515,7 @@ const EmployerChatScreen = ({ navigation, route }) => {
       selectedChat.chatId ||
       selectedChat.chat_id;
     if (!threadId) {
-      console.log("❌ EmployerChatScreen: No thread ID found for sending message");
+      // console.log("❌ EmployerChatScreen: No thread ID found for sending message");
       return;
     }
 
@@ -525,9 +525,9 @@ const EmployerChatScreen = ({ navigation, route }) => {
       const url = `${BASE_URL}chat/threads/${threadId}/messages`;
       const payload = { message: messageText.trim() };
 
-      console.log("📡 EmployerChatScreen: Sending message to:", url);
+      // // console.log("📡 EmployerChatScreen: Sending message to:", url);
       const result = await POSTNETWORK(url, payload, true);
-      console.log("📥 EmployerChatScreen: Send message response:", JSON.stringify(result, null, 2));
+      // // console.log("📥 EmployerChatScreen: Send message response:", JSON.stringify(result, null, 2));
 
       if (result && !result.message) {
         setMessageText("");
@@ -537,7 +537,7 @@ const EmployerChatScreen = ({ navigation, route }) => {
         setToastMessage({ type: "error", msg: errorMsg, visible: true });
       }
     } catch (error) {
-      console.error("❌ EmployerChatScreen: Exception during send message:", error);
+      // // console.error("❌ EmployerChatScreen: Exception during send message:", error);
       setToastMessage({ type: "error", msg: "An error occurred while sending message", visible: true });
     } finally {
       setSendingMessage(false);

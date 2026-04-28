@@ -226,7 +226,7 @@ const ChangePasswordScreen = ({ navigation }) => {
             msg: "Enter your registered email to get OTP",
             visible: true,
         });
-        console.log("[ChangePassword JobSeeker] Forgot flow opened");
+        // console.log("[ChangePassword JobSeeker] Forgot flow opened");
     };
 
     // const handleProceedEmail = () => {
@@ -274,9 +274,9 @@ const ChangePasswordScreen = ({ navigation }) => {
                 email: forgotEmail,
             };
 
-            console.log("[ChangePassword JobSeeker] Sending OTP request", { url, payload });
+            // console.log("[ChangePassword JobSeeker] Sending OTP request", { url, payload });
             const response = await POSTNETWORK(url, payload, false);
-            console.log("[ChangePassword JobSeeker] Send OTP response", response);
+            // console.log("[ChangePassword JobSeeker] Send OTP response", response);
 
             const msg = (response?.message || "").toString();
             const isSuccess =
@@ -289,7 +289,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 /otp\s*sent|otp\s*has\s*been\s*sent/i.test(msg);
 
             if (isSuccess) {
-                console.log("[ChangePassword JobSeeker] OTP request success → opening OTP step", { msg });
+                // console.log("[ChangePassword JobSeeker] OTP request success → opening OTP step", { msg });
                 setForgotStep(2);
                 setOtpTimer(60);
                 setOtpStatus("OTP sent. Enter 6-digit code");
@@ -310,7 +310,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 });
             }
         } catch (error) {
-            console.log("[ChangePassword JobSeeker] Send OTP error", error);
+            // console.log("[ChangePassword JobSeeker] Send OTP error", error);
             setToastMessage({
                 type: "error",
                 msg: "Error sending OTP",
@@ -340,9 +340,9 @@ const ChangePasswordScreen = ({ navigation }) => {
                 email: forgotEmail,
             };
 
-            console.log("[ChangePassword JobSeeker] Resend OTP request", { url, payload, resendCount });
+            // console.log("[ChangePassword JobSeeker] Resend OTP request", { url, payload, resendCount });
             const response = await POSTNETWORK(url, payload, false);
-            console.log("[ChangePassword JobSeeker] Resend OTP response", response);
+            // console.log("[ChangePassword JobSeeker] Resend OTP response", response);
 
             const msg = (response?.message || "").toString();
             const isSuccess =
@@ -368,7 +368,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 });
             }
         } catch (error) {
-            console.log("[ChangePassword JobSeeker] Resend OTP error", error);
+            // console.log("[ChangePassword JobSeeker] Resend OTP error", error);
             setToastMessage({
                 type: "error",
                 msg: "Error resending OTP",
@@ -409,9 +409,9 @@ const ChangePasswordScreen = ({ navigation }) => {
                         otp: otpValue,
                     };
 
-                    console.log("[ChangePassword JobSeeker] Verify OTP request", { url, payload });
+                    // console.log("[ChangePassword JobSeeker] Verify OTP request", { url, payload });
                     const response = await POSTNETWORK(url, payload, false);
-                    console.log("[ChangePassword JobSeeker] Verify OTP response", response);
+                    // console.log("[ChangePassword JobSeeker] Verify OTP response", response);
 
                     const msg = (response?.message || "").toString();
                     const isSuccess =
@@ -439,7 +439,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                         });
                     }
                 } catch (error) {
-                    console.log("[ChangePassword JobSeeker] Verify OTP error", error);
+                    // console.log("[ChangePassword JobSeeker] Verify OTP error", error);
                     setToastMessage({
                         type: "error",
                         msg: "OTP verification failed",
@@ -526,9 +526,9 @@ const ChangePasswordScreen = ({ navigation }) => {
                 confirmPassword,
             };
 
-            console.log("[ChangePassword JobSeeker] Update Password request", { url, payload });
+            // console.log("[ChangePassword JobSeeker] Update Password request", { url, payload });
             const response = await POSTNETWORK(url, payload, false);
-            console.log("[ChangePassword JobSeeker] Update Password response", response);
+            // console.log("[ChangePassword JobSeeker] Update Password response", response);
 
             const msg = (response?.message || "").toString();
             const isSuccess =
@@ -553,7 +553,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 });
             }
         } catch (error) {
-            console.log("[ChangePassword JobSeeker] Update Password error", error);
+            // console.log("[ChangePassword JobSeeker] Update Password error", error);
             setToastMessage({
                 type: "error",
                 msg: "Error resetting password",

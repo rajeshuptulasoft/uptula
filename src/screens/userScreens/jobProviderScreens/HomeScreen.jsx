@@ -2481,12 +2481,12 @@ const HomeScreen = ({ navigation }) => {
 
   const handleRecommendedJobPress = (item) => {
     // Navigate to job details (if needed)
-    console.log('Recommended job pressed:', item);
+    // console.log('Recommended job pressed:', item);
   };
 
   const handleLatestJobPress = (item) => {
     // Navigate to job details (if needed)
-    console.log('Latest job pressed:', item);
+    // console.log('Latest job pressed:', item);
   };
 
   if (searchOpen) {

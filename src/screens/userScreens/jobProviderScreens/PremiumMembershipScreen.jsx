@@ -64,7 +64,7 @@ const PremiumMembershipScreen = () => {
       const url = `${BASE_URL}premium/download-status`;
       const result = await GETNETWORK(url, true);
 
-      console.log("📥 Download Status Response:", JSON.stringify(result, null, 2));
+      // // console.log("📥 Download Status Response:", JSON.stringify(result, null, 2));
 
       if (result) {
         setDownloadStatus({
@@ -73,12 +73,12 @@ const PremiumMembershipScreen = () => {
           dailyLimit: result.dailyLimit || result.daily_limit || 0,
           status: capitalizeFirst(result.status || "active"),
         });
-        console.log("✅ Download Status fetched successfully!");
+        // console.log("✅ Download Status fetched successfully!");
       } else {
-        console.log("❌ Failed to fetch download status: No data received");
+        // console.log("❌ Failed to fetch download status: No data received");
       }
     } catch (error) {
-      console.log("❌ Error fetching download status:", error);
+      // console.log("❌ Error fetching download status:", error);
     } finally {
       setLoadingDownloadStatus(false);
     }
@@ -91,7 +91,7 @@ const PremiumMembershipScreen = () => {
       const url = `${BASE_URL}premium/membership-plans`;
       const result = await GETNETWORK(url, true);
 
-      console.log("📥 Current Membership Response:", JSON.stringify(result, null, 2));
+      // console.log("📥 Current Membership Response:", JSON.stringify(result, null, 2));
 
       if (result) {
         // If result is an array, get the first active one or first one
@@ -110,12 +110,12 @@ const PremiumMembershipScreen = () => {
           expires: membershipData.expires || membershipData.expires_at || "Never",
           price: membershipData.price || membershipData.amount || "₹0",
         });
-        console.log("✅ Current Membership fetched successfully!");
+        // console.log("✅ Current Membership fetched successfully!");
       } else {
-        console.log("❌ Failed to fetch current membership: No data received");
+        // console.log("❌ Failed to fetch current membership: No data received");
       }
     } catch (error) {
-      console.log("❌ Error fetching current membership:", error);
+      // console.log("❌ Error fetching current membership:", error);
     } finally {
       setLoadingMembership(false);
     }
@@ -128,7 +128,7 @@ const PremiumMembershipScreen = () => {
       const url = `${BASE_URL}premium/membership-plans`;
       const result = await GETNETWORK(url, true);
 
-      console.log("📥 Membership Plans Response:", JSON.stringify(result, null, 2));
+      // console.log("📥 Membership Plans Response:", JSON.stringify(result, null, 2));
 
       if (result) {
         if (Array.isArray(result)) {
@@ -138,12 +138,12 @@ const PremiumMembershipScreen = () => {
         } else if (result.data && Array.isArray(result.data)) {
           setMembershipPlans(result.data);
         }
-        console.log("✅ Membership Plans fetched successfully!");
+        // console.log("✅ Membership Plans fetched successfully!");
       } else {
-        console.log("❌ Failed to fetch membership plans: No data received");
+        // console.log("❌ Failed to fetch membership plans: No data received");
       }
     } catch (error) {
-      console.log("❌ Error fetching membership plans:", error);
+      // console.log("❌ Error fetching membership plans:", error);
     } finally {
       setLoadingPlans(false);
     }
@@ -156,7 +156,7 @@ const PremiumMembershipScreen = () => {
       const url = `${BASE_URL}premium/download-history`;
       const result = await GETNETWORK(url, true);
 
-      console.log("📥 Download History Response:", JSON.stringify(result, null, 2));
+      // console.log("📥 Download History Response:", JSON.stringify(result, null, 2));
 
       if (result) {
         let historyData = [];
@@ -170,12 +170,12 @@ const PremiumMembershipScreen = () => {
           historyData = result.downloads;
         }
         setDownloadHistory(historyData);
-        console.log("✅ Download History fetched successfully!");
+        // console.log("✅ Download History fetched successfully!");
       } else {
-        console.log("❌ Failed to fetch download history: No data received");
+        // console.log("❌ Failed to fetch download history: No data received");
       }
     } catch (error) {
-      console.log("❌ Error fetching download history:", error);
+      // console.log("❌ Error fetching download history:", error);
     } finally {
       setLoadingHistory(false);
     }

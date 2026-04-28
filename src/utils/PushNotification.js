@@ -74,14 +74,14 @@ const getFCM = async () => {
         const storedToken = await getStringByKey('fcmtoken');
 
         if (storedToken) {
-            console.log('📱 Existing FCM Token:', storedToken);
+            // console.log('📱 Existing FCM Token:', storedToken);
             await postFcmdetails();
         } else {
             const fcmtoken = await messaging().getToken();
 
             if (fcmtoken) {
                 await storeStringByKey('fcmtoken', fcmtoken);
-                console.log('✅ New FCM Token:', fcmtoken);
+                // console.log('✅ New FCM Token:', fcmtoken);
                 await postFcmdetails();
             }
         }
@@ -97,7 +97,7 @@ const handleNavigation = (data) => {
 
     const { type, jobId, threadId, role } = data;
 
-    console.log('📦 Notification Data:', data);
+    // console.log('📦 Notification Data:', data);
 
     // Chat navigation
     if (type === 'message' && threadId) {
@@ -126,11 +126,11 @@ export const NotificationListener = () => {
             return;
         }
 
-        console.log("📱 Setting up notification listeners...");
+        // console.log("📱 Setting up notification listeners...");
 
         // ✅ BACKGROUND → USER TAPS NOTIFICATION
         messaging().onNotificationOpenedApp(remoteMessage => {
-            console.log('📱 Opened from background:', remoteMessage);
+            // console.log('📱 Opened from background:', remoteMessage);
 
             handleNavigation(remoteMessage?.data);
         });
@@ -140,29 +140,29 @@ export const NotificationListener = () => {
             .getInitialNotification()
             .then(remoteMessage => {
                 if (remoteMessage) {
-                    console.log('📱 Opened from quit state:', remoteMessage);
+                    // console.log('📱 Opened from quit state:', remoteMessage);
 
                     handleNavigation(remoteMessage?.data);
                 }
             })
             .catch(error => {
-                console.error('❌ Error getting initial notification:', error);
+                // console.error('❌ Error getting initial notification:', error);
             });
 
         // ✅ FOREGROUND
         messaging().onMessage(async remoteMessage => {
-            console.log('📱 Foreground notification:', remoteMessage);
+            // console.log('📱 Foreground notification:', remoteMessage);
             // optional navigation
             // handleNavigation(remoteMessage?.data);
         });
 
         // ✅ BACKGROUND HANDLER
         messaging().setBackgroundMessageHandler(async remoteMessage => {
-            console.log('📱 Background message:', remoteMessage);
+            // console.log('📱 Background message:', remoteMessage);
         });
 
-        console.log('✅ Notification listeners ready');
+        // console.log('✅ Notification listeners ready');
     } catch (error) {
-        console.error('❌ Error setting notification listeners:', error);
+        // console.error('❌ Error setting notification listeners:', error);
     }
 };

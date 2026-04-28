@@ -525,7 +525,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
     try {
       const url = `${BASE_URL}profile`;
       const response = await GETNETWORK(url, true);
-      console.log('🔄 Fetch profile response:', response);
+      // console.log('🔄 Fetch profile response:', response);
 
       // Handle different response structures
       let user = {};
@@ -540,12 +540,12 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         user = response;
       }
 
-      console.log('👤 Parsed user data:', user);
-      console.log('🖼️ Profile picture in response:', user?.profilePicture || user?.profile_picture);
+      // console.log('👤 Parsed user data:', user);
+      // console.log('🖼️ Profile picture in response:', user?.profilePicture || user?.profile_picture);
 
       loadProfileData(user, false);
     } catch (error) {
-      console.log('❌ Fetch profile error:', error);
+      // console.log('❌ Fetch profile error:', error);
       const stored = await getObjByKey('loginResponse');
       const user = stored?.data || stored || {};
       loadProfileData(user, false);
@@ -561,15 +561,15 @@ const EditUserProfileScreen = ({ navigation, route }) => {
   };
 
   const pickFile = async () => {
-    console.log('pickFile called');
+    // console.log('pickFile called');
     try {
       if (Platform.OS === 'android' && Platform.Version <= 32) {
-        console.log('Checking permissions for Android <= 32');
+        // console.log('Checking permissions for Android <= 32');
         const hasPermission = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
-        console.log('Has permission:', hasPermission);
+        // console.log('Has permission:', hasPermission);
         if (!hasPermission) {
           const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
-          console.log('Permission granted:', granted);
+          // console.log('Permission granted:', granted);
           if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
             Alert.alert(
               "Permission Required",
@@ -590,15 +590,15 @@ const EditUserProfileScreen = ({ navigation, route }) => {
           }
         }
       } else {
-        console.log('No Android storage permission required for this OS version');
+        // console.log('No Android storage permission required for this OS version');
       }
 
       try {
-        console.log('Calling pick function');
+        // console.log('Calling pick function');
         const [result] = await pick({
           type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
         });
-        console.log('Pick result:', result);
+        // console.log('Pick result:', result);
 
         if (result) {
           setFile({
@@ -607,13 +607,13 @@ const EditUserProfileScreen = ({ navigation, route }) => {
             type: result.type || 'application/pdf',
             size: result.size || 0,
           });
-          console.log('File set:', result);
+          // console.log('File set:', result);
         }
       } catch (pickerErr) {
-        console.log('Picker error:', pickerErr);
+        // console.log('Picker error:', pickerErr);
         if (isCancel(pickerErr)) {
           // User cancelled document picker
-          console.log('User cancelled');
+          // console.log('User cancelled');
         } else {
           Alert.alert(
             "Select Document",
@@ -623,7 +623,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         }
       }
     } catch (err) {
-      console.log('Outer catch error:', err);
+      // console.log('Outer catch error:', err);
       Alert.alert(
         "File Selection",
         "Unable to open file picker. Please ensure you have granted storage permissions and try again.",
@@ -693,9 +693,9 @@ const EditUserProfileScreen = ({ navigation, route }) => {
               if (stat?.path) {
                 uri = `file://${stat.path}`;
               }
-              console.log('🧩 Converted content URI for upload:', { original: profilePicture.uri, uploadUri: uri });
+              // console.log('🧩 Converted content URI for upload:', { original: profilePicture.uri, uploadUri: uri });
             } catch (e) {
-              console.log('⚠️ Failed to convert content URI, uploading as-is:', { uri, error: e?.message || e });
+              // console.log('⚠️ Failed to convert content URI, uploading as-is:', { uri, error: e?.message || e });
             }
           }
 
@@ -709,9 +709,9 @@ const EditUserProfileScreen = ({ navigation, route }) => {
             type: mimeType,
             data: ReactNativeBlobUtil.wrap(pathForWrap),
           });
-          console.log('📸 Adding new profile picture (blob multipart):', { filename, mimeType, uri });
+          // console.log('📸 Adding new profile picture (blob multipart):', { filename, mimeType, uri });
         } else {
-          console.log('✅ Profile picture already on server, skipping upload');
+          // console.log('✅ Profile picture already on server, skipping upload');
         }
       }
 
@@ -729,11 +729,11 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         };
 
         multipart.push(resumeData);
-        console.log('📄 Adding resume file to upload:', {
-          filename: resumeData.filename,
-          type: resumeData.type,
-          uri: file.uri,
-        });
+        // console.log('📄 Adding resume file to upload:', {
+        //   filename: resumeData.filename,
+        //   type: resumeData.type,
+        //   uri: file.uri,
+        // });
       }
 
       console.log('🟡 PUT profile request', {
@@ -770,7 +770,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         responseData = blobRes?.data;
       }
       const ok = status >= 200 && status < 300;
-      console.log('🟢 PUT profile response', { ok, status, data: responseData });
+      // console.log('🟢 PUT profile response', { ok, status, data: responseData });
 
       const responseMessage =
         responseData?.message ||
@@ -780,7 +780,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         (typeof responseData === 'string' ? responseData : null);
 
       if (ok && (responseData?.success || responseData?.message?.includes('success') || responseData?.profile || responseData?.data || responseData?.profilePicture)) {
-        console.log('✅ Profile update success:', responseMessage || 'Profile updated successfully');
+        // console.log('✅ Profile update success:', responseMessage || 'Profile updated successfully');
         setToastMessage({ type: 'success', msg: responseMessage || 'Profile updated successfully', visible: true });
 
         // Postman returns { message, profilePicture: "/uploads/..." }
@@ -798,7 +798,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
               ? returnedProfilePicture
               : `${baseUrl}${returnedProfilePicture.startsWith('/') ? '' : '/'}${returnedProfilePicture}`;
 
-          console.log('🖼️ Updated profile picture from PUT response:', { returnedProfilePicture, fullUri });
+          // console.log('🖼️ Updated profile picture from PUT response:', { returnedProfilePicture, fullUri });
           setProfilePicture(fullUri);
 
           // Persist to storage so other screens (fallback paths) see updated picture
@@ -817,12 +817,12 @@ const EditUserProfileScreen = ({ navigation, route }) => {
             else next.user = mergedUser;
 
             await storeObjByKey('loginResponse', next);
-            console.log('💾 Stored updated profilePicture in loginResponse');
+            // console.log('💾 Stored updated profilePicture in loginResponse');
           } catch (e) {
-            console.log('⚠️ Failed to persist profilePicture:', e?.message || e);
+            // console.log('⚠️ Failed to persist profilePicture:', e?.message || e);
           }
         } else {
-          console.log('ℹ️ No profilePicture in PUT response');
+          // console.log('ℹ️ No profilePicture in PUT response');
         }
 
         // Notify previous screen to refetch
@@ -830,7 +830,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
           try {
             params.onProfileUpdate();
           } catch (e) {
-            console.log('⚠️ onProfileUpdate callback error:', e?.message || e);
+            // console.log('⚠️ onProfileUpdate callback error:', e?.message || e);
           }
         }
 
@@ -851,18 +851,18 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         }
 
         if (Object.keys(updatedUser).length > 0) {
-          console.log('✅ Using updated profile data from PUT response:', updatedUser);
+          // console.log('✅ Using updated profile data from PUT response:', updatedUser);
           loadProfileData(updatedUser);
         } else {
           // Fallback to fetch if response doesn't contain user data
           fetchProfile();
         }
       } else {
-        console.log('❌ PUT profile error response:', { ok, status, data: responseData });
+        // console.log('❌ PUT profile error response:', { ok, status, data: responseData });
         setToastMessage({ type: 'error', msg: responseMessage || 'Update failed', visible: true });
       }
     } catch (error) {
-      console.log('🔥 PUT profile catch error:', { message: error?.message, raw: error });
+      // console.log('🔥 PUT profile catch error:', { message: error?.message, raw: error });
       const errorMsg = error?.message || (typeof error === 'string' ? error : 'Update failed, try again');
       setToastMessage({ type: 'error', msg: errorMsg, visible: true });
     } finally {

@@ -52,7 +52,7 @@ const ResumeScoringScreen = () => {
       return;
     }
     // Handle score resumes logic here
-    console.log("Scoring resumes for job:", selectedJob);
+    // console.log("Scoring resumes for job:", selectedJob);
   };
 
   const Container = Platform.OS === "ios" ? SafeAreaView : View;
