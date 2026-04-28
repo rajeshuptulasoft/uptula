@@ -2,19 +2,19 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Image, StatusBar, StyleSheet, Text, View, Platform, SafeAreaView } from "react-native";
 import { BLACK, BRANDCOLOR, WHITE } from "../../constant/color";
 import { LOGO, UP } from "../../constant/imagePath";
-import { 
-    CANTARELLBOLD, 
-    CANTARELL, 
-    FIRASANSBOLD, 
-    FIRASANS, 
-    FIRASANSSEMIBOLD, 
-    OXYGENBOLD, 
-    OXYGEN, 
-    ROBOTOBOLD, 
-    ROBOTOSEMIBOLD, 
-    ROBOTO, 
-    UBUNTUBOLD, 
-    UBUNTU 
+import {
+    CANTARELLBOLD,
+    CANTARELL,
+    FIRASANSBOLD,
+    FIRASANS,
+    FIRASANSSEMIBOLD,
+    OXYGENBOLD,
+    OXYGEN,
+    ROBOTOBOLD,
+    ROBOTOSEMIBOLD,
+    ROBOTO,
+    UBUNTUBOLD,
+    UBUNTU
 } from "../../constant/fontPath";
 // import 'firebase/auth'
 import { PermissionsAndroid } from 'react-native';
@@ -82,18 +82,18 @@ export default SplashScreen = ({ navigation }) => {
     };
     /* ✅ PlayStore Update Concept Start */
 
-      /* ✅ PlayStore App Update Check Starts */
-      useEffect(() => {
+    /* ✅ PlayStore App Update Check Starts */
+    useEffect(() => {
         triggerInAppUpdate();
-    
+
         inAppUpdates.addStatusUpdateListener((status) => {
             // console.log("📊 Update status:", status);
-    
+
             if (status === 11) {
                 // console.log("✅ Update downloaded (ready to install)");
             }
         });
-    
+
         return () => {
             try {
                 inAppUpdates.removeStatusUpdateListener();
@@ -156,13 +156,13 @@ export default SplashScreen = ({ navigation }) => {
         ]).start(async () => {
             // Check if user has seen onboarding before
             const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
-            
+
             if (hasSeenOnboarding === "true") {
                 // User has seen onboarding, go directly to MainTabs (HomeScreen)
                 navigation.navigate('MainTabs');
             } else {
                 // First time user, show OnBoarding
-            navigation.navigate('OnBoarding');
+                navigation.navigate('OnBoarding');
             }
         });
     }, [navigation]);
@@ -177,55 +177,68 @@ export default SplashScreen = ({ navigation }) => {
         appId: "1:193282547247:android:54aee546fa7e7e4bbbb0da"
     };
 
-    useEffect(() => {
-       const initializeNotifications = async () => {
-        try {
-            if (Platform.OS === 'android') {
-                await PermissionsAndroid.request(
-                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-                );
-            }
+    // Searching for the Device through Which FCM token is being generated and Posted
+    const getPlatform = () => {
+        const ua = navigator.userAgent || navigator.vendor || window.opera;
 
-            // console.log('📱 Initializing push notifications...');
-            await requestUserPermission();
-            NotificationListener();
+        if (/android/i.test(ua)) return "mobile";
+        if (/iPhone|iPad|iPod/i.test(ua)) return "mobile";
 
-            // ✅ GET FCM TOKEN
-            const token = await messaging().getToken();
-            // console.log('🔥 FCM Token:', token);
-
-            // Read login response stored after login
-            const loginResponse = await getObjByKey("loginResponse");
-            const authToken = loginResponse?.token || null;
-            const userId = loginResponse?.user?.id || loginResponse?.id || null;
-
-            // ✅ SEND TO BACKEND USING BASE_URL
-            const saveFcmResponse = await fetch(`${BASE_URL}profile/save-fcm-token`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    token: token
-                })
-            });
-
-            // console.log('📡 Save FCM token response status:', saveFcmResponse.status);
-            const saveFcmData = await saveFcmResponse.json().catch(() => null);
-
-            if (saveFcmResponse.ok) {
-                // console.log('✅ FCM token posted successfully:', saveFcmData?.message || 'Success');
-            } else {
-                // console.log('❌ FCM token post failed:', saveFcmData?.message || 'Unknown server error');
-                // console.log('🧾 FCM token post debug:', { hasAuthToken: !!authToken, userId });
-            }
-
-        } catch (error) {
-            // console.log('❌ Error initializing notifications:', error);
-        }
+        return "desktop";
     };
+
+    useEffect(() => {
+        const platform = getPlatform();
+        const initializeNotifications = async () => {
+            try {
+                if (Platform.OS === 'android') {
+                    await PermissionsAndroid.request(
+                        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                    );
+                }
+
+                // console.log('📱 Initializing push notifications...');
+                await requestUserPermission();
+                NotificationListener(navigation);
+
+                // ✅ GET FCM TOKEN
+                const token = await messaging().getToken();
+                // console.log('🔥 FCM Token:', token);
+
+                // Read login response stored after login
+                const loginResponse = await getObjByKey("loginResponse");
+                const authToken = loginResponse?.token || null;
+                const userId = loginResponse?.user?.id || loginResponse?.id || null;
+
+                // ✅ SEND TO BACKEND USING BASE_URL
+                const saveFcmResponse = await fetch(`${BASE_URL}profile/save-fcm-token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        token: token,
+                        platform: platform
+                    })
+                });
+
+                // console.log('📡 Save FCM token response status:', saveFcmResponse.status);
+                const saveFcmData = await saveFcmResponse.json().catch(() => null);
+
+                if (saveFcmResponse.ok) {
+                    
+                    // console.log('✅ FCM token posted successfully:', saveFcmData?.message || 'Success');
+                } else {
+                    // console.log('❌ FCM token post failed:', saveFcmData?.message || 'Unknown server error');
+                    // console.log('🧾 FCM token post debug:', { hasAuthToken: !!authToken, userId });
+                }
+
+            } catch (error) {
+                // console.log('❌ Error initializing notifications:', error);
+            }
+        };
         initializeNotifications();
     }, []);
 
@@ -233,8 +246,8 @@ export default SplashScreen = ({ navigation }) => {
 
     return (
         <>
-            <StatusBar 
-                backgroundColor={WHITE} 
+            <StatusBar
+                backgroundColor={WHITE}
                 barStyle={Platform.OS === "ios" ? "dark-content" : "dark-content"}
                 translucent={Platform.OS === "android"}
             />
