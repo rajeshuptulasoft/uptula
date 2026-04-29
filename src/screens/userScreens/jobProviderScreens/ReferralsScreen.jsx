@@ -55,7 +55,7 @@ const ReferralsScreen = () => {
       setLoading(true);
       const url = `${BASE_URL}employer/referral/code`;
       // console.log("📡 API URL:", url);
-      
+
       const result = await GETNETWORK(url, true);
       // console.log("📥 API Response (raw):", result);
       // console.log("📥 API Response (stringified):", JSON.stringify(result, null, 2));
@@ -105,7 +105,7 @@ const ReferralsScreen = () => {
       // console.log("🔄 ========== FETCHING REFERRAL LIST ==========");
       const url = `${BASE_URL}employer/referral/list`;
       // console.log("📡 API URL:", url);
-      
+
       const result = await GETNETWORK(url, true);
       // console.log("📥 Referral List Response (raw):", result);
       // console.log("📥 Referral List Response (stringified):", JSON.stringify(result, null, 2));
@@ -125,7 +125,7 @@ const ReferralsScreen = () => {
 
         // console.log("✅ Referral list found:", referralData.length, "items");
         setReferrals(referralData);
-        
+
         if (referralData.length === 0) {
           // console.log("ℹ️ No referrals found in response");
         }
@@ -173,7 +173,7 @@ const ReferralsScreen = () => {
     try {
       // console.log("📤 Attempting to share referral link...");
       // console.log("📤 Share content:", referralLink);
-      
+
       const result = await Share.share({
         message: referralLink,
         title: "Referral Link",
@@ -193,7 +193,7 @@ const ReferralsScreen = () => {
           // console.log("📊 ========== TRACKING SHARE EVENT ==========");
           const trackUrl = `${BASE_URL}employer/referral/track`;
           // console.log("📡 Tracking API URL:", trackUrl);
-          
+
           const trackPayload = {
             referralLink: referralLink,
             action: "share",
@@ -222,10 +222,10 @@ const ReferralsScreen = () => {
 
           if (trackResult) {
             // Check for success indicators - including recorded: true, message with "validated", etc.
-            const isSuccess = 
+            const isSuccess =
               trackResult.recorded === true ||
-              trackResult.status === "success" || 
-              trackResult.statusCode === 200 || 
+              trackResult.status === "success" ||
+              trackResult.statusCode === 200 ||
               trackResult.message?.toLowerCase().includes("success") ||
               trackResult.message?.toLowerCase().includes("validated") ||
               trackResult.success === true;
@@ -288,7 +288,7 @@ const ReferralsScreen = () => {
       // console.log("❌ Error Message:", error?.message);
       // console.log("❌ Error Stack:", error?.stack);
       // console.log("❌ Full Error Object:", JSON.stringify(error, null, 2));
-      
+
       setToastMessage({
         type: "error",
         msg: `Failed to share referral link: ${error?.message || "Unknown error"}`,
@@ -312,6 +312,7 @@ const ReferralsScreen = () => {
         Platform.OS === "android" && styles.containerAndroid
       ]}>
         <MyHeader
+          showNotification={false}
           showBack
           showCenterTitle
           title="Referrals"
@@ -329,7 +330,7 @@ const ReferralsScreen = () => {
           {/* Your Referral Link Card */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Your Referral Link</Text>
-            
+
             <View style={styles.linkContainer}>
               <TextInput
                 style={styles.linkInput}
@@ -357,7 +358,7 @@ const ReferralsScreen = () => {
           {/* Your Referrals Card */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Your Referrals</Text>
-            
+
             {referrals.length === 0 ? (
               <View style={styles.emptyStateContainer}>
                 <Text style={styles.emptyStateText}>No referrals yet.</Text>

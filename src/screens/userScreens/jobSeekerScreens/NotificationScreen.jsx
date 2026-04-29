@@ -16,15 +16,17 @@ import {
   Animated,
   PanResponder,
   Dimensions,
+  InteractionManager,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { useFocusEffect } from "@react-navigation/native";
 import { BLACK, BRANDCOLOR, WHITE } from "../../../constant/color";
 import { HEIGHT, WIDTH } from "../../../constant/config";
 import { CANTARELLBOLD, CANTARELL, FIRASANSBOLD, FIRASANS, FIRASANSSEMIBOLD, OXYGENBOLD, OXYGEN, ROBOTOBOLD, ROBOTOSEMIBOLD, ROBOTO, UBUNTUBOLD, UBUNTU, COMICSBOLD } from "../../../constant/fontPath";
 import { MyHeader } from "../../../components/commonComponents/MyHeader";
 import { MyAlert } from "../../../components/commonComponents/MyAlert";
 import { BASE_URL } from "../../../constant/url";
-import { GETNETWORK } from "../../../utils/Network";
+import { GETNETWORK, PUTNETWORK } from "../../../utils/Network";
 import { getObjByKey } from "../../../utils/Storage";
 import { LOGO } from "../../../constant/imagePath";
 
@@ -46,6 +48,91 @@ const NotificationScreen = ({ navigation }) => {
 
   const ITEMS_PER_PAGE = 10;
 
+  const getCreatedAtLabel = (createdAt) => {
+    if (!createdAt) return "Older";
+
+    const createdDate = new Date(createdAt);
+    if (Number.isNaN(createdDate.getTime())) return "Older";
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfCreated = new Date(
+      createdDate.getFullYear(),
+      createdDate.getMonth(),
+      createdDate.getDate()
+    );
+    const dayDiff = Math.floor((startOfToday - startOfCreated) / (1000 * 60 * 60 * 24));
+
+    if (dayDiff === 0) return "Today";
+    if (dayDiff === 1) return "Yesterday";
+    return "Older";
+  };
+
+  // Helper function to categorize notification type
+  const categorizeNotificationType = (item) => {
+    const itemType = item?.type?.toLowerCase?.() || "";
+    const title = item?.title?.toLowerCase?.() || "";
+    const message = item?.message?.toLowerCase?.() || "";
+
+    // Job Available Notifications
+    if (
+      itemType === "job_available" ||
+      itemType === "new_job_posted" ||
+      itemType === "job_posted" ||
+      title.includes("job posted") ||
+      title.includes("new job") ||
+      message.includes("job posted") ||
+      message.includes("new job")
+    ) {
+      return "job_available";
+    }
+
+    // Applied Job Status Notifications
+    if (
+      itemType === "applied_job_status" ||
+      itemType === "application_status" ||
+      itemType === "job_application" ||
+      itemType === "application_update" ||
+      title.includes("applied") ||
+      title.includes("application") ||
+      title.includes("job status") ||
+      message.includes("applied") ||
+      message.includes("application")
+    ) {
+      return "applied_job_status";
+    }
+
+    // Chat Notifications
+    if (
+      itemType === "chat" ||
+      itemType === "message" ||
+      itemType === "chat_message" ||
+      title.includes("chat") ||
+      title.includes("message") ||
+      message.includes("chat") ||
+      message.includes("message")
+    ) {
+      return "chat";
+    }
+
+    // Others/Default
+    return "others";
+  };
+
+  const normalizeNotificationItem = (item) => {
+    const categorizedType = categorizeNotificationType(item);
+    return {
+      ...item,
+      id: item?.id ?? item?.notification_id ?? item?._id,
+      title: item?.title || "Notification",
+      message: item?.message || item?.body || "",
+      created_at: item?.created_at || item?.createdAt || item?.date || null,
+      time: getCreatedAtLabel(item?.created_at || item?.createdAt || item?.date),
+      read: Number(item?.is_read) === 1 || item?.read === true,
+      type: categorizedType, // Override type with categorized value
+    };
+  };
+
   const tabs = [
     { key: "All", label: "All", icon: "bell" },
     { key: "applied_job_status", label: "Applied Job Status", icon: "briefcase-check-outline" },
@@ -66,11 +153,12 @@ const NotificationScreen = ({ navigation }) => {
       const result = await GETNETWORK(url, true);
       const notificationsData = result?.data || result?.notifications || result || [];
       const notificationsArray = Array.isArray(notificationsData) ? notificationsData : [];
+      const normalizedNotifications = notificationsArray.map(normalizeNotificationItem);
 
-      setAllNotifications(notificationsArray);
-      setNotifications(notificationsArray.slice(0, ITEMS_PER_PAGE));
+      setAllNotifications(normalizedNotifications);
+      setNotifications(normalizedNotifications.slice(0, ITEMS_PER_PAGE));
       setPage(1);
-      setHasMore(notificationsArray.length > ITEMS_PER_PAGE);
+      setHasMore(normalizedNotifications.length > ITEMS_PER_PAGE);
     } catch (error) {
       setAllNotifications([]);
       setNotifications([]);
@@ -152,6 +240,19 @@ const NotificationScreen = ({ navigation }) => {
     return () => backHandler.remove();
   }, [navigation]);
 
+  // Clean up all modal and alert states when leaving the screen
+  useFocusEffect(
+    useCallback(() => {
+      // Cleanup function when leaving the screen
+      return () => {
+        console.log("🧹 Cleaning up NotificationScreen states");
+        setDetailsModalVisible(false);
+        setDeleteAlertVisible(false);
+        setSelectedNotification(null);
+      };
+    }, [])
+  );
+
   const handleBackPress = () => {
     navigation.goBack();
   };
@@ -172,13 +273,86 @@ const NotificationScreen = ({ navigation }) => {
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
+    setAllNotifications(prev =>
+      prev.map(n => n.id === id ? { ...n, read: true, is_read: 1 } : n)
+    );
+  };
+
+  const markNotificationAsReadOnServer = async (notificationId) => {
+    if (!notificationId || !userId) return;
+
+    try {
+      const readUrl = `${BASE_URL}profile/notifications/${notificationId}/read`;
+      const readResult = await PUTNETWORK(readUrl, {}, true);
+      const readSuccess =
+        readResult?.success === true ||
+        readResult?.status === true ||
+        Number(readResult?.data?.is_read) === 1 ||
+        Number(readResult?.is_read) === 1;
+
+      if (readSuccess) {
+        console.log(`✅ Notification ${notificationId} marked as read successfully`);
+      } else {
+        console.log(`❌ Failed to mark notification ${notificationId} as read`, readResult);
+      }
+
+      const notificationsUrl = `${BASE_URL}profile/notifications/${userId}`;
+      const refreshedNotifications = await GETNETWORK(notificationsUrl, true);
+      const refreshedData = refreshedNotifications?.data || refreshedNotifications?.notifications || refreshedNotifications || [];
+      const refreshedArray = Array.isArray(refreshedData) ? refreshedData : [];
+      const normalizedRefreshed = refreshedArray.map(normalizeNotificationItem);
+
+      setAllNotifications(normalizedRefreshed);
+      setNotifications(normalizedRefreshed.slice(0, ITEMS_PER_PAGE));
+      setPage(1);
+      setHasMore(normalizedRefreshed.length > ITEMS_PER_PAGE);
+
+      const unreadCountUrl = `${BASE_URL}profile/notifications/unread/count/${userId}`;
+      const unreadCountResult = await GETNETWORK(unreadCountUrl, true);
+      const unreadCount = unreadCountResult?.data?.count
+        ?? unreadCountResult?.count
+        ?? unreadCountResult?.unreadCount
+        ?? unreadCountResult?.unread_count
+        ?? 0;
+      console.log(`🔔 Updated unread notification count: ${Number(unreadCount) || 0}`);
+    } catch (error) {
+      console.log(`❌ Error while marking notification ${notificationId} as read:`, error);
+    }
   };
 
   const handleNotificationPress = (item) => {
+    console.log("📌 Notification pressed - Item data:", {
+      id: item.id,
+      type: item.type,
+      title: item.title,
+      message: item.message,
+    });
+
+    // If notification is from "New Job Posted" (job_available), navigate to SeekerHome
+    if (item.type === "job_available") {
+      console.log("🔔 Job Available notification - Navigating to SeekerHome");
+      markAsRead(item.id);
+      markNotificationAsReadOnServer(item.id);
+      
+      // Properly clean up all states before navigation
+      setDetailsModalVisible(false);
+      setSelectedNotification(null);
+      setDeleteAlertVisible(false);
+      
+      // Use InteractionManager to ensure all animations complete before navigation
+      InteractionManager.runAfterInteractions(() => {
+        navigation.navigate("SeekerHome", { skipProfileCheckAlert: true });
+      });
+      return;
+    }
+
+    // For other notifications, show the details modal
+    console.log("📢 Other notification - Showing modal. Type:", item.type);
     setSelectedNotification(item);
     setDetailsModalVisible(true);
     // Mark as read when viewed
     markAsRead(item.id);
+    markNotificationAsReadOnServer(item.id);
   };
 
   const handleDeletePress = (item) => {

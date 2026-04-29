@@ -63,7 +63,7 @@ import {
   VERIFIEDPROVIDER,
 } from "../../../constant/imagePath";
 import { HEIGHT, WIDTH } from "../../../constant/config";
-import { getObjByKey } from "../../../utils/Storage";
+import { getObjByKey, storeObjByKey } from "../../../utils/Storage";
 import { MyAlert } from "../../../components/commonComponents/MyAlert";
 import { MyHeader } from "../../../components/commonComponents/MyHeader";
 import { TextInputComponent } from "../../../components/commonComponents/TextInputComponent";
@@ -72,16 +72,6 @@ import { ToastMessage } from "../../../components/commonComponents/ToastMessage"
 import { handleProfilePress } from "../../../navigations/CustomDrawerContent";
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK, POSTNETWORK, DELETENETWORK } from "../../../utils/Network";
-
-const companies = [
-  { id: "c-1", name: "Mukti", logo: require("../../../assets/images/mukti.png"), tag: "Top" },
-  { id: "c-2", name: "Vikash", logo: require("../../../assets/images/vikash.png"), tag: "Featured" },
-  { id: "c-3", name: "VDeal", logo: require("../../../assets/images/vdeal.png"), tag: "Sponsored" },
-  { id: "c-4", name: "Yubi", logo: require("../../../assets/images/yubi.png"), tag: "Top" },
-  { id: "c-5", name: "GC", logo: require("../../../assets/images/gc2.png"), tag: "Featured" },
-  { id: "c-6", name: "UptulaSoft", logo: require("../../../assets/images/uptulasoft1.png"), tag: "Sponsored" },
-  { id: "c-7", name: "Vikash Foundation", logo: require("../../../assets/images/vf.png"), tag: "Top" },
-];
 
 // Format jobType: full_time -> Full Time
 const formatJobType = (jobType) => {
@@ -180,13 +170,10 @@ const formatSalary = (salaryRange) => {
   return salaryRange.trim().replace(/^INR\s*/i, '');
 };
 
-const SectionGrid = ({ title, filterTag, expanded, onToggle }) => {
+const SectionGrid = ({ title, companiesData, expanded, onToggle }) => {
   const data = useMemo(
-    () =>
-      expanded
-        ? companies.filter((c) => c.tag === filterTag)
-        : companies.filter((c) => c.tag === filterTag).slice(0, 3),
-    [expanded, filterTag]
+    () => (expanded ? companiesData : companiesData.slice(0, 3)),
+    [expanded, companiesData]
   );
 
   return (
@@ -197,18 +184,17 @@ const SectionGrid = ({ title, filterTag, expanded, onToggle }) => {
           <Text style={styles.viewAll}>{expanded ? "View less" : "View all"}</Text>
         </TouchableOpacity>
       </View>
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.squareCard} activeOpacity={0.7}>
-            <Image source={item.logo} style={styles.squareCardLogo} defaultSource={LOGO} />
-            <Text style={styles.squareCardText}>{item.name}</Text>
-          </TouchableOpacity>
-        )}
-      />
+      {data.length > 0 ? (
+        <FlatList
+          data={data}
+          keyExtractor={(item, index) => item.id?.toString() || item._id?.toString() || `${item.companyName}-${index}`}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => <CompanyCard item={item} />}
+        />
+      ) : (
+        <Text style={styles.emptyText}>No companies available</Text>
+      )}
     </View>
   );
 };
@@ -837,15 +823,27 @@ const AllCategoriesSlider = ({ categories, onCategoryPress }) => {
 );
 };
 
-const SearchOverlay = ({ onClose, navigation }) => {
+const SearchOverlay = ({ onClose, navigation, companiesData = [] }) => {
+  const RECENT_SEARCHES_KEY = "user_recent_job_searches";
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [recentSearches, setRecentSearches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [wishlistedJobs, setWishlistedJobs] = useState(new Set());
   const [expandedTop, setExpandedTop] = useState(false);
   const [expandedFeatured, setExpandedFeatured] = useState(false);
   const [expandedSponsored, setExpandedSponsored] = useState(false);
+  const verifiedCompanies = useMemo(
+    () => companiesData.filter((item) => getVerifiedStatus(item)),
+    [companiesData]
+  );
+  const topCompaniesData = useMemo(() => companiesData, [companiesData]);
+  const featuredCompaniesData = useMemo(() => verifiedCompanies.slice(0, 6), [verifiedCompanies]);
+  const sponsoredCompaniesData = useMemo(() => {
+    const sliced = verifiedCompanies.slice(6, 12);
+    return sliced.length > 0 ? sliced : verifiedCompanies.slice(0, 6);
+  }, [verifiedCompanies]);
 
   // Fetch wishlist status
   const fetchWishlistStatus = useCallback(async () => {
@@ -881,6 +879,14 @@ const SearchOverlay = ({ onClose, navigation }) => {
   useEffect(() => {
     fetchWishlistStatus();
   }, [fetchWishlistStatus]);
+
+  useEffect(() => {
+    const loadRecentSearches = async () => {
+      const saved = await getObjByKey(RECENT_SEARCHES_KEY);
+      setRecentSearches(Array.isArray(saved) ? saved : []);
+    };
+    loadRecentSearches();
+  }, []);
 
   // BackHandler: close search overlay
   const handleBackPress = () => {
@@ -935,8 +941,17 @@ const SearchOverlay = ({ onClose, navigation }) => {
           filteredJobs = filteredJobs.filter((job) => {
             const jobTitle = (job.jobTitle || job.title || '').toLowerCase();
             const companyName = (job.companyName || job.company || '').toLowerCase();
-            // Match if jobTitle or companyName starts with the search query
-            return jobTitle.startsWith(searchLower) || companyName.startsWith(searchLower);
+            const designation = (job.designation || '').toLowerCase();
+            const skills = Array.isArray(job.skills)
+              ? job.skills.join(" ").toLowerCase()
+              : (job.skills || '').toLowerCase();
+            // Match if any relevant field contains the query (not only startsWith)
+            return (
+              jobTitle.includes(searchLower) ||
+              companyName.includes(searchLower) ||
+              designation.includes(searchLower) ||
+              skills.includes(searchLower)
+            );
           });
         }
         
@@ -967,6 +982,23 @@ const SearchOverlay = ({ onClose, navigation }) => {
       jobId: jobId,
       jobData: jobData,
     });
+  };
+
+  // Handle search button to navigate to full search screen
+  const saveSearchTerm = useCallback(async (term) => {
+    const value = term.trim();
+    if (!value) return;
+    const updated = [value, ...recentSearches.filter((item) => item.toLowerCase() !== value.toLowerCase())].slice(0, 8);
+    setRecentSearches(updated);
+    await storeObjByKey(RECENT_SEARCHES_KEY, updated);
+  }, [recentSearches]);
+
+  const handleSearchSubmit = () => {
+    if (query.trim()) {
+      saveSearchTerm(query);
+      onClose();
+      navigation.navigate('UserSearchJob', { keyword: query.trim() });
+    }
   };
 
   const handleApply = async (item) => {
@@ -1054,6 +1086,8 @@ const SearchOverlay = ({ onClose, navigation }) => {
           placeholder="e.g. React, Designer, Uptula"
           placeholderTextColor="#7A7A7A"
           style={styles.input}
+          onSubmitEditing={handleSearchSubmit}
+          returnKeyType="search"
         />
       </View>
 
@@ -1067,6 +1101,48 @@ const SearchOverlay = ({ onClose, navigation }) => {
           style={styles.input}
         />
       </View>
+
+      {recentSearches.length > 0 && query.trim() === "" && (
+        <View style={styles.inputGroup}>
+          <View style={styles.recentSearchesWrap}>
+            <View style={styles.recentSearchesHeader}>
+              <Text style={styles.recentSearchesTitle}>Previous Searches</Text>
+              <TouchableOpacity
+                onPress={async () => {
+                  setRecentSearches([]);
+                  await storeObjByKey(RECENT_SEARCHES_KEY, []);
+                }}
+              >
+                <Text style={styles.recentSearchesClear}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+            {recentSearches.map((item) => (
+              <TouchableOpacity
+                key={item}
+                style={styles.recentSearchItem}
+                onPress={() => {
+                  setQuery(item);
+                  handleSearch(item, location);
+                }}
+              >
+                <MaterialCommunityIcons name="history" size={16} color="#8B93A6" />
+                <Text style={styles.recentSearchText}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {query.trim() && (
+        <TouchableOpacity 
+          style={styles.searchSubmitButton}
+          onPress={handleSearchSubmit}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.searchSubmitButtonText}>Search for "{query}"</Text>
+          <MaterialCommunityIcons name="arrow-right" size={20} color={WHITE} />
+        </TouchableOpacity>
+      )}
 
         {loading && (
           <View style={styles.loadingIndicatorContainer}>
@@ -1159,19 +1235,19 @@ const SearchOverlay = ({ onClose, navigation }) => {
       <ScrollView showsVerticalScrollIndicator={false}>
         <SectionGrid
           title="Top Companies"
-          filterTag="Top"
+          companiesData={topCompaniesData}
           expanded={expandedTop}
           onToggle={() => setExpandedTop(!expandedTop)}
         />
         <SectionGrid
           title="Featured Companies"
-          filterTag="Featured"
+          companiesData={featuredCompaniesData}
           expanded={expandedFeatured}
           onToggle={() => setExpandedFeatured(!expandedFeatured)}
         />
         <SectionGrid
           title="Sponsored Companies"
-          filterTag="Sponsored"
+          companiesData={sponsoredCompaniesData}
           expanded={expandedSponsored}
           onToggle={() => setExpandedSponsored(!expandedSponsored)}
         />
@@ -1529,7 +1605,6 @@ const CompanyCard = ({ item }) => {
         ? item.logo
         : `${BASE_URL.replace('/api/', '/')}${item.logo.replace(/^\//, '')}`)
     : null;
-  const locationText = getCompanyLocationText(item);
   const isVerified = getVerifiedStatus(item);
   const handleCompanyPress = () => {
     navigation.navigate("DisplayCompanyProfile", {
@@ -1553,17 +1628,6 @@ const CompanyCard = ({ item }) => {
           <Image source={VERIFIEDPROVIDER} style={styles.companyVerifiedIcon} />
         ) : null}
       </View>
-      {locationText ? (
-        <View style={styles.companyLocationRow}>
-          <MaterialCommunityIcons name="map-marker-outline" size={WIDTH * 0.032} color={BRANDCOLOR} />
-          <Text style={styles.companyCardMeta} numberOfLines={2}>
-            {locationText}
-          </Text>
-        </View>
-      ) : null}
-      <Text style={styles.companyCardOpenings} numberOfLines={2}>
-        {item.jobCount ? `${item.jobCount} openings` : 'No openings'}
-      </Text>
     </TouchableOpacity>
   );
 };
@@ -1728,7 +1792,7 @@ const PosterSection = () => {
   );
 };
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation, route }) => {
   const nav = useNavigation();
   const [searchOpen, setSearchOpen] = useState(false);
   const [loginPromptVisible, setLoginPromptVisible] = useState(false);
@@ -1778,6 +1842,7 @@ const HomeScreen = ({ navigation }) => {
   const [profileCompletionAlertVisible, setProfileCompletionAlertVisible] = useState(false);
   const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(100);
   const [profileCompletionCheckDone, setProfileCompletionCheckDone] = useState(false);
+  const [skipProfileCheckAlert] = useState(route?.params?.skipProfileCheckAlert || false);
  
   // Request location permission
   const requestLocationPermission = async () => {
@@ -2216,7 +2281,8 @@ const HomeScreen = ({ navigation }) => {
         setProfileCompletionPercentage(completionPercentage);
 
         // Show alert only if profile is not 100% complete and not already checked
-        if (completionPercentage < 100 && !profileCompletionCheckDone) {
+        // Skip showing alert if coming from notification screen (skipProfileCheckAlert = true)
+        if (completionPercentage < 100 && !profileCompletionCheckDone && !skipProfileCheckAlert) {
           setProfileCompletionAlertVisible(true);
           setProfileCompletionCheckDone(true);
         }
@@ -2224,7 +2290,7 @@ const HomeScreen = ({ navigation }) => {
     } catch (error) {
       // Silently fail
     }
-  }, [calculateCompletionPercentage, profileCompletionCheckDone]);
+  }, [calculateCompletionPercentage, profileCompletionCheckDone, skipProfileCheckAlert]);
 
   // Fetch jobs based on applied jobs (same jobTitle from other companies)
   const fetchJobsBasedOnApplied = useCallback(async () => {
@@ -2615,10 +2681,10 @@ const HomeScreen = ({ navigation }) => {
     try {
       const loginResponse = await getObjByKey("loginResponse");
       
-      console.log("🔍 ApplyForm: Full loginResponse:", JSON.stringify(loginResponse, null, 2));
+      // console.log("🔍 ApplyForm: Full loginResponse:", JSON.stringify(loginResponse, null, 2));
       
       if (!loginResponse) {
-        console.log("❌ ApplyForm: No loginResponse found");
+        // console.log("❌ ApplyForm: No loginResponse found");
         setApplyName("");
         setApplyEmail("");
         setApplyPhone("");
@@ -2637,13 +2703,13 @@ const HomeScreen = ({ navigation }) => {
       // Always fetch fresh profile data from API
       try {
         const profileUrl = `${BASE_URL}profile`;
-        console.log("📡 ApplyForm: Fetching profile from:", profileUrl);
+        // console.log("📡 ApplyForm: Fetching profile from:", profileUrl);
         const profileResult = await GETNETWORK(profileUrl, true);
-        console.log("📥 ApplyForm: Profile response:", JSON.stringify(profileResult, null, 2));
+        // console.log("📥 ApplyForm: Profile response:", JSON.stringify(profileResult, null, 2));
         
         // Extract profile data from various possible response structures
         const profileData = profileResult?.profile || profileResult?.data || profileResult?.user || profileResult || {};
-        console.log("📋 ApplyForm: Extracted profile data:", JSON.stringify(profileData, null, 2));
+        // console.log("📋 ApplyForm: Extracted profile data:", JSON.stringify(profileData, null, 2));
           
         // Get firstName and lastName from profile (check all possible field names)
         firstName = profileData.firstName || profileData.first_name || profileData.firstName || "";
@@ -2655,7 +2721,7 @@ const HomeScreen = ({ navigation }) => {
         // Get email from profile (check all possible field names)
         email = profileData.email || profileData.emailAddress || "";
           
-        console.log("✅ ApplyForm: From profile API - firstName:", firstName, "lastName:", lastName, "phone:", phone, "email:", email);
+        // console.log("✅ ApplyForm: From profile API - firstName:", firstName, "lastName:", lastName, "phone:", phone, "email:", email);
         
         // If still no firstName/lastName, try to get from fullName in profile
         if (!firstName && !lastName) {
@@ -2669,13 +2735,13 @@ const HomeScreen = ({ navigation }) => {
               firstName = nameParts[0];
               lastName = "";
             }
-            console.log("✅ ApplyForm: Split fullName - firstName:", firstName, "lastName:", lastName);
+            // console.log("✅ ApplyForm: Split fullName - firstName:", firstName, "lastName:", lastName);
           }
         }
         
         // Fallback to loginResponse if profile API didn't return data
         if (!firstName && !lastName && !phone && !email) {
-          console.log("⚠️ ApplyForm: Profile API returned empty, trying loginResponse");
+          // console.log("⚠️ ApplyForm: Profile API returned empty, trying loginResponse");
           const userData = loginResponse?.user || loginResponse?.data || loginResponse || {};
           firstName = firstName || userData.firstName || userData.first_name || "";
           lastName = lastName || userData.lastName || userData.last_name || "";
@@ -2698,7 +2764,7 @@ const HomeScreen = ({ navigation }) => {
           }
         }
       } catch (profileError) {
-        console.error("❌ ApplyForm: Error fetching profile:", profileError);
+        // console.error("❌ ApplyForm: Error fetching profile:", profileError);
         // If profile fetch fails, try to get from loginResponse
         const userData = loginResponse?.user || loginResponse?.data || loginResponse || {};
         firstName = userData.firstName || userData.first_name || "";
@@ -2722,7 +2788,7 @@ const HomeScreen = ({ navigation }) => {
         }
       }
       
-      console.log("✅ ApplyForm: Final extracted - firstName:", firstName, "lastName:", lastName, "email:", email, "phone:", phone);
+      // console.log("✅ ApplyForm: Final extracted - firstName:", firstName, "lastName:", lastName, "email:", email, "phone:", phone);
       
       // Capitalize first letter of each word
       const capitalizeWords = (str) => {
@@ -2739,7 +2805,7 @@ const HomeScreen = ({ navigation }) => {
       // Combine firstName + lastName for Full Name
       const fullName = `${firstNameCapitalized} ${lastNameCapitalized}`.trim();
       
-      console.log("✅ ApplyForm: Setting form - Full Name:", fullName, "Email:", email, "Phone:", phone);
+      // console.log("✅ ApplyForm: Setting form - Full Name:", fullName, "Email:", email, "Phone:", phone);
       
       // Pre-fill form fields
       setApplyName(fullName);
@@ -2835,7 +2901,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleCloseApplyForm = () => {
-    console.log("🔒 ApplyForm: Closing form and resetting all fields");
+    // console.log("🔒 ApplyForm: Closing form and resetting all fields");
     setApplyFormVisible(false);
     setSelectedJob(null);
     setApplyName("");
@@ -2926,41 +2992,41 @@ const HomeScreen = ({ navigation }) => {
 
   // Submit application
   const handleSubmitApplication = async () => {
-    console.log("🚀 ApplyForm: Starting application submission...");
+    // console.log("🚀 ApplyForm: Starting application submission...");
     
     if (!validateApplyForm()) {
-      console.log("❌ ApplyForm: Form validation failed");
+      // console.log("❌ ApplyForm: Form validation failed");
       return;
     }
 
     if (!selectedJob) {
-      console.log("❌ ApplyForm: No selected job");
+      // console.log("❌ ApplyForm: No selected job");
       Alert.alert("Error", "Job information is missing");
       return;
     }
 
     const jobId = selectedJob.id || selectedJob._id;
     if (!jobId) {
-      console.log("❌ ApplyForm: No job ID found");
+      // console.log("❌ ApplyForm: No job ID found");
       Alert.alert("Error", "Job ID is missing");
       return;
     }
 
-    console.log("📋 ApplyForm: Job ID:", jobId);
-    console.log("📋 ApplyForm: Form data - Name:", applyName, "Email:", applyEmail, "Phone:", applyPhone);
-    console.log("📋 ApplyForm: Has file:", !!applyFile, "File name:", applyFile?.name);
-    console.log("📋 ApplyForm: Cover letter length:", applyCoverLetter.length);
+    // console.log("📋 ApplyForm: Job ID:", jobId);
+    // console.log("📋 ApplyForm: Form data - Name:", applyName, "Email:", applyEmail, "Phone:", applyPhone);
+    // console.log("📋 ApplyForm: Has file:", !!applyFile, "File name:", applyFile?.name);
+    // console.log("📋 ApplyForm: Cover letter length:", applyCoverLetter.length);
 
     try {
       setApplyLoading(true);
-      console.log("⏳ ApplyForm: Loading state set to true");
+      // console.log("⏳ ApplyForm: Loading state set to true");
 
       // Get token from storage
       const loginResponse = await getObjByKey('loginResponse');
-      console.log("🔑 ApplyForm: LoginResponse retrieved:", !!loginResponse);
+      // console.log("🔑 ApplyForm: LoginResponse retrieved:", !!loginResponse);
       
       if (!loginResponse) {
-        console.log("❌ ApplyForm: No loginResponse found");
+        // console.log("❌ ApplyForm: No loginResponse found");
         setApplyToastMessage({
           type: "error",
           msg: "Please login to apply for jobs",
@@ -2975,21 +3041,21 @@ const HomeScreen = ({ navigation }) => {
       if (loginResponse.data) {
         if (typeof loginResponse.data === 'string') {
           token = loginResponse.data;
-          console.log("🔑 ApplyForm: Token from loginResponse.data (string)");
+          // console.log("🔑 ApplyForm: Token from loginResponse.data (string)");
         } else if (typeof loginResponse.data === 'object' && loginResponse.data !== null) {
           token = loginResponse.data.token || loginResponse.data.data;
-          console.log("🔑 ApplyForm: Token from loginResponse.data (object)");
+          // console.log("🔑 ApplyForm: Token from loginResponse.data (object)");
         }
       }
       if (!token || (typeof token === 'string' && token.trim() === '')) {
         if (loginResponse.token && typeof loginResponse.token === 'string') {
           token = loginResponse.token;
-          console.log("🔑 ApplyForm: Token from loginResponse.token");
+          // console.log("🔑 ApplyForm: Token from loginResponse.token");
         }
       }
 
       if (!token || typeof token !== 'string' || token.trim() === '') {
-        console.log("❌ ApplyForm: No valid token found");
+        // console.log("❌ ApplyForm: No valid token found");
         setApplyToastMessage({
           type: "error",
           msg: "Authentication token not found. Please login again.",
@@ -2999,8 +3065,8 @@ const HomeScreen = ({ navigation }) => {
         return;
       }
 
-      console.log("✅ ApplyForm: Token extracted, length:", token.length);
-      console.log("✅ ApplyForm: Token preview:", token.substring(0, 20) + "...");
+      // console.log("✅ ApplyForm: Token extracted, length:", token.length);
+      // console.log("✅ ApplyForm: Token preview:", token.substring(0, 20) + "...");
 
       // Create FormData
       const formData = new FormData();
@@ -3016,7 +3082,7 @@ const HomeScreen = ({ navigation }) => {
         // On Android, if it's a content:// URI, we might need to handle it differently
         // But DocumentPicker with copyTo: 'cachesDirectory' should give us file:// URI
         if (Platform.OS === 'android' && fileUri.startsWith('content://')) {
-          console.log("⚠️ ApplyForm: Content URI detected, this might cause issues");
+          // console.log("⚠️ ApplyForm: Content URI detected, this might cause issues");
         }
         
         // Prepare file object for FormData
@@ -3035,30 +3101,30 @@ const HomeScreen = ({ navigation }) => {
         }
         
         formData.append('resume', fileObject);
-        console.log("📎 ApplyForm: Resume file added to FormData");
-        console.log("📎 ApplyForm: File name:", fileObject.name);
-        console.log("📎 ApplyForm: File type:", fileObject.type);
-        console.log("📎 ApplyForm: File URI:", fileObject.uri);
+        // console.log("📎 ApplyForm: Resume file added to FormData");
+        // console.log("📎 ApplyForm: File name:", fileObject.name);
+        // console.log("📎 ApplyForm: File type:", fileObject.type);
+        // console.log("📎 ApplyForm: File URI:", fileObject.uri);
       }
 
-      console.log("📦 ApplyForm: FormData created with fields:");
-      console.log("   - name:", applyName.trim());
-      console.log("   - email:", applyEmail.trim());
-      console.log("   - phone:", applyPhone.trim());
-      console.log("   - pastedCv length:", applyCoverLetter.trim().length);
-      console.log("   - resume:", applyFile ? applyFile.name : "No file");
+      // console.log("📦 ApplyForm: FormData created with fields:");
+      // console.log("   - name:", applyName.trim());
+      // console.log("   - email:", applyEmail.trim());
+      // console.log("   - phone:", applyPhone.trim());
+      // console.log("   - pastedCv length:", applyCoverLetter.trim().length);
+      // console.log("   - resume:", applyFile ? applyFile.name : "No file");
 
       // Submit using react-native-blob-util (most reliable for file uploads on Android)
       const url = `${BASE_URL}jobs/${jobId}/apply`;
-      console.log("📡 ApplyForm: Submitting to URL:", url);
-      console.log("📡 ApplyForm: Request method: POST");
-      console.log("📡 ApplyForm: Headers - Authorization: Bearer", token.substring(0, 20) + "...");
+      // console.log("📡 ApplyForm: Submitting to URL:", url);
+      // console.log("📡 ApplyForm: Request method: POST");
+      // console.log("📡 ApplyForm: Headers - Authorization: Bearer", token.substring(0, 20) + "...");
       
       // Log file URI for debugging
       if (applyFile && applyFile.uri) {
-        console.log("📎 ApplyForm: File URI:", applyFile.uri);
-        console.log("📎 ApplyForm: File name:", applyFile.name);
-        console.log("📎 ApplyForm: File type:", applyFile.type);
+        // console.log("📎 ApplyForm: File URI:", applyFile.uri);
+        // console.log("📎 ApplyForm: File name:", applyFile.name);
+        // console.log("📎 ApplyForm: File type:", applyFile.type);
       }
       
       // Prepare form data for react-native-blob-util
@@ -3102,7 +3168,7 @@ const HomeScreen = ({ navigation }) => {
         }, null, 2));
       }
       
-      console.log("📦 ApplyForm: Form data array prepared with", formDataArray.length, "fields");
+      // console.log("📦 ApplyForm: Form data array prepared with", formDataArray.length, "fields");
       
       // Use react-native-blob-util for upload
       const result = await ReactNativeBlobUtil.fetch(
@@ -3115,17 +3181,17 @@ const HomeScreen = ({ navigation }) => {
         formDataArray
       );
       
-      console.log("📥 ApplyForm: Response status:", result.info().status);
-      console.log("📥 ApplyForm: Response headers:", JSON.stringify(result.info().headers, null, 2));
+      // console.log("📥 ApplyForm: Response status:", result.info().status);
+      // console.log("📥 ApplyForm: Response headers:", JSON.stringify(result.info().headers, null, 2));
       
       let parsedResult;
       try {
         const responseText = result.text();
-        console.log("📥 ApplyForm: Response text length:", responseText?.length || 0);
-        console.log("📥 ApplyForm: Response text preview:", responseText?.substring(0, 200) || '');
+        // console.log("📥 ApplyForm: Response text length:", responseText?.length || 0);
+        // console.log("📥 ApplyForm: Response text preview:", responseText?.substring(0, 200) || '');
         
         parsedResult = JSON.parse(responseText);
-        console.log("📥 ApplyForm: Parsed response:", JSON.stringify(parsedResult, null, 2));
+        // console.log("📥 ApplyForm: Parsed response:", JSON.stringify(parsedResult, null, 2));
       } catch (parseError) {
         console.error("❌ ApplyForm: Error parsing response:", parseError);
         parsedResult = {
@@ -3149,14 +3215,14 @@ const HomeScreen = ({ navigation }) => {
         parsedResult?.message?.toLowerCase().includes('success') ||
         (!parsedResult?.error && !parsedResult?.errors);
 
-      console.log("✅ ApplyForm: Response status:", responseStatus);
-      console.log("✅ ApplyForm: Success check result:", isSuccess);
+      // console.log("✅ ApplyForm: Response status:", responseStatus);
+      // console.log("✅ ApplyForm: Success check result:", isSuccess);
 
       if (isSuccess) {
         const successMessage = parsedResult?.message || "Your application has been submitted successfully!";
-        console.log("✅ ApplyForm: Application submitted successfully!");
-        console.log("✅ ApplyForm: Success message:", successMessage);
-        
+        // console.log("✅ ApplyForm: Application submitted successfully!");
+        // console.log("✅ ApplyForm: Success message:", successMessage);
+
         setApplyToastMessage({
           type: "success",
           msg: successMessage,
@@ -3171,22 +3237,22 @@ const HomeScreen = ({ navigation }) => {
         setApplyCoverLetter("");
         setApplyLoading(false);
         
-        console.log("🔄 ApplyForm: Form reset, closing in 2 seconds...");
+        // console.log("🔄 ApplyForm: Form reset, closing in 2 seconds...");
         
         // Refresh applied jobs list
         fetchAppliedJobs();
         
         // Close form after delay
         setTimeout(() => {
-          console.log("🔒 ApplyForm: Closing form modal");
+          // console.log("🔒 ApplyForm: Closing form modal");
           handleCloseApplyForm();
         }, 2000);
       } else {
         const errorMessage = parsedResult?.errors?.[0]?.msg || parsedResult?.message || parsedResult?.error || "Failed to submit application. Please try again.";
-        console.log("❌ ApplyForm: Application submission failed");
-        console.log("❌ ApplyForm: Response status:", responseStatus);
-        console.log("❌ ApplyForm: Error message:", errorMessage);
-        console.log("❌ ApplyForm: Full error response:", JSON.stringify(parsedResult, null, 2));
+        // console.log("❌ ApplyForm: Application submission failed");
+        // console.log("❌ ApplyForm: Response status:", responseStatus);
+        // console.log("❌ ApplyForm: Error message:", errorMessage);
+        // console.log("❌ ApplyForm: Full error response:", JSON.stringify(parsedResult, null, 2));
         
         setApplyToastMessage({
           type: "error",
@@ -3196,10 +3262,10 @@ const HomeScreen = ({ navigation }) => {
         setApplyLoading(false);
       }
     } catch (error) {
-      console.error("❌ ApplyForm: Exception during application submission");
-      console.error("❌ ApplyForm: Error:", error);
-      console.error("❌ ApplyForm: Error message:", error?.message);
-      console.error("❌ ApplyForm: Error stack:", error?.stack);
+      // console.error("❌ ApplyForm: Exception during application submission");
+      // console.error("❌ ApplyForm: Error:", error);
+      // console.error("❌ ApplyForm: Error message:", error?.message);
+      // console.error("❌ ApplyForm: Error stack:", error?.stack);
       
       const errorMessage = error?.message || "An error occurred while submitting your application. Please try again.";
       setApplyToastMessage({
@@ -3265,12 +3331,18 @@ const HomeScreen = ({ navigation }) => {
   const handleCategoryPress = (category) => {
     // Navigate to jobs filtered by category
     // You can implement category-specific job listing screen
-    console.log('Category pressed:', category);
+    // console.log('Category pressed:', category);
     // navigation.navigate('CategoryJobs', { category: category.category });
   };
 
   if (searchOpen) {
-    return <SearchOverlay onClose={() => setSearchOpen(false)} navigation={navigation} />;
+    return (
+      <SearchOverlay
+        onClose={() => setSearchOpen(false)}
+        navigation={navigation}
+        companiesData={topCompanies}
+      />
+    );
   }
 
   return (
@@ -4048,6 +4120,57 @@ const styles = StyleSheet.create({
     paddingVertical: HEIGHT * 0.012,
     color: BLACK,
     fontSize: WIDTH * 0.035,
+  },
+  recentSearchesWrap: {
+    marginTop: HEIGHT * 0.01,
+    borderWidth: 1,
+    borderColor: "#ECEFF4",
+    borderRadius: WIDTH * 0.025,
+    padding: WIDTH * 0.03,
+    backgroundColor: "#FAFBFD",
+  },
+  recentSearchesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: HEIGHT * 0.008,
+  },
+  recentSearchesTitle: {
+    color: "#5E687C",
+    fontFamily: FIRASANSSEMIBOLD,
+    fontSize: WIDTH * 0.032,
+  },
+  recentSearchesClear: {
+    color: BRANDCOLOR,
+    fontFamily: FIRASANSSEMIBOLD,
+    fontSize: WIDTH * 0.032,
+  },
+  recentSearchItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: WIDTH * 0.02,
+    paddingVertical: HEIGHT * 0.007,
+  },
+  recentSearchText: {
+    color: BLACK,
+    fontFamily: FIRASANS,
+    fontSize: WIDTH * 0.034,
+  },
+  searchSubmitButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BRANDCOLOR,
+    borderRadius: WIDTH * 0.025,
+    paddingVertical: HEIGHT * 0.014,
+    paddingHorizontal: WIDTH * 0.03,
+    marginBottom: HEIGHT * 0.015,
+    gap: WIDTH * 0.02,
+  },
+  searchSubmitButtonText: {
+    color: WHITE,
+    fontFamily: FIRASANSBOLD,
+    fontSize: WIDTH * 0.036,
   },
   searchButton: {
     flexDirection: "row",

@@ -92,10 +92,10 @@ android {
         applicationId "com.uptula"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "1.2.6"
+        versionCode 12
+        versionName "1.2.9"
     }
-    splits {
+    splits { 
         abi {
             enable false
             reset()

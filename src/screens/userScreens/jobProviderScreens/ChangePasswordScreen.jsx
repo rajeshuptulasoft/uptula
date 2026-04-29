@@ -108,7 +108,7 @@ const ChangePasswordScreen = ({ navigation }) => {
 
     /* ---------- API CALL ---------- */
     const changePasswordAPI = async () => {
-        console.log("[ChangePassword] changePasswordAPI called", { oldPassword, newPassword, confirmPassword });
+        // console.log("[ChangePassword] changePasswordAPI called", { oldPassword, newPassword, confirmPassword });
         setShowConfirmAlert(false);
 
         try {
@@ -136,11 +136,11 @@ const ChangePasswordScreen = ({ navigation }) => {
                 confirmPassword: confirmPassword,
             };
 
-            console.log("[ChangePassword] changePasswordAPI PUT", { url, payload });
+            // console.log("[ChangePassword] changePasswordAPI PUT", { url, payload });
 
             PUTNETWORK(url, payload, true)
                 .then((result) => {
-                    console.log("[ChangePassword] changePasswordAPI response", result);
+                    // console.log("[ChangePassword] changePasswordAPI response", result);
 
                     // Check for success in multiple possible response formats
                     const successMessage = result?.message || "";
@@ -176,7 +176,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                     }
                 })
                 .catch((error) => {
-                    console.error("Change password error:", error);
+                    // console.error("Change password error:", error);
                     setToastMessage({
                         type: "error",
                         msg: "Failed to change password. Please try again.",
@@ -184,7 +184,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                     });
                 });
         } catch (error) {
-            console.error("Change password exception:", error);
+            // console.error("Change password exception:", error);
             setToastMessage({
                 type: "error",
                 msg: "Unable to process request",
@@ -193,7 +193,7 @@ const ChangePasswordScreen = ({ navigation }) => {
         }
     };
 
-    
+
 
     /* ---------- VALIDATION ---------- */
     const onChangePassword = () => {
@@ -232,7 +232,7 @@ const ChangePasswordScreen = ({ navigation }) => {
             msg: "Enter your registered email to get OTP",
             visible: true,
         });
-        console.log("[ChangePassword] onForgotPasswordPress - flipped forgot section on");
+        // console.log("[ChangePassword] onForgotPasswordPress - flipped forgot section on");
     };
 
     // const handleProceedEmail = () => {
@@ -262,7 +262,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 msg: "Please enter your email",
                 visible: true,
             });
-            console.log("[ChangePassword] handleProceedEmail error: email is empty");
+            // console.log("[ChangePassword] handleProceedEmail error: email is empty");
             return;
         }
 
@@ -270,9 +270,9 @@ const ChangePasswordScreen = ({ navigation }) => {
             const url = `${BASE_URL}auth/forgot-password`;
             const payload = { email: forgotEmail };
 
-            console.log("[ChangePassword] handleProceedEmail POST", { url, payload });
+            // console.log("[ChangePassword] handleProceedEmail POST", { url, payload });
             const response = await POSTNETWORK(url, payload, false);
-            console.log("[ChangePassword] handleProceedEmail response", response);
+            // console.log("[ChangePassword] handleProceedEmail response", response);
 
             if (response?.success || response?.message) {
                 setForgotStep(2);
@@ -286,14 +286,14 @@ const ChangePasswordScreen = ({ navigation }) => {
                     visible: true,
                 });
 
-                console.log("[ChangePassword] OTP sent success");
+                // console.log("[ChangePassword] OTP sent success");
             } else {
                 setToastMessage({
                     type: "error",
                     msg: response?.message || "Failed to send OTP",
                     visible: true,
                 });
-                console.log("[ChangePassword] handleProceedEmail failed", response);
+                // console.log("[ChangePassword] handleProceedEmail failed", response);
             }
         } catch (error) {
             setToastMessage({
@@ -301,7 +301,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 msg: "Error sending OTP",
                 visible: true,
             });
-            console.log("[ChangePassword] handleProceedEmail exception", error);
+            // console.log("[ChangePassword] handleProceedEmail exception", error);
         }
     };
 
@@ -312,7 +312,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 msg: "Please wait until timer expires before resending",
                 visible: true,
             });
-            console.log("[ChangePassword] handleResendOtp blocked by timer", { otpTimer });
+            // console.log("[ChangePassword] handleResendOtp blocked by timer", { otpTimer });
             return;
         }
 
@@ -323,7 +323,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 visible: true,
             });
             setOtpStatus("Max resend attempts reached");
-            console.log("[ChangePassword] handleResendOtp max attempts", { resendCount });
+            // console.log("[ChangePassword] handleResendOtp max attempts", { resendCount });
             return;
         }
 
@@ -331,9 +331,9 @@ const ChangePasswordScreen = ({ navigation }) => {
             const url = `${BASE_URL}resend-otp`;
             const payload = { email: forgotEmail };
 
-            console.log("[ChangePassword] handleResendOtp POST", { url, payload });
+            // console.log("[ChangePassword] handleResendOtp POST", { url, payload });
             const response = await POSTNETWORK(url, payload, false);
-            console.log("[ChangePassword] handleResendOtp response", response);
+            // console.log("[ChangePassword] handleResendOtp response", response);
 
             if (response?.success || response?.message) {
                 setOtpTimer(60);
@@ -346,14 +346,14 @@ const ChangePasswordScreen = ({ navigation }) => {
                     visible: true,
                 });
 
-                console.log("[ChangePassword] OTP resent success", { resendCount: resendCount + 1 });
+                // console.log("[ChangePassword] OTP resent success", { resendCount: resendCount + 1 });
             } else {
                 setToastMessage({
                     type: "error",
                     msg: response?.message || "Failed to resend OTP",
                     visible: true,
                 });
-                console.log("[ChangePassword] handleResendOtp failed", response);
+                // console.log("[ChangePassword] handleResendOtp failed", response);
             }
         } catch (error) {
             setToastMessage({
@@ -361,7 +361,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 msg: "Error resending OTP",
                 visible: true,
             });
-            console.log("[ChangePassword] handleResendOtp exception", error);
+            // console.log("[ChangePassword] handleResendOtp exception", error);
         }
     };
 
@@ -386,9 +386,9 @@ const ChangePasswordScreen = ({ navigation }) => {
                     const url = `${BASE_URL}verify-otp`;
                     const payload = { email: forgotEmail, otp: otpValue };
 
-                    console.log("[ChangePassword] verifyOtp POST", { url, payload });
+                    // console.log("[ChangePassword] verifyOtp POST", { url, payload });
                     const response = await POSTNETWORK(url, payload, false);
-                    console.log("[ChangePassword] verifyOtp response", response);
+                    // console.log("[ChangePassword] verifyOtp response", response);
 
                     if (response?.success || response?.message) {
                         setOtpVerified(true);
@@ -400,7 +400,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                             visible: true,
                         });
 
-                        console.log("[ChangePassword] OTP verified");
+                        // console.log("[ChangePassword] OTP verified");
                     } else {
                         setOtpVerified(false);
                         setOtpStatus("Invalid OTP");
@@ -411,7 +411,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                             visible: true,
                         });
 
-                        console.log("[ChangePassword] OTP invalid", response);
+                        // console.log("[ChangePassword] OTP invalid", response);
                     }
                 } catch (error) {
                     setToastMessage({
@@ -419,7 +419,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                         msg: "OTP verification failed",
                         visible: true,
                     });
-                    console.log("[ChangePassword] verifyOtp exception", error);
+                    // console.log("[ChangePassword] verifyOtp exception", error);
                 }
             }
         };
@@ -470,7 +470,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 msg: "Please enter valid OTP",
                 visible: true,
             });
-            console.log("[ChangePassword] handleForgotUpdatePassword error: OTP not verified");
+            // console.log("[ChangePassword] handleForgotUpdatePassword error: OTP not verified");
             return;
         }
 
@@ -480,7 +480,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 msg: "Please enter new and confirm password",
                 visible: true,
             });
-            console.log("[ChangePassword] handleForgotUpdatePassword error: missing new/confirm password");
+            // console.log("[ChangePassword] handleForgotUpdatePassword error: missing new/confirm password");
             return;
         }
 
@@ -490,7 +490,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 msg: "Passwords do not match",
                 visible: true,
             });
-            console.log("[ChangePassword] handleForgotUpdatePassword error: passwords mismatch");
+            // console.log("[ChangePassword] handleForgotUpdatePassword error: passwords mismatch");
             return;
         }
 
@@ -503,9 +503,9 @@ const ChangePasswordScreen = ({ navigation }) => {
                 confirmPassword,
             };
 
-            console.log("[ChangePassword] handleForgotUpdatePassword POST", { url, payload });
+            // console.log("[ChangePassword] handleForgotUpdatePassword POST", { url, payload });
             const response = await POSTNETWORK(url, payload, false);
-            console.log("[ChangePassword] handleForgotUpdatePassword response", response);
+            // console.log("[ChangePassword] handleForgotUpdatePassword response", response);
 
             if (response?.success || response?.message) {
                 setToastMessage({
@@ -514,7 +514,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                     visible: true,
                 });
 
-                console.log("[ChangePassword] password reset success");
+                // console.log("[ChangePassword] password reset success");
                 setShowForgotSection(false);
                 resetAllFields();
             } else {
@@ -523,7 +523,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                     msg: response?.message || "Reset failed",
                     visible: true,
                 });
-                console.log("[ChangePassword] password reset failed", response);
+                // console.log("[ChangePassword] password reset failed", response);
             }
         } catch (error) {
             setToastMessage({
@@ -531,7 +531,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 msg: "Error resetting password",
                 visible: true,
             });
-            console.log("[ChangePassword] handleForgotUpdatePassword exception", error);
+            // console.log("[ChangePassword] handleForgotUpdatePassword exception", error);
         }
     };
 
@@ -544,6 +544,7 @@ const ChangePasswordScreen = ({ navigation }) => {
 
             <Container style={{ flex: 1, backgroundColor: WHITE }}>
                 <MyHeader
+                    showNotification={false}
                     showBack
                     showCenterTitle
                     title="Change Password"

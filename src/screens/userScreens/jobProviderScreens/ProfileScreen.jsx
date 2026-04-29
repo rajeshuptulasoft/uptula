@@ -52,7 +52,7 @@ const ProfileScreen = () => {
       setLoading(true);
       const url = `${BASE_URL}employer/profile`;
       // console.log('Fetching employer profile:', url);
-      
+
       // Get token from storage
       const loginResponse = await getObjByKey('loginResponse');
       if (!loginResponse || !loginResponse.token) {
@@ -60,13 +60,13 @@ const ProfileScreen = () => {
         setLoading(false);
         return;
       }
-      
+
       const result = await GETNETWORK(url, true);
       // console.log('Employer profile response:', JSON.stringify(result, null, 2));
-      
+
       // API response structure: { profile: { ... } }
       const profileData = result?.profile || result;
-      
+
       if (profileData && profileData.companyName) {
         // console.log('✅ Success: Employer profile fetched successfully');
         // console.log('Profile data:', {
@@ -80,15 +80,15 @@ const ProfileScreen = () => {
         //   google: profileData.google,
         // });
         setApiProfileData(profileData);
-        
+
         // Handle logo URL - check multiple possible locations (root level and inside profile)
-        const fetchedLogoUrl = 
-          result?.logoUrl || 
-          result?.logo || 
+        const fetchedLogoUrl =
+          result?.logoUrl ||
+          result?.logo ||
           result?.companyLogo ||
           result?.company_logo ||
-          profileData?.logoUrl || 
-          profileData?.logo || 
+          profileData?.logoUrl ||
+          profileData?.logo ||
           profileData?.companyLogo ||
           profileData?.company_logo ||
           null;
@@ -126,7 +126,7 @@ const ProfileScreen = () => {
           // Determine role
           const role = loginData?.role || loginData?.userType || loginData?.user?.role || '';
           const roleLower = role.toLowerCase();
-          
+
           if (roleLower.includes('provider')) {
             setUserRole('provider');
             // console.log('✅ User role: Provider - Fetching employer profile');
@@ -162,7 +162,7 @@ const ProfileScreen = () => {
   useEffect(() => {
     const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
       if (navigation.canGoBack()) {
-      navigation.goBack();
+        navigation.goBack();
       }
       return true;
     });
@@ -209,7 +209,7 @@ const ProfileScreen = () => {
       companyDescription, // Company Description
       (twitter || facebook || google), // Social Media
     ];
-    
+
     const completedSections = sections.filter(Boolean).length;
     const totalSections = sections.length;
     const percentage = Math.round((completedSections / totalSections) * 100);
@@ -223,6 +223,7 @@ const ProfileScreen = () => {
       <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
       <View style={styles.container}>
         <MyHeader
+          showNotification={false}
           showBack
           showCenterTitle
           title="Profile"
@@ -255,15 +256,15 @@ const ProfileScreen = () => {
                       progress={completionPercentage}
                       color={completionPercentage === 100 ? '#4CAF50' : BRANDCOLOR}
                     />
-            <View style={styles.profileImageWrapper}>
-              {logoUrl ? (
-                        <Image 
-                          source={{ uri: logoUrl }} 
+                    <View style={styles.profileImageWrapper}>
+                      {logoUrl ? (
+                        <Image
+                          source={{ uri: logoUrl }}
                           style={styles.profileImage}
                           defaultSource={PROFILE}
                           onError={() => setLogoUrl(null)}
                         />
-              ) : (
+                      ) : (
                         <Image source={PROFILE} style={styles.profileImage} />
                       )}
                     </View>
@@ -276,8 +277,8 @@ const ProfileScreen = () => {
                 {/* Name with Edit Icon */}
                 <View style={styles.nameContainer}>
                   <Text style={styles.profileName}>{companyName || "Company Name"}</Text>
-              <TouchableOpacity
-                onPress={() => {
+                  <TouchableOpacity
+                    onPress={() => {
                       const profileDataToPass = {
                         companyName: companyName,
                         address: companyAddress,
@@ -371,8 +372,8 @@ const ProfileScreen = () => {
                   )}
                   {founded && (
                     <DetailRow label="Founded" value={founded} />
-            )}
-          </View>
+                  )}
+                </View>
               </SectionCard>
 
               {/* Contact Details Section */}
@@ -423,7 +424,7 @@ const ProfileScreen = () => {
                     {companyAddress && (
                       <DetailItem icon="map-marker" label={companyAddress} />
                     )}
-            </View>
+                  </View>
                 </SectionCard>
               )}
 
@@ -566,14 +567,14 @@ export default ProfileScreen;
 const CircularProgress = ({ size, strokeWidth, progress, color }) => {
   const radius = size / 2;
   const circumference = 2 * Math.PI * radius;
-  
+
   // Calculate which borders to show based on progress
   const progressPercent = progress / 100;
   const quarter1 = progressPercent >= 0.25;
   const quarter2 = progressPercent >= 0.5;
   const quarter3 = progressPercent >= 0.75;
   const quarter4 = progressPercent >= 1.0;
-  
+
   // Calculate partial progress for the current quarter
   let currentQuarterProgress = 0;
   if (progressPercent < 0.25) {
@@ -838,7 +839,7 @@ const styles = StyleSheet.create({
     color: BLACK,
     lineHeight: 20,
   },
-  
+
   /* Loading */
   loadingContainer: {
     flex: 1,

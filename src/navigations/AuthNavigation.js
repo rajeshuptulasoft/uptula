@@ -16,9 +16,9 @@ import TermsConditionsScreen from "../screens/userScreens/jobProviderScreens/Ter
 import ManageJobScreen from "../screens/userScreens/jobProviderScreens/ManageJobScreen";
 import ManageJobDetailsScreen from "../screens/userScreens/jobProviderScreens/ManageJobDetailsScreen";
 import AnalyticsReportScreen from "../screens/userScreens/jobProviderScreens/AnalyticsRepost";
-import NotificationScreen from "../screens/userScreens/jobProviderScreens/NotificationScreen";
+// import NotificationScreen from "../screens/userScreens/jobProviderScreens/NotificationScreen";
 import JobDetailsScreen from "../screens/userScreens/jobProviderScreens/JobDetailsScreen";
-import EmployerChatScreen from "../screens/userScreens/jobProviderScreens/EmployerChatScreen";
+// import EmployerChatScreen from "../screens/userScreens/jobProviderScreens/EmployerChatScreen";
 import CategoriesScreen from "../screens/userScreens/jobProviderScreens/CategoriesScreen";
 
 // Job Seeker Screens
@@ -31,6 +31,8 @@ import UserChatScreen from "../screens/userScreens/jobSeekerScreens/UserChatScre
 import RecommendedJobScreen from "../screens/userScreens/jobSeekerScreens/RecommendedJobScreen";
 import CompanyDetailsJobScreen from "../screens/userScreens/jobSeekerScreens/CompanyDetailsJobScreen";
 import DisplayCompanyProfileScreen from "../screens/userScreens/jobSeekerScreens/DisplayCompanyProfileScreen";
+import UserSearchJobScreen from "../screens/userScreens/jobSeekerScreens/UserSearchJobScreen";
+import EmployerChatScreen from "../screens/userScreens/jobProviderScreens/EmployerChatScreen";
 
 const Stack = createStackNavigator();
 
@@ -59,7 +61,7 @@ const AuthNavigation = () => {
       <Stack.Screen name="ManageJobs" component={ManageJobScreen} />
       <Stack.Screen name="ManageJobDetails" component={ManageJobDetailsScreen} />
       <Stack.Screen name="AnalyticsReport" component={AnalyticsReportScreen} />
-      <Stack.Screen name="ProviderNotifications" component={NotificationScreen} />
+      {/* <Stack.Screen name="ProviderNotifications" component={NotificationScreen} /> */}
       <Stack.Screen name="JobDetails" component={JobDetailsScreen} />
       <Stack.Screen name="ProviderChat" component={EmployerChatScreen} />
       <Stack.Screen name="CategoriesScreen" component={CategoriesScreen} />
@@ -72,7 +74,9 @@ const AuthNavigation = () => {
       <Stack.Screen name="SeekerNotifications" component={SeekerNotificationScreen} />
       <Stack.Screen name="SeekerChat" component={UserChatScreen} />
       <Stack.Screen name="RecommendedJob" component={RecommendedJobScreen} />
+      <Stack.Screen name="UserSearchJob" component={UserSearchJobScreen} />
       <Stack.Screen name="CompanyDetailsJob" component={CompanyDetailsJobScreen} />
+      <Stack.Screen name="CompanyDetailsJobScreen" component={CompanyDetailsJobScreen} />
       <Stack.Screen name="DisplayCompanyProfile" component={DisplayCompanyProfileScreen} />
     </Stack.Navigator>
   );

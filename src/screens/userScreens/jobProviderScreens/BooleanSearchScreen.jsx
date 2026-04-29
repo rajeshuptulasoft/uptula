@@ -22,13 +22,13 @@ import { CustomButton } from '../../../components/commonComponents/Button';
 import { BRANDCOLOR, WHITE, BLACK } from '../../../constant/color';
 import { KEYWORD, DROPDOWN, PREMIUM } from '../../../constant/imagePath';
 import { HEIGHT, WIDTH } from '../../../constant/config';
-import { 
-    COMICSBOLD, 
-    UBUNTUBOLD, 
-    UBUNTU, 
-    FIRASANSSEMIBOLD, 
-    ROBOTOSEMIBOLD, 
-    CANTARELLBOLD, 
+import {
+    COMICSBOLD,
+    UBUNTUBOLD,
+    UBUNTU,
+    FIRASANSSEMIBOLD,
+    ROBOTOSEMIBOLD,
+    CANTARELLBOLD,
     FIRASANSBOLD,
     CANTARELL,
     FIRASANS,
@@ -47,22 +47,22 @@ const BooleanSearchScreen = ({ navigation }) => {
     const [experience, setExperience] = useState('');
     const [gender, setGender] = useState('');
     const [location, setLocation] = useState('');
-    
+
     // Pro Features - AND and NOT items
     const [mustHaveItems, setMustHaveItems] = useState([]);
     const [mustNotHaveItems, setMustNotHaveItems] = useState([]);
     const [mustHaveInput, setMustHaveInput] = useState('');
     const [mustNotHaveInput, setMustNotHaveInput] = useState('');
-    
+
     // Search results
     const [candidates, setCandidates] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchPerformed, setSearchPerformed] = useState(false);
-    
+
     // Saved searches
     const [savedSearches, setSavedSearches] = useState([]);
     const [loadingSavedSearches, setLoadingSavedSearches] = useState(false);
-    
+
     // Search status
     const [searchStatus, setSearchStatus] = useState(null);
     const [loadingSearchStatus, setLoadingSearchStatus] = useState(false);
@@ -109,9 +109,9 @@ const BooleanSearchScreen = ({ navigation }) => {
             }
 
             const url = `${BASE_URL}search/boolean-search`;
-            
+
             let payload;
-            
+
             if (useProFeatures) {
                 // Pro Boolean Search (AND / NOT)
                 payload = {
@@ -142,19 +142,19 @@ const BooleanSearchScreen = ({ navigation }) => {
 
             if (result && !result.error && !result.errors) {
                 const candidatesData = result?.candidates || result?.data?.candidates || [];
-                
+
                 if (Array.isArray(candidatesData) && candidatesData.length > 0) {
                     setCandidates(candidatesData);
-                    console.log('✅ Success: Found', candidatesData.length, 'candidates');
+                    // console.log('✅ Success: Found', candidatesData.length, 'candidates');
                 } else {
                     setCandidates([]);
                 }
             } else {
                 setCandidates([]);
-                console.log('❌ Error: Search failed -', result?.message || result?.error || 'Unknown error');
+                // console.log('❌ Error: Search failed -', result?.message || result?.error || 'Unknown error');
             }
         } catch (error) {
-            console.log('❌ Error: Exception occurred during search -', error.message);
+            // console.log('❌ Error: Exception occurred during search -', error.message);
             setCandidates([]);
         } finally {
             setLoading(false);
@@ -177,13 +177,13 @@ const BooleanSearchScreen = ({ navigation }) => {
             }
 
             const url = `${BASE_URL}search/boolean-search/save`;
-            
+
             // Generate search name from keywords (first 30 characters)
             const searchName = searchKeywords.trim().substring(0, 30) || 'My Search';
-            
+
             // Build searchFilters object
             const searchFilters = {};
-            
+
             if (useProFeatures) {
                 if (mustHaveItems.length > 0) {
                     searchFilters.mustHave = mustHaveItems;
@@ -192,7 +192,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                     searchFilters.mustNotHave = mustNotHaveItems;
                 }
             }
-            
+
             if (experience) {
                 searchFilters.experience = experience;
             }
@@ -202,7 +202,7 @@ const BooleanSearchScreen = ({ navigation }) => {
             if (location && location.trim()) {
                 searchFilters.location = location.trim();
             }
-            
+
             const payload = {
                 searchName: searchName,
                 searchQuery: searchKeywords.trim(),
@@ -230,7 +230,7 @@ const BooleanSearchScreen = ({ navigation }) => {
     const fetchSavedSearches = async () => {
         try {
             setLoadingSavedSearches(true);
-            
+
             // Get token from storage
             const loginResponse = await getObjByKey('loginResponse');
             if (!loginResponse || !loginResponse.token) {
@@ -258,7 +258,7 @@ const BooleanSearchScreen = ({ navigation }) => {
     const fetchSearchStatus = async () => {
         try {
             setLoadingSearchStatus(true);
-            
+
             // Get token from storage
             const loginResponse = await getObjByKey('loginResponse');
             if (!loginResponse || !loginResponse.token) {
@@ -286,7 +286,7 @@ const BooleanSearchScreen = ({ navigation }) => {
         // Handle both snake_case and camelCase field names
         const searchQuery = savedSearch?.search_query || savedSearch?.searchQuery || '';
         const searchFilters = savedSearch?.search_filters || savedSearch?.searchFilters || {};
-        
+
         if (!searchQuery.trim()) {
             return;
         }
@@ -303,13 +303,13 @@ const BooleanSearchScreen = ({ navigation }) => {
             }
 
             const url = `${BASE_URL}search/boolean-search`;
-            
+
             // Determine if pro features are used
             const hasProFeatures = (searchFilters.mustHave && Array.isArray(searchFilters.mustHave) && searchFilters.mustHave.length > 0) ||
-                                   (searchFilters.mustNotHave && Array.isArray(searchFilters.mustNotHave) && searchFilters.mustNotHave.length > 0);
-            
+                (searchFilters.mustNotHave && Array.isArray(searchFilters.mustNotHave) && searchFilters.mustNotHave.length > 0);
+
             let payload;
-            
+
             if (hasProFeatures) {
                 // Pro Boolean Search (AND / NOT)
                 payload = {
@@ -340,19 +340,19 @@ const BooleanSearchScreen = ({ navigation }) => {
 
             if (result && !result.error && !result.errors) {
                 const candidatesData = result?.candidates || result?.data?.candidates || [];
-                
+
                 if (Array.isArray(candidatesData) && candidatesData.length > 0) {
                     setCandidates(candidatesData);
-                    console.log('✅ Success: Found', candidatesData.length, 'candidates');
+                    // console.log('✅ Success: Found', candidatesData.length, 'candidates');
                 } else {
                     setCandidates([]);
                 }
             } else {
                 setCandidates([]);
-                console.log('❌ Error: Search failed -', result?.message || result?.error || 'Unknown error');
+                // console.log('❌ Error: Search failed -', result?.message || result?.error || 'Unknown error');
             }
         } catch (error) {
-            console.log('❌ Error: Exception occurred during search -', error.message);
+            // console.log('❌ Error: Exception occurred during search -', error.message);
             setCandidates([]);
         } finally {
             setLoading(false);
@@ -381,11 +381,11 @@ const BooleanSearchScreen = ({ navigation }) => {
         const jobTitle = item?.job_title || "Job Title";
 
         return (
-            <Pressable 
+            <Pressable
                 style={[
                     styles.card,
                     index % 2 === 0 ? styles.cardLeft : styles.cardRight
-                ]} 
+                ]}
                 onPress={() => {
                     // Navigate to candidate details or show modal
                 }}
@@ -421,6 +421,7 @@ const BooleanSearchScreen = ({ navigation }) => {
             <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
             <View style={styles.container}>
                 <MyHeader
+                    showNotification={false}
                     showBack
                     showCenterTitle
                     title="Boolean Search"
@@ -434,7 +435,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                 >
                     {/* Premium Card Section */}
                     <View style={styles.premiumCardContainer}>
-                        <ImageBackground 
+                        <ImageBackground
                             source={PREMIUM}
                             style={styles.premiumCardBackground}
                             resizeMode="cover"
@@ -660,7 +661,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                             <Text style={styles.sectionTitle}>
                                 Search Results {candidates.length > 0 && `(${candidates.length})`}
                             </Text>
-                            
+
                             {loading ? (
                                 <View style={styles.loadingContainer}>
                                     <ActivityIndicator size="large" color={BRANDCOLOR} />
@@ -685,7 +686,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                     {/* Saved Searches Section */}
                     <View style={styles.savedSearchesSection}>
                         <Text style={styles.sectionTitle}>Saved Searches</Text>
-                        
+
                         {loadingSavedSearches ? (
                             <View style={styles.loadingContainer}>
                                 <ActivityIndicator size="small" color={BRANDCOLOR} />
@@ -698,12 +699,12 @@ const BooleanSearchScreen = ({ navigation }) => {
                                     const searchName = savedSearch?.search_name || savedSearch?.searchName || 'Untitled Search';
                                     const searchQuery = savedSearch?.search_query || savedSearch?.searchQuery || '';
                                     const searchFilters = savedSearch?.search_filters || savedSearch?.searchFilters || {};
-                                    
+
                                     // Count filters for display
                                     const filterCount = Object.keys(searchFilters).length;
                                     const hasMustHave = searchFilters.mustHave && Array.isArray(searchFilters.mustHave) && searchFilters.mustHave.length > 0;
                                     const hasMustNotHave = searchFilters.mustNotHave && Array.isArray(searchFilters.mustNotHave) && searchFilters.mustNotHave.length > 0;
-                                    
+
                                     return (
                                         <Pressable
                                             key={savedSearch?.id || savedSearch?.savedSearchId || index}
@@ -739,10 +740,10 @@ const BooleanSearchScreen = ({ navigation }) => {
                                                     </View>
                                                     <Text style={styles.savedSearchCardName} numberOfLines={2}>{searchName}</Text>
                                                 </View>
-                                                
+
                                                 {/* Search Query */}
                                                 <Text style={styles.savedSearchCardQuery} numberOfLines={1}>{searchQuery || 'No query'}</Text>
-                                                
+
                                                 {/* Filter Info */}
                                                 {filterCount > 0 && (
                                                     <View style={styles.savedSearchCardFilters}>
@@ -772,7 +773,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                                                         )}
                                                     </View>
                                                 )}
-                                                
+
                                                 {/* Play Button */}
                                                 <Pressable
                                                     style={styles.savedSearchCardAction}

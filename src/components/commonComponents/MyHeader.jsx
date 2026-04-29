@@ -19,17 +19,18 @@ import { GETNETWORK } from "../../utils/Network";
 export const MyHeader = ({
     backgroundColor = "transparent",
     height = 70,
-    onProfilePress = () => {},
-    onNotificationPress = () => {},
-    onSearchPress = () => {},
+    onProfilePress = () => { },
+    onNotificationPress = () => { },
+    onSearchPress = () => { },
     profileImgSource = PROFILE,
     searchPlaceholder = "Search",
     // New props for back button layout
     showBack = false,
     showCenterTitle = false,
     title = "",
-    onBackPress = () => {},
+    onBackPress = () => { },
     showLogo = false,
+    showNotification = true,
 }) => {
     const [dynamicProfileImage, setDynamicProfileImage] = useState(null);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -86,10 +87,10 @@ export const MyHeader = ({
     const fetchProfileImage = useCallback(async () => {
         try {
             setIsLoadingProfile(true);
-            
+
             // Get user data from storage
             const loginData = await getObjByKey("loginResponse");
-            
+
             if (!loginData || !loginData.token) {
                 setIsLoadingProfile(false);
                 setUnreadCount(0);
@@ -109,15 +110,15 @@ export const MyHeader = ({
                 const url = `${BASE_URL}employer/profile`;
                 const result = await GETNETWORK(url, true);
                 const profileData = result?.profile || result;
-                
+
                 // Check multiple possible field names for logoUrl
-                profileImageUrl = 
-                    profileData?.logoUrl || 
-                    profileData?.logo || 
+                profileImageUrl =
+                    profileData?.logoUrl ||
+                    profileData?.logo ||
                     profileData?.companyLogo ||
                     profileData?.company_logo ||
-                    result?.logoUrl || 
-                    result?.logo || 
+                    result?.logoUrl ||
+                    result?.logo ||
                     result?.companyLogo ||
                     null;
             } else if (roleLower.includes('seeker') || roleLower.includes('user')) {
@@ -125,9 +126,9 @@ export const MyHeader = ({
                 const url = `${BASE_URL}profile`;
                 const result = await GETNETWORK(url, true);
                 const profileData = result?.profile || result?.data || result;
-                
-                profileImageUrl = 
-                    profileData?.profilePicture || 
+
+                profileImageUrl =
+                    profileData?.profilePicture ||
                     profileData?.profile_picture ||
                     profileData?.picture ||
                     profileData?.avatar ||
@@ -248,8 +249,8 @@ export const MyHeader = ({
             {/* Left: Profile */}
             <Pressable onPress={onProfilePress} style={styles.childContainer}>
                 {dynamicProfileImage ? (
-                    <Image 
-                        style={styles.profileImg} 
+                    <Image
+                        style={styles.profileImg}
                         source={{ uri: dynamicProfileImage }}
                         defaultSource={profileImgSource || PROFILE}
                         onError={() => {
@@ -267,15 +268,26 @@ export const MyHeader = ({
                     <Image style={styles.logo} source={LOGO} />
                 </View>
             ) : (
-            <Pressable style={styles.searchPill} onPress={onSearchPress}>
-                        <Image style={styles.searchIcon} source={SEARCH} />
-                <Text allowFontScaling={false} style={styles.searchText}>
-                    {searchPlaceholder}
-                </Text>
-                    </Pressable>
+                <Pressable style={styles.searchPill} onPress={onSearchPress}>
+                    <Image style={styles.searchIcon} source={SEARCH} />
+                    <Text allowFontScaling={false} style={styles.searchText}>
+                        {searchPlaceholder}
+                    </Text>
+                </Pressable>
             )}
 
+            {/* Right: Notification
+                <Pressable onPress={onNotificationPress} style={styles.notificationContainer}>
+                    <Image style={styles.notificationIcon} source={NOTIFICATION} />
+                    {safeUnreadCount > 0 && (
+                        <View style={styles.notificationBadge}>
+                            <Text style={styles.notificationBadgeText}>{safeUnreadCount}</Text>
+                        </View>
+                    )}
+                </Pressable> */}
+
             {/* Right: Notification */}
+            {showNotification && (
                 <Pressable onPress={onNotificationPress} style={styles.notificationContainer}>
                     <Image style={styles.notificationIcon} source={NOTIFICATION} />
                     {safeUnreadCount > 0 && (
@@ -284,6 +296,7 @@ export const MyHeader = ({
                         </View>
                     )}
                 </Pressable>
+            )}
 
             <View style={styles.hiddenFontsContainer} pointerEvents="none" accessibilityElementsHidden={true} importantForAccessibility="no-hide-descendants">
                 <Text style={[styles.hiddenFontText, styles.cantarellBold]}>.</Text>

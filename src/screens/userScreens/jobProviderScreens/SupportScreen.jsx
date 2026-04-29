@@ -77,7 +77,7 @@ const SupportScreen = () => {
       const url = `${BASE_URL}employer/tickets`;
       const result = await GETNETWORK(url, true);
 
-      console.log("📥 Fetched tickets response:", JSON.stringify(result, null, 2));
+      // console.log("📥 Fetched tickets response:", JSON.stringify(result, null, 2));
 
       let ticketsData = [];
       if (Array.isArray(result)) {
@@ -88,10 +88,10 @@ const SupportScreen = () => {
         ticketsData = result.tickets;
       }
 
-      console.log("🎫 Processed tickets data:", JSON.stringify(ticketsData, null, 2));
+      // console.log("🎫 Processed tickets data:", JSON.stringify(ticketsData, null, 2));
       setTickets(ticketsData || []);
     } catch (error) {
-      console.log("❌ Error fetching tickets:", error);
+      // console.log("❌ Error fetching tickets:", error);
       setTickets([]);
       setToastMessage({
         type: "error",
@@ -170,14 +170,14 @@ const SupportScreen = () => {
         description: description.trim(),
       };
 
-      console.log("📤 Submitting ticket...");
-      console.log("📡 URL:", url);
-      console.log("📦 Payload:", JSON.stringify(payload, null, 2));
-      console.log("📝 Subject:", payload.subject);
-      console.log("🏷️ Category:", payload.category);
-      console.log("⚡ Priority:", payload.priority);
-      console.log("📄 Description:", payload.description);
-      console.log("🔐 Token (first 30 chars):", token.substring(0, 30) + "...");
+      // console.log("📤 Submitting ticket...");
+      // console.log("📡 URL:", url);
+      // console.log("📦 Payload:", JSON.stringify(payload, null, 2));
+      // console.log("📝 Subject:", payload.subject);
+      // console.log("🏷️ Category:", payload.category);
+      // console.log("⚡ Priority:", payload.priority);
+      // console.log("📄 Description:", payload.description);
+      // console.log("🔐 Token (first 30 chars):", token.substring(0, 30) + "...");
 
       const response = await fetch(url, {
         method: "POST",
@@ -191,7 +191,7 @@ const SupportScreen = () => {
 
       const result = await response.json();
 
-      console.log("📥 API Response:", JSON.stringify(result, null, 2));
+      // console.log("📥 API Response:", JSON.stringify(result, null, 2));
 
       if (
         result?.ticket ||
@@ -201,7 +201,7 @@ const SupportScreen = () => {
         result?.id ||
         result?.ticket_id
       ) {
-        console.log("✅ Ticket submitted successfully!");
+        // console.log("✅ Ticket submitted successfully!");
         setToastMessage({
           type: "success",
           msg: result?.message || "Ticket submitted successfully!",
@@ -219,7 +219,7 @@ const SupportScreen = () => {
           fetchTickets();
         }
       } else {
-        console.log("❌ Failed to submit ticket:", result?.message || "Unknown error");
+        // console.log("❌ Failed to submit ticket:", result?.message || "Unknown error");
         setToastMessage({
           type: "error",
           msg: result?.message || "Failed to submit ticket. Please try again.",
@@ -227,7 +227,7 @@ const SupportScreen = () => {
         });
       }
     } catch (error) {
-      console.log("❌ Error submitting ticket:", error);
+      // console.log("❌ Error submitting ticket:", error);
       setToastMessage({
         type: "error",
         msg: "An error occurred. Please try again.",
@@ -239,13 +239,13 @@ const SupportScreen = () => {
   // Handle refresh
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    
+
     // Reset all form fields
     setSubject("");
     setCategory("general");
     setPriority("medium");
     setDescription("");
-    
+
     // Fetch tickets
     fetchTickets();
   }, [fetchTickets]);
@@ -373,6 +373,7 @@ const SupportScreen = () => {
 
       <SafeAreaView style={styles.container}>
         <MyHeader
+          showNotification={false}
           showBack={true}
           showCenterTitle={true}
           title="Support & Tickets"
@@ -421,9 +422,9 @@ const SupportScreen = () => {
                 <View style={styles.pickerTextContainer}>
                   <Text style={styles.pickerSelectedText} numberOfLines={1}>
                     {category === "general" ? "General" :
-                     category === "billing" ? "Billing" :
-                     category === "login" ? "Login" :
-                     category === "job_posting" ? "Job Posting" : category}
+                      category === "billing" ? "Billing" :
+                        category === "login" ? "Login" :
+                          category === "job_posting" ? "Job Posting" : category}
                   </Text>
                 </View>
                 <Picker
@@ -448,9 +449,9 @@ const SupportScreen = () => {
                 <View style={styles.pickerTextContainer}>
                   <Text style={styles.pickerSelectedText} numberOfLines={1}>
                     {priority === "low" ? "Low" :
-                     priority === "medium" ? "Medium" :
-                     priority === "high" ? "High" :
-                     priority === "urgent" ? "Urgent" : priority}
+                      priority === "medium" ? "Medium" :
+                        priority === "high" ? "High" :
+                          priority === "urgent" ? "Urgent" : priority}
                   </Text>
                 </View>
                 <Picker
@@ -567,8 +568,8 @@ const SupportScreen = () => {
             toastMessage.type === "success"
               ? "green"
               : toastMessage.type === "error"
-              ? "red"
-              : "#e0e0e0"
+                ? "red"
+                : "#e0e0e0"
           }
           textColor={WHITE}
           type={toastMessage.type}

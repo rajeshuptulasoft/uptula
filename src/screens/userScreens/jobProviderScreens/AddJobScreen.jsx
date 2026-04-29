@@ -943,7 +943,7 @@ const AddJobScreen = () => {
                     Platform.OS === "ios" && styles.headerWrapperIOS,
                     Platform.OS === "android" && styles.headerWrapperAndroid
                 ]}>
-                    <MyHeader showCenterTitle title="Add Job" />
+                    <MyHeader showNotification={false} showCenterTitle title="Add Job" />
                 </View>
 
                 <KeyboardAvoidingView

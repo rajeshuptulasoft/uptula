@@ -71,16 +71,16 @@ const ViewCandidate = () => {
     try {
       setLoading(true);
       const url = `${BASE_URL}employer/applications`;
-      
+
       const loginResponse = await getObjByKey('loginResponse');
       if (!loginResponse || !loginResponse.token) {
         setLoading(false);
         setRefreshing(false);
         return;
       }
-      
+
       const result = await GETNETWORK(url, true);
-      
+
       let applicationsData = [];
       if (Array.isArray(result)) {
         applicationsData = result;
@@ -91,7 +91,7 @@ const ViewCandidate = () => {
       } else if (result?.data?.applications && Array.isArray(result.data.applications)) {
         applicationsData = result.data.applications;
       }
-      
+
       if (applicationsData && applicationsData.length > 0) {
         setCandidates(applicationsData);
         applicationsData.forEach((candidate) => {
@@ -166,13 +166,13 @@ const ViewCandidate = () => {
   // Format category name: replace underscores, capitalize each word, keep acronyms uppercase
   const formatCategoryName = (category) => {
     if (!category) return 'N/A';
-    
+
     // Replace underscores with spaces
     let formatted = category.replace(/_/g, ' ');
-    
+
     // Split into words
     const words = formatted.split(' ');
-    
+
     // Capitalize each word, but keep acronyms (2-3 letter words) in uppercase
     const capitalizedWords = words.map(word => {
       const trimmedWord = word.trim();
@@ -187,7 +187,7 @@ const ViewCandidate = () => {
         return trimmedWord.charAt(0).toUpperCase() + trimmedWord.slice(1).toLowerCase();
       }
     });
-    
+
     return capitalizedWords.join(' ');
   };
 
@@ -197,7 +197,7 @@ const ViewCandidate = () => {
       setLoadingCategories(true);
       const url = `${BASE_URL}jobs/categories`;
       const result = await GETNETWORK(url, false); // No token required
-      
+
       if (result && !result.message) {
         const categoriesData = result?.data || result?.categories || result?.list || result || [];
         setCategories(Array.isArray(categoriesData) ? categoriesData : []);
@@ -257,18 +257,18 @@ const ViewCandidate = () => {
   // Helper function to get category from candidate
   const getCandidateCategory = (candidate) => {
     // Try multiple possible field names for category
-    return candidate?.category || 
-           candidate?.jobCategory || 
-           candidate?.job_category ||
-           candidate?.job?.category || 
-           candidate?.job?.jobCategory ||
-           candidate?.job?.job_category ||
-           candidate?.job?.jobCategory ||
-           candidate?.jobId?.category ||
-           candidate?.jobId?.jobCategory ||
-           candidate?.application?.job?.category ||
-           candidate?.application?.category ||
-           "";
+    return candidate?.category ||
+      candidate?.jobCategory ||
+      candidate?.job_category ||
+      candidate?.job?.category ||
+      candidate?.job?.jobCategory ||
+      candidate?.job?.job_category ||
+      candidate?.job?.jobCategory ||
+      candidate?.jobId?.category ||
+      candidate?.jobId?.jobCategory ||
+      candidate?.application?.job?.category ||
+      candidate?.application?.category ||
+      "";
   };
 
   // Helper function to normalize category for comparison
@@ -281,24 +281,24 @@ const ViewCandidate = () => {
   // Helper function to check if two categories match
   const categoriesMatch = (cat1, cat2) => {
     if (!cat1 || !cat2) return false;
-    
+
     const normalized1 = normalizeCategory(cat1);
     const normalized2 = normalizeCategory(cat2);
-    
+
     // Exact normalized match
     if (normalized1 === normalized2) return true;
-    
+
     // Match without spaces
     if (normalized1.replace(/\s/g, '') === normalized2.replace(/\s/g, '')) return true;
-    
+
     // Match original case-insensitive
     if (cat1.toString().toLowerCase() === cat2.toString().toLowerCase()) return true;
-    
+
     // Match without underscores/hyphens
     const noSpecial1 = cat1.toString().toLowerCase().replace(/[_-]/g, '');
     const noSpecial2 = cat2.toString().toLowerCase().replace(/[_-]/g, '');
     if (noSpecial1 === noSpecial2) return true;
-    
+
     return false;
   };
 
@@ -399,7 +399,7 @@ const ViewCandidate = () => {
       }
 
       const url = `${BASE_URL}employer/applications/${applicantId}`;
-      
+
       setToastMessage({
         type: "success",
         msg: "Deleting candidate...",
@@ -409,21 +409,21 @@ const ViewCandidate = () => {
       const result = await DELETENETWORK(url, true);
 
       if (result && !result.error && !result.errors) {
-      // Remove candidate from list
+        // Remove candidate from list
         setCandidates(candidates.filter((c) => {
           const cId = c?.id || c?._id || c?.applicationId;
           return cId !== applicantId;
         }));
-        
-      setDeleteAlertVisible(false);
-      setSelectedCandidate(null);
-      
-      // Show success toast
-      setToastMessage({
-        type: "success",
+
+        setDeleteAlertVisible(false);
+        setSelectedCandidate(null);
+
+        // Show success toast
+        setToastMessage({
+          type: "success",
           msg: result?.message || "Candidate deleted successfully!",
-        visible: true,
-      });
+          visible: true,
+        });
       } else {
         // Show error toast
         setToastMessage({
@@ -473,7 +473,7 @@ const ViewCandidate = () => {
         if (Platform.Version >= 33) {
           return true;
         }
-        
+
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
@@ -484,7 +484,7 @@ const ViewCandidate = () => {
             buttonPositive: 'OK',
           }
         );
-        
+
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           return true;
         } else {
@@ -537,12 +537,12 @@ const ViewCandidate = () => {
         msg: "Downloading resume...",
         visible: true,
       });
-      
+
       const result = await POSTNETWORK(url, {}, true);
 
       if (result && !result.error && !result.errors) {
         let downloadUrl = result.downloadUrl || result.url || result.resume_url;
-        
+
         if (!downloadUrl && candidate?.resume_url) {
           downloadUrl = getResumeUrl(candidate.resume_url);
         }
@@ -557,8 +557,8 @@ const ViewCandidate = () => {
         const candidateName = candidate?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Resume';
         const finalFileName = `${candidateName}_Resume_${Date.now()}.${fileExtension}`;
 
-        const downloadDir = Platform.OS === 'ios' 
-          ? ReactNativeBlobUtil.fs.dirs.DocumentDir 
+        const downloadDir = Platform.OS === 'ios'
+          ? ReactNativeBlobUtil.fs.dirs.DocumentDir
           : ReactNativeBlobUtil.fs.dirs.DownloadDir;
         const filePath = `${downloadDir}/${finalFileName}`;
 
@@ -617,33 +617,33 @@ const ViewCandidate = () => {
           // Get authentication token
           const loginResponse = await getObjByKey('loginResponse');
           const token = loginResponse?.token || (typeof loginResponse?.data === 'string' ? loginResponse.data : loginResponse?.data?.token) || loginResponse?.data;
-          
+
           // Download PDF to temporary location
-          const downloadDir = Platform.OS === 'ios' 
-            ? ReactNativeBlobUtil.fs.dirs.CacheDir 
+          const downloadDir = Platform.OS === 'ios'
+            ? ReactNativeBlobUtil.fs.dirs.CacheDir
             : ReactNativeBlobUtil.fs.dirs.CacheDir;
-          
+
           const fileName = `resume_${Date.now()}.pdf`;
           const filePath = `${downloadDir}/${fileName}`;
-          
+
           const configOptions = {
             fileCache: true,
             path: filePath,
           };
-          
+
           const headers = {};
           if (token) {
             headers['Authorization'] = `Bearer ${token}`;
           }
-          
+
           // Download the PDF file
           const response = await ReactNativeBlobUtil
             .config(configOptions)
             .fetch('GET', resumeUrl, headers);
-          
+
           // Get the file path
           const downloadedPath = response.path();
-          
+
           // Open the downloaded file - this will trigger system app picker
           if (Platform.OS === 'android') {
             // For Android, use ReactNativeBlobUtil to open file which triggers app picker
@@ -670,23 +670,23 @@ const ViewCandidate = () => {
     const actionVisibility = getActionVisibility(item);
 
     return (
-      <Pressable 
+      <Pressable
         style={[
           styles.card,
           index % 2 === 0 ? styles.cardLeft : styles.cardRight
-        ]} 
+        ]}
         onPress={() => handleCardPress(item)}
         onLongPress={() => handleDelete(item)}
       >
         <View style={styles.cardContent}>
           {/* Card Info - Vertical Layout */}
-      <View style={styles.cardInfo}>
+          <View style={styles.cardInfo}>
             <Text style={styles.candidateName} numberOfLines={2}>{candidateName}</Text>
             <Text style={styles.jobTitle} numberOfLines={1}>{jobTitle}</Text>
             {companyName ? (
               <Text style={styles.companyName} numberOfLines={1}>{companyName}</Text>
             ) : null}
-      </View>
+          </View>
 
           {/* Card Action Buttons */}
           <View style={styles.cardActionRow}>
@@ -727,7 +727,7 @@ const ViewCandidate = () => {
             ) : null}
           </View>
         </View>
-        </Pressable>
+      </Pressable>
     );
   };
 
@@ -758,9 +758,10 @@ const ViewCandidate = () => {
         Platform.OS === "ios" && styles.headerWrapperIOS,
         Platform.OS === "android" && styles.headerWrapperAndroid
       ]}>
-        <MyHeader 
-        showCenterTitle 
-        title="Candidate List" 
+        <MyHeader
+          showNotification={false}
+          showCenterTitle
+          title="Candidate List"
         />
       </View>
 
@@ -768,7 +769,7 @@ const ViewCandidate = () => {
       <View style={styles.filterWrapper}>
         <View style={styles.filterHeader}>
           <Text style={styles.filterTitle}>Candidate List</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.filterIconButton}
             onPress={handleFilterPress}
             activeOpacity={0.7}
@@ -790,7 +791,7 @@ const ViewCandidate = () => {
                   <Text style={styles.filterLoadingText}>Loading categories...</Text>
                 </View>
               ) : categories.length > 0 ? (
-                <ScrollView 
+                <ScrollView
                   style={styles.filterDropdownScroll}
                   showsVerticalScrollIndicator={true}
                   nestedScrollEnabled={true}
@@ -814,8 +815,8 @@ const ViewCandidate = () => {
                   {categories.map((item, index) => {
                     const categoryValue = item.category || item.name || "";
                     const isSelected = selectedCategory.toLowerCase() === categoryValue.toLowerCase() ||
-                                     selectedCategory.toLowerCase().replace(/_/g, ' ') === categoryValue.toLowerCase().replace(/_/g, ' ');
-                    
+                      selectedCategory.toLowerCase().replace(/_/g, ' ') === categoryValue.toLowerCase().replace(/_/g, ' ');
+
                     return (
                       <TouchableOpacity
                         key={`${categoryValue}-${index}`}
@@ -886,17 +887,17 @@ const ViewCandidate = () => {
           <Text style={styles.loadingText}>Loading applications...</Text>
         </View>
       ) : (
-      <FlatList
+        <FlatList
           data={filteredCandidates}
           keyExtractor={(item, index) => item?.id || item?._id || item?.applicationId || `candidate-${index}`}
-        renderItem={renderCandidate}
+          renderItem={renderCandidate}
           numColumns={2}
           columnWrapperStyle={styles.row}
           contentContainerStyle={[
             styles.listContent,
             filteredCandidates.length === 0 && styles.emptyListContent
           ]}
-        showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderEmptyState}
           refreshControl={
             <RefreshControl
@@ -910,8 +911,8 @@ const ViewCandidate = () => {
       )}
 
       {/* DETAIL MODAL - FULL SCREEN */}
-      <Modal 
-        visible={detailModalVisible} 
+      <Modal
+        visible={detailModalVisible}
         animationType="slide"
         statusBarTranslucent={true}
         onRequestClose={() => {
@@ -925,7 +926,7 @@ const ViewCandidate = () => {
             barStyle="dark-content"
             translucent={true}
           />
-          
+
           {/* Professional Header */}
           <View style={styles.fullScreenHeader}>
             <TouchableOpacity
@@ -943,7 +944,7 @@ const ViewCandidate = () => {
             <View style={styles.professionalBackButton} />
           </View>
 
-          <ScrollView 
+          <ScrollView
             style={styles.fullScreenContent}
             contentContainerStyle={styles.fullScreenScrollContent}
             showsVerticalScrollIndicator={false}
@@ -955,24 +956,24 @@ const ViewCandidate = () => {
                   <View style={styles.modernSectionHeader}>
                     <MaterialCommunityIcons name="briefcase-outline" size={HEIGHT * 0.022} color={BRANDCOLOR} />
                     <Text style={styles.modernSectionTitle}>Application Details</Text>
-                </View>
+                  </View>
 
                   <View style={styles.modernDetailCard}>
                     <View style={[styles.modernDetailRow, styles.modernDetailRowWithBorder]}>
                       <View style={styles.modernIconWrapper}>
-                      <MaterialCommunityIcons name="briefcase" size={HEIGHT * 0.022} color={BRANDCOLOR} />
-                    </View>
+                        <MaterialCommunityIcons name="briefcase" size={HEIGHT * 0.022} color={BRANDCOLOR} />
+                      </View>
                       <View style={styles.modernDetailContent}>
                         <Text style={styles.modernDetailLabel}>Position</Text>
                         <Text style={styles.modernDetailValue}>{selectedCandidate.job_title || "N/A"}</Text>
                       </View>
-                  </View>
+                    </View>
 
                     {selectedCandidate.company_name && (
                       <View style={styles.modernDetailRow}>
                         <View style={styles.modernIconWrapper}>
-                      <MaterialCommunityIcons name="office-building" size={HEIGHT * 0.022} color={BRANDCOLOR} />
-                    </View>
+                          <MaterialCommunityIcons name="office-building" size={HEIGHT * 0.022} color={BRANDCOLOR} />
+                        </View>
                         <View style={styles.modernDetailContent}>
                           <Text style={styles.modernDetailLabel}>Company</Text>
                           <Text style={styles.modernDetailValue}>{selectedCandidate.company_name}</Text>
@@ -988,27 +989,27 @@ const ViewCandidate = () => {
                     <MaterialCommunityIcons name="card-account-details-outline" size={HEIGHT * 0.022} color={BRANDCOLOR} />
                     <Text style={styles.modernSectionTitle}>Contact Information</Text>
                   </View>
-                  
+
                   <View style={styles.modernDetailCard}>
                     <View style={[styles.modernDetailRow, styles.modernDetailRowWithBorder]}>
                       <View style={styles.modernIconWrapper}>
                         <MaterialCommunityIcons name="account" size={HEIGHT * 0.022} color={BRANDCOLOR} />
-                    </View>
+                      </View>
                       <View style={styles.modernDetailContent}>
                         <Text style={styles.modernDetailLabel}>Full Name</Text>
                         <Text style={styles.modernDetailValue}>{selectedCandidate.name || "N/A"}</Text>
+                      </View>
                     </View>
-                  </View>
 
                     {selectedCandidate.email && (
                       <View style={[styles.modernDetailRow, !selectedCandidate.phone && styles.modernDetailRowNoBorder]}>
                         <View style={styles.modernIconWrapper}>
                           <MaterialCommunityIcons name="email-outline" size={HEIGHT * 0.022} color={BRANDCOLOR} />
-                    </View>
+                        </View>
                         <View style={styles.modernDetailContent}>
                           <Text style={styles.modernDetailLabel}>Email Address</Text>
                           <Text style={styles.modernDetailValue}>{selectedCandidate.email}</Text>
-                    </View>
+                        </View>
                       </View>
                     )}
 
@@ -1072,8 +1073,8 @@ const ViewCandidate = () => {
       </Modal>
 
       {/* RESUME VIEW MODAL - FULL SCREEN */}
-      <Modal 
-        visible={resumeViewVisible} 
+      <Modal
+        visible={resumeViewVisible}
         animationType="slide"
         statusBarTranslucent={true}
         onRequestClose={() => {
@@ -1087,7 +1088,7 @@ const ViewCandidate = () => {
             barStyle="light-content"
             translucent={true}
           />
-          
+
           {/* Header */}
           <View style={styles.fullScreenHeader}>
             <TouchableOpacity
@@ -1102,13 +1103,13 @@ const ViewCandidate = () => {
             <View style={styles.headerTitleContainer}>
               <Text style={styles.fullScreenTitle} numberOfLines={1}>
                 {resumeCandidate?.name || 'Candidate'}'s Resume
-            </Text>
+              </Text>
             </View>
             <View style={styles.backButton} />
           </View>
 
           {/* Resume Content */}
-          <ScrollView 
+          <ScrollView
             style={styles.resumeScrollView}
             contentContainerStyle={styles.resumeScrollContent}
             showsVerticalScrollIndicator={false}
@@ -1144,16 +1145,16 @@ const ViewCandidate = () => {
                   {(() => {
                     const resumeUrl = getResumeUrl(resumeCandidate.resume_url);
                     const isPdf = isPdfUrl(resumeUrl);
-                    
+
                     if (isPdf) {
                       // For PDF files, use WebView to display the actual PDF content
                       if (WebView) {
                         // Use Google Docs Viewer for PDF display (more reliable)
                         const pdfViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(resumeUrl)}&embedded=true`;
-                        
+
                         return (
                           <WebView
-                            source={{ 
+                            source={{
                               uri: pdfViewerUrl,
                             }}
                             style={styles.resumeWebView}
@@ -1267,16 +1268,16 @@ const ViewCandidate = () => {
                 <MaterialCommunityIcons name="download" size={HEIGHT * 0.025} color={WHITE} />
                 <Text style={styles.downloadButtonText}>Download Resume</Text>
               </TouchableOpacity>
-          </View>
+            </View>
           )}
         </View>
       </Modal>
 
       {/* Delete Confirmation Alert */}
-        <MyAlert
+      <MyAlert
         visible={deleteAlertVisible}
-          title="Delete Candidate"
-          message="Do you want to Delete this candidate?"
+        title="Delete Candidate"
+        message="Do you want to Delete this candidate?"
         textLeft="Cancel"
         textRight="Delete"
         onPressLeft={() => {
@@ -1288,7 +1289,7 @@ const ViewCandidate = () => {
           setDeleteAlertVisible(false);
           setSelectedCandidate(null);
         }}
-        />
+      />
 
       {/* Toast Message */}
       <ToastMessage
@@ -1606,7 +1607,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
-  
+
   /* FULL SCREEN MODAL STYLES */
   fullScreenModal: {
     flex: 1,
@@ -1671,7 +1672,7 @@ const styles = StyleSheet.create({
   fullScreenScrollContent: {
     paddingBottom: HEIGHT * 0.1,
   },
-  
+
   /* Modern Section Container */
   modernSectionContainer: {
     marginTop: HEIGHT * 0.02,
@@ -1759,7 +1760,7 @@ const styles = StyleSheet.create({
     lineHeight: HEIGHT * 0.026,
     textAlign: "justify",
   },
-  
+
   /* Professional Bottom Actions */
   fullScreenActions: {
     flexDirection: "row",
@@ -1802,7 +1803,7 @@ const styles = StyleSheet.create({
     color: WHITE,
     letterSpacing: 0.5,
   },
-  
+
   /* OLD MODAL STYLES (for resume modal) */
   detailModalContent: {
     backgroundColor: WHITE,
@@ -1841,7 +1842,7 @@ const styles = StyleSheet.create({
     maxHeight: HEIGHT * 0.5,
     padding: WIDTH * 0.04,
   },
-  
+
   /* RESUME MODAL STYLES */
   resumeScrollView: {
     flex: 1,

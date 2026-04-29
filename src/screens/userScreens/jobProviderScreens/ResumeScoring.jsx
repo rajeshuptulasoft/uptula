@@ -52,7 +52,7 @@ const ResumeScoringScreen = () => {
       return;
     }
     // Handle score resumes logic here
-    console.log("Scoring resumes for job:", selectedJob);
+    // console.log("Scoring resumes for job:", selectedJob);
   };
 
   const Container = Platform.OS === "ios" ? SafeAreaView : View;
@@ -70,6 +70,7 @@ const ResumeScoringScreen = () => {
         Platform.OS === "android" && styles.containerAndroid
       ]}>
         <MyHeader
+          showNotification={false}
           showBack
           showCenterTitle
           title="Resume Scoring"
@@ -143,15 +144,15 @@ const ResumeScoringScreen = () => {
           {/* Score Resumes Card */}
           <View style={styles.scoreCard}>
             <Text style={styles.cardTitle}>Score Resumes</Text>
-            
+
             {/* Job Selection */}
             <Text style={styles.label}>Select Job *</Text>
             <View style={styles.pickerWrapper}>
               <View style={styles.pickerContainer}>
                 <View style={styles.pickerTextContainer}>
                   <Text style={styles.pickerSelectedText} numberOfLines={1}>
-                    {selectedJob === "" ? "Select Job" : 
-                     jobs.find(job => job.value === selectedJob)?.label || "Select Job"}
+                    {selectedJob === "" ? "Select Job" :
+                      jobs.find(job => job.value === selectedJob)?.label || "Select Job"}
                   </Text>
                 </View>
                 <Picker
