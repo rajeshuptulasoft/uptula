@@ -68,7 +68,7 @@ const AnimatedBar = ({ value, maxValue, label, experiencedCount, fresherCount, e
               {/* Calculate proportions based on actual counts */}
               {(() => {
                 const total = expCount + freshCount;
-                
+
                 // If we have breakdown data, show stacked bars
                 if (total > 0) {
                   return (
@@ -160,7 +160,7 @@ const ExperienceChart = ({ experienced, fresher, totalApplications }) => {
           <View style={styles.experienceDistributionContainer}>
             {/* Total Applications at Center */}
             <Text style={styles.totalApplicationsText}>{total}</Text>
-            
+
             {/* Dots with Counts Below */}
             <View style={styles.dotsContainer}>
               {/* Green Dot with Experienced Count */}
@@ -168,7 +168,7 @@ const ExperienceChart = ({ experienced, fresher, totalApplications }) => {
                 <View style={[styles.experienceDot, { backgroundColor: "#4CAF50" }]} />
                 <Text style={styles.dotCountText}>{experienced || 0}</Text>
               </View>
-              
+
               {/* Purple Dot with Fresher Count */}
               <View style={styles.dotItem}>
                 <View style={[styles.experienceDot, { backgroundColor: "#9C27B0" }]} />
@@ -211,7 +211,7 @@ const AnalyticsReportScreen = ({ navigation }) => {
       if (result && !result.error) {
         const data = result.data || result;
         setAnalyticsData(data);
-        
+
         // Set jobs list from 'jobs' array in API response
         const jobsArray = data.jobs || [];
         if (jobsArray.length > 0) {
@@ -220,12 +220,12 @@ const AnalyticsReportScreen = ({ navigation }) => {
           if (!selectedJob) {
             const firstJob = jobsArray[0];
             setSelectedJob(firstJob);
-            
+
             // Fetch analytics for the first job automatically
             const jobId = firstJob.jobId || firstJob.id || firstJob.job_id || firstJob._id;
             const jobSpecificUrl = `${BASE_URL}employer/analytics/summary?jobId=${jobId}`;
             const jobResult = await GETNETWORK(jobSpecificUrl, true);
-            
+
             if (jobResult && !jobResult.error) {
               const jobData = jobResult.data || jobResult;
               setAnalyticsData(jobData);
@@ -319,7 +319,7 @@ const AnalyticsReportScreen = ({ navigation }) => {
   const summaryData = analyticsData?.summary || {};
   const totalApplicants = summaryData.totalApplications || 0;
   const totalJobs = summaryData.totalJobs || jobs.length || 0;
-  
+
   const experiencedCount = summaryData.experiencedCount || 0;
   const fresherCount = summaryData.fresherCount || 0;
   const experiencedPercent = summaryData.experiencedPercentage || 0;
@@ -328,10 +328,10 @@ const AnalyticsReportScreen = ({ navigation }) => {
 
   // Get selected job analytics - Use highlight data for selected job
   const selectedJobData = selectedJob
-    ? (analyticsData?.highlight && analyticsData.highlight.jobId === (selectedJob.jobId || selectedJob.id) 
-        ? analyticsData.highlight 
-        : jobs.find(job => (job.jobId || job.id) === (selectedJob.jobId || selectedJob.id)) 
-        || selectedJob)
+    ? (analyticsData?.highlight && analyticsData.highlight.jobId === (selectedJob.jobId || selectedJob.id)
+      ? analyticsData.highlight
+      : jobs.find(job => (job.jobId || job.id) === (selectedJob.jobId || selectedJob.id))
+      || selectedJob)
     : null;
 
   const selectedJobFillChance = selectedJobData?.chanceScore || 0;
@@ -376,6 +376,7 @@ const AnalyticsReportScreen = ({ navigation }) => {
         ]}
       >
         <MyHeader
+          showNotification={false}
           showBack
           showCenterTitle
           title="Job Analytics & Candidate Pulse"

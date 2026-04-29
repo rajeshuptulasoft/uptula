@@ -234,6 +234,7 @@ const PremiumMembershipScreen = () => {
         Platform.OS === "android" && styles.containerAndroid
       ]}>
         <MyHeader
+          showNotification={false}
           showBack
           showCenterTitle
           title="Premium Membership"
@@ -271,7 +272,7 @@ const PremiumMembershipScreen = () => {
               </View>
               <Text style={styles.cardTitle}>Download Status</Text>
             </View>
-            
+
             {loadingDownloadStatus ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={BRANDCOLOR} />
@@ -320,7 +321,7 @@ const PremiumMembershipScreen = () => {
               <Text style={styles.starIconLarge}>⭐</Text>
               <Text style={styles.cardTitle}>Current Membership</Text>
             </View>
-            
+
             {loadingMembership ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={BRANDCOLOR} />
@@ -373,7 +374,7 @@ const PremiumMembershipScreen = () => {
               </View>
               <Text style={styles.cardTitle}>Download History</Text>
             </View>
-            
+
             {loadingHistory ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={BRANDCOLOR} />

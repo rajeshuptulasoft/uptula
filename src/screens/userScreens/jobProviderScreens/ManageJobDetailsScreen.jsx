@@ -55,7 +55,7 @@ const ManageJobDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { jobData: initialJobData } = route.params || {};
-  
+
   const [jobData, setJobData] = useState(initialJobData || null);
   const [loading, setLoading] = useState(!initialJobData);
   const [activeTab, setActiveTab] = useState("Job Details");
@@ -75,7 +75,7 @@ const ManageJobDetailsScreen = () => {
             setLoading(true);
             const url = `${BASE_URL}employer/jobs/${jobId}`;
             const result = await GETNETWORK(url, true);
-            
+
             if (result && !result.error) {
               const fetchedJob = result.data || result.job || result;
               setJobData(fetchedJob);
@@ -118,6 +118,7 @@ const ManageJobDetailsScreen = () => {
     return (
       <View style={styles.container}>
         <MyHeader
+          showNotification={false}
           showBack
           showCenterTitle
           title="Job Details"
@@ -131,10 +132,10 @@ const ManageJobDetailsScreen = () => {
   }
 
   // Construct logo URL if it's a relative path
-  const logoUrl = jobData.company_logo 
-    ? (jobData.company_logo.startsWith('http://') || jobData.company_logo.startsWith('https://') 
-        ? jobData.company_logo 
-        : `${BASE_URL.replace('/api/', '/')}${jobData.company_logo.replace(/^\//, '')}`)
+  const logoUrl = jobData.company_logo
+    ? (jobData.company_logo.startsWith('http://') || jobData.company_logo.startsWith('https://')
+      ? jobData.company_logo
+      : `${BASE_URL.replace('/api/', '/')}${jobData.company_logo.replace(/^\//, '')}`)
     : null;
 
   // Format job type for display
@@ -243,8 +244,8 @@ const ManageJobDetailsScreen = () => {
                 {jobData.job_title || "NA"}
               </Text>
               <Text style={styles.companyNameHeader}>
-                {(jobData.company_name && jobData.company_name.trim() !== "") 
-                  ? jobData.company_name 
+                {(jobData.company_name && jobData.company_name.trim() !== "")
+                  ? jobData.company_name
                   : "NA"}
               </Text>
               <View style={styles.ratingContainer}>
@@ -254,7 +255,7 @@ const ManageJobDetailsScreen = () => {
               </View>
             </View>
           </View>
-          
+
           <View style={styles.headerStatsRow}>
             <View style={styles.countContainer}>
               <View style={styles.countItem}>
@@ -331,8 +332,8 @@ const ManageJobDetailsScreen = () => {
               <View style={styles.infoItem}>
                 <MaterialCommunityIcons name="currency-inr" size={20} color={BRANDCOLOR} />
                 <Text style={styles.infoItemText}>
-                  {formatSalary(jobData.salary_range) !== "NA" 
-                    ? formatSalary(jobData.salary_range) 
+                  {formatSalary(jobData.salary_range) !== "NA"
+                    ? formatSalary(jobData.salary_range)
                     : "Not disclosed"}
                 </Text>
               </View>
@@ -367,7 +368,7 @@ const ManageJobDetailsScreen = () => {
             {/* Job Description Section */}
             <View style={styles.descriptionSection}>
               <Text style={styles.sectionTitle}>Job description</Text>
-              
+
               {jobData.description && (
                 <Text style={styles.descriptionText}>{jobData.description}</Text>
               )}
@@ -424,7 +425,7 @@ const ManageJobDetailsScreen = () => {
                 <Image source={COMPANYNAME} style={styles.sectionIcon} />
                 <Text style={styles.sectionTitle}>Company Address</Text>
               </View>
-              
+
               <View style={styles.infoRow}>
                 <Image source={MAIL} style={styles.infoIcon} />
                 <Text style={styles.infoLabel}>Email:</Text>
@@ -480,7 +481,7 @@ const ManageJobDetailsScreen = () => {
                 <Image source={SOCIALACCOUNT} style={styles.sectionIcon} />
                 <Text style={styles.sectionTitle}>Social Accounts</Text>
               </View>
-              
+
               <View style={styles.infoRow}>
                 <Image source={FACEBOOK} style={styles.infoIcon} />
                 <Text style={styles.infoLabel}>Facebook:</Text>
@@ -540,11 +541,11 @@ const ManageJobDetailsScreen = () => {
             <Text style={styles.salaryDescription}>
               Compare salaries of {jobData.job_title || "this position"} with similar companies.
             </Text>
-            
+
             <View style={styles.salaryCard}>
               <Text style={styles.avgSalaryText}>
-                Avg. Salary - {formatSalary(jobData.salary_range) !== "NA" 
-                  ? formatSalary(jobData.salary_range) 
+                Avg. Salary - {formatSalary(jobData.salary_range) !== "NA"
+                  ? formatSalary(jobData.salary_range)
                   : "Not disclosed"}
               </Text>
             </View>

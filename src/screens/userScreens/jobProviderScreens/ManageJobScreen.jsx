@@ -273,7 +273,7 @@ const EditJobModal = ({ visible, jobData, onClose, onSave }) => {
   const handleSave = async () => {
     try {
       setIsUpdating(true);
-      
+
       // Get token from storage
       const loginResponse = await getObjByKey('loginResponse');
       if (!loginResponse || !loginResponse.token) {
@@ -1000,7 +1000,7 @@ const ManageJobScreen = () => {
 
     try {
       // console.log('🔄 Starting job delete process...');
-      
+
       // Get job ID
       const jobId = selectedJob.id || selectedJob.job_id || selectedJob._id;
       if (!jobId) {
@@ -1051,7 +1051,7 @@ const ManageJobScreen = () => {
       if (response.ok || result.statusCode === 200 || result.statusCode === 201) {
         // console.log('✅ SUCCESS: Job deleted successfully!');
         // console.log('✅ Deleted job ID:', jobId);
-        
+
         setToastMessage({
           type: "success",
           msg: "Job deleted successfully",
@@ -1067,7 +1067,7 @@ const ManageJobScreen = () => {
         // console.error('❌ Response status:', response.status);
         // console.error('❌ Response message:', result.message);
         // console.error('❌ Full response:', JSON.stringify(result, null, 2));
-        
+
         setToastMessage({
           type: "error",
           msg: result.message || "Failed to delete job",
@@ -1079,7 +1079,7 @@ const ManageJobScreen = () => {
       // console.error('❌ Error details:', error);
       // console.error('❌ Error message:', error.message);
       // console.error('❌ Error stack:', error.stack);
-      
+
       setToastMessage({
         type: "error",
         msg: "Failed to delete job. Please try again.",
@@ -1127,10 +1127,10 @@ const ManageJobScreen = () => {
     const postedDate = formatDate(item.created_at || item.posted_date || item.createdAt);
 
     // Construct logo URL if it's a relative path
-    const logoUrl = item.company_logo 
-      ? (item.company_logo.startsWith('http://') || item.company_logo.startsWith('https://') 
-          ? item.company_logo 
-          : `${BASE_URL.replace('/api/', '/')}${item.company_logo.replace(/^\//, '')}`)
+    const logoUrl = item.company_logo
+      ? (item.company_logo.startsWith('http://') || item.company_logo.startsWith('https://')
+        ? item.company_logo
+        : `${BASE_URL.replace('/api/', '/')}${item.company_logo.replace(/^\//, '')}`)
       : null;
 
     return (
@@ -1144,16 +1144,16 @@ const ManageJobScreen = () => {
           {/* Left: Logo */}
           <View style={styles.cardLogoContainer}>
             {logoUrl ? (
-              <Image 
-                source={{ uri: logoUrl }} 
-                style={styles.cardLogo} 
+              <Image
+                source={{ uri: logoUrl }}
+                style={styles.cardLogo}
                 resizeMode="contain"
                 defaultSource={LOGO}
               />
             ) : (
-              <Image 
-                source={LOGO} 
-                style={styles.cardLogo} 
+              <Image
+                source={LOGO}
+                style={styles.cardLogo}
                 resizeMode="contain"
               />
             )}
@@ -1188,38 +1188,38 @@ const ManageJobScreen = () => {
                 </TouchableOpacity>
               </View>
             </View>
-            
-              <View style={styles.badge}>
-                <Text style={styles.badgeText} numberOfLines={1}>
-                  {companyName}
-                </Text>
-        </View>
+
+            <View style={styles.badge}>
+              <Text style={styles.badgeText} numberOfLines={1}>
+                {companyName}
+              </Text>
+            </View>
 
             {/* Info sections side by side */}
             <View style={styles.cardInfoRow}>
               {formattedCity && (
                 <View style={styles.infoItem}>
                   <MaterialCommunityIcons name="map-marker-outline" size={14} color={BRANDCOLOR} />
-              <Text style={styles.cardInfoText} numberOfLines={1}>
+                  <Text style={styles.cardInfoText} numberOfLines={1}>
                     {formattedCity}
-              </Text>
-            </View>
-          )}
-          {email && (
+                  </Text>
+                </View>
+              )}
+              {email && (
                 <View style={styles.infoItem}>
                   <MaterialCommunityIcons name="email-outline" size={14} color={BRANDCOLOR} />
-              <Text style={styles.cardInfoText} numberOfLines={1}>
-                {email}
-              </Text>
-            </View>
-          )}
-          {postedDate !== "—" && (
+                  <Text style={styles.cardInfoText} numberOfLines={1}>
+                    {email}
+                  </Text>
+                </View>
+              )}
+              {postedDate !== "—" && (
                 <View style={styles.infoItem}>
                   <MaterialCommunityIcons name="calendar-outline" size={14} color={BRANDCOLOR} />
-              <Text style={styles.cardInfoText}>{postedDate}</Text>
+                  <Text style={styles.cardInfoText}>{postedDate}</Text>
+                </View>
+              )}
             </View>
-          )}
-        </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -1243,6 +1243,7 @@ const ManageJobScreen = () => {
         ]}
       >
         <MyHeader
+          showNotification={false}
           showBack
           showCenterTitle
           title="Manage Jobs"

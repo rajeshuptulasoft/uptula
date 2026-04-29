@@ -16,8 +16,10 @@ import {
   Animated,
   PanResponder,
   Dimensions,
+  InteractionManager,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { useFocusEffect } from "@react-navigation/native";
 import { BLACK, BRANDCOLOR, WHITE } from "../../../constant/color";
 import { HEIGHT, WIDTH } from "../../../constant/config";
 import { CANTARELLBOLD, CANTARELL, FIRASANSBOLD, FIRASANS, FIRASANSSEMIBOLD, OXYGENBOLD, OXYGEN, ROBOTOBOLD, ROBOTOSEMIBOLD, ROBOTO, UBUNTUBOLD, UBUNTU, COMICSBOLD } from "../../../constant/fontPath";
@@ -66,15 +68,70 @@ const NotificationScreen = ({ navigation }) => {
     return "Older";
   };
 
-  const normalizeNotificationItem = (item) => ({
-    ...item,
-    id: item?.id ?? item?.notification_id ?? item?._id,
-    title: item?.title || "Notification",
-    message: item?.message || item?.body || "",
-    created_at: item?.created_at || item?.createdAt || item?.date || null,
-    time: getCreatedAtLabel(item?.created_at || item?.createdAt || item?.date),
-    read: Number(item?.is_read) === 1 || item?.read === true,
-  });
+  // Helper function to categorize notification type
+  const categorizeNotificationType = (item) => {
+    const itemType = item?.type?.toLowerCase?.() || "";
+    const title = item?.title?.toLowerCase?.() || "";
+    const message = item?.message?.toLowerCase?.() || "";
+
+    // Job Available Notifications
+    if (
+      itemType === "job_available" ||
+      itemType === "new_job_posted" ||
+      itemType === "job_posted" ||
+      title.includes("job posted") ||
+      title.includes("new job") ||
+      message.includes("job posted") ||
+      message.includes("new job")
+    ) {
+      return "job_available";
+    }
+
+    // Applied Job Status Notifications
+    if (
+      itemType === "applied_job_status" ||
+      itemType === "application_status" ||
+      itemType === "job_application" ||
+      itemType === "application_update" ||
+      title.includes("applied") ||
+      title.includes("application") ||
+      title.includes("job status") ||
+      message.includes("applied") ||
+      message.includes("application")
+    ) {
+      return "applied_job_status";
+    }
+
+    // Chat Notifications
+    if (
+      itemType === "chat" ||
+      itemType === "message" ||
+      itemType === "chat_message" ||
+      title.includes("chat") ||
+      title.includes("message") ||
+      message.includes("chat") ||
+      message.includes("message")
+    ) {
+      return "chat";
+    }
+
+    // Others/Default
+    return "others";
+  };
+
+  const normalizeNotificationItem = (item) => {
+    const categorizedType = categorizeNotificationType(item);
+    return {
+      ...item,
+      id: item?.id ?? item?.notification_id ?? item?._id,
+      title: item?.title || "Notification",
+      message: item?.message || item?.body || "",
+      created_at: item?.created_at || item?.createdAt || item?.date || null,
+      time: getCreatedAtLabel(item?.created_at || item?.createdAt || item?.date),
+      read: Number(item?.is_read) === 1 || item?.read === true,
+      type: categorizedType, // Override type with categorized value
+    };
+  };
 
   const tabs = [
     { key: "All", label: "All", icon: "bell" },
@@ -183,6 +240,19 @@ const NotificationScreen = ({ navigation }) => {
     return () => backHandler.remove();
   }, [navigation]);
 
+  // Clean up all modal and alert states when leaving the screen
+  useFocusEffect(
+    useCallback(() => {
+      // Cleanup function when leaving the screen
+      return () => {
+        console.log("🧹 Cleaning up NotificationScreen states");
+        setDetailsModalVisible(false);
+        setDeleteAlertVisible(false);
+        setSelectedNotification(null);
+      };
+    }, [])
+  );
+
   const handleBackPress = () => {
     navigation.goBack();
   };
@@ -251,6 +321,33 @@ const NotificationScreen = ({ navigation }) => {
   };
 
   const handleNotificationPress = (item) => {
+    console.log("📌 Notification pressed - Item data:", {
+      id: item.id,
+      type: item.type,
+      title: item.title,
+      message: item.message,
+    });
+
+    // If notification is from "New Job Posted" (job_available), navigate to SeekerHome
+    if (item.type === "job_available") {
+      console.log("🔔 Job Available notification - Navigating to SeekerHome");
+      markAsRead(item.id);
+      markNotificationAsReadOnServer(item.id);
+      
+      // Properly clean up all states before navigation
+      setDetailsModalVisible(false);
+      setSelectedNotification(null);
+      setDeleteAlertVisible(false);
+      
+      // Use InteractionManager to ensure all animations complete before navigation
+      InteractionManager.runAfterInteractions(() => {
+        navigation.navigate("SeekerHome", { skipProfileCheckAlert: true });
+      });
+      return;
+    }
+
+    // For other notifications, show the details modal
+    console.log("📢 Other notification - Showing modal. Type:", item.type);
     setSelectedNotification(item);
     setDetailsModalVisible(true);
     // Mark as read when viewed
