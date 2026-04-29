@@ -239,13 +239,13 @@ const SupportScreen = () => {
   // Handle refresh
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    
+
     // Reset all form fields
     setSubject("");
     setCategory("general");
     setPriority("medium");
     setDescription("");
-    
+
     // Fetch tickets
     fetchTickets();
   }, [fetchTickets]);
@@ -373,6 +373,7 @@ const SupportScreen = () => {
 
       <SafeAreaView style={styles.container}>
         <MyHeader
+          showNotification={false}
           showBack={true}
           showCenterTitle={true}
           title="Support & Tickets"
@@ -421,9 +422,9 @@ const SupportScreen = () => {
                 <View style={styles.pickerTextContainer}>
                   <Text style={styles.pickerSelectedText} numberOfLines={1}>
                     {category === "general" ? "General" :
-                     category === "billing" ? "Billing" :
-                     category === "login" ? "Login" :
-                     category === "job_posting" ? "Job Posting" : category}
+                      category === "billing" ? "Billing" :
+                        category === "login" ? "Login" :
+                          category === "job_posting" ? "Job Posting" : category}
                   </Text>
                 </View>
                 <Picker
@@ -448,9 +449,9 @@ const SupportScreen = () => {
                 <View style={styles.pickerTextContainer}>
                   <Text style={styles.pickerSelectedText} numberOfLines={1}>
                     {priority === "low" ? "Low" :
-                     priority === "medium" ? "Medium" :
-                     priority === "high" ? "High" :
-                     priority === "urgent" ? "Urgent" : priority}
+                      priority === "medium" ? "Medium" :
+                        priority === "high" ? "High" :
+                          priority === "urgent" ? "Urgent" : priority}
                   </Text>
                 </View>
                 <Picker
@@ -567,8 +568,8 @@ const SupportScreen = () => {
             toastMessage.type === "success"
               ? "green"
               : toastMessage.type === "error"
-              ? "red"
-              : "#e0e0e0"
+                ? "red"
+                : "#e0e0e0"
           }
           textColor={WHITE}
           type={toastMessage.type}

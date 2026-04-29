@@ -115,17 +115,17 @@ const JobDetailsScreen = () => {
           onBackPress={handleBackPress}
         />
         <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>No job data available</Text>
+          <Text style={styles.errorText}>No job data available</Text>
         </View>
       </View>
     );
   }
 
   // Construct logo URL if it's a relative path
-  const logoUrl = jobData.company_logo 
-    ? (jobData.company_logo.startsWith('http://') || jobData.company_logo.startsWith('https://') 
-        ? jobData.company_logo 
-        : `${BASE_URL.replace('/api/', '/')}${jobData.company_logo.replace(/^\//, '')}`)
+  const logoUrl = jobData.company_logo
+    ? (jobData.company_logo.startsWith('http://') || jobData.company_logo.startsWith('https://')
+      ? jobData.company_logo
+      : `${BASE_URL.replace('/api/', '/')}${jobData.company_logo.replace(/^\//, '')}`)
     : null;
 
   // Format job type for display
@@ -200,6 +200,7 @@ const JobDetailsScreen = () => {
       />
 
       <MyHeader
+        showNotification={false}
         showBack
         showCenterTitle
         title="Job Details"
@@ -223,8 +224,8 @@ const JobDetailsScreen = () => {
                 {jobData.job_title || "NA"}
               </Text>
               <Text style={styles.companyNameHeader}>
-                {(jobData.company_name && jobData.company_name.trim() !== "") 
-                  ? jobData.company_name 
+                {(jobData.company_name && jobData.company_name.trim() !== "")
+                  ? jobData.company_name
                   : "NA"}
               </Text>
               <View style={styles.ratingContainer}>
@@ -258,7 +259,7 @@ const JobDetailsScreen = () => {
               )}
             </View>
           </View>
-          
+
           <View style={styles.headerStatsRow}>
             <View style={styles.countContainer}>
               <View style={styles.countItem}>
@@ -313,8 +314,8 @@ const JobDetailsScreen = () => {
                     • Skills: {jobData.skills.split(",").slice(0, 3).join(", ")}
                   </Text>
                 )}
+              </View>
             </View>
-          </View>
 
             {/* Job Information Section */}
             <View style={styles.jobInfoSection}>
@@ -335,12 +336,12 @@ const JobDetailsScreen = () => {
               <View style={styles.infoItem}>
                 <MaterialCommunityIcons name="currency-inr" size={20} color={BRANDCOLOR} />
                 <Text style={styles.infoItemText}>
-                  {formatSalary(jobData.salary_range) !== "NA" 
-                    ? formatSalary(jobData.salary_range) 
+                  {formatSalary(jobData.salary_range) !== "NA"
+                    ? formatSalary(jobData.salary_range)
                     : "Not disclosed"}
-            </Text>
-          </View>
-        </View>
+                </Text>
+              </View>
+            </View>
 
             {/* Skills Section */}
             {jobData.skills && (
@@ -360,18 +361,18 @@ const JobDetailsScreen = () => {
                       {jobData.skills.split(",").slice(5).map((skill, index) => (
                         <View key={index} style={styles.skillTag}>
                           <Text style={styles.skillText}>{skill.trim()}</Text>
-          </View>
+                        </View>
                       ))}
-          </View>
+                    </View>
                   </>
                 )}
-          </View>
+              </View>
             )}
 
             {/* Job Description Section */}
             <View style={styles.descriptionSection}>
               <Text style={styles.sectionTitle}>Job description</Text>
-              
+
               {jobData.description && (
                 <Text style={styles.descriptionText}>{jobData.description}</Text>
               )}
@@ -405,8 +406,8 @@ const JobDetailsScreen = () => {
                     • Skills Required: {jobData.skills}
                   </Text>
                 )}
-          </View>
-          </View>
+              </View>
+            </View>
           </>
         )}
 
@@ -426,7 +427,7 @@ const JobDetailsScreen = () => {
           <View style={styles.reviewsSection}>
             <View style={styles.reviewsHeader}>
               <Text style={styles.sectionTitle}>Reviews</Text>
-          </View>
+            </View>
             <Text style={styles.descriptionText}>
               Reviews will be displayed here.
             </Text>
@@ -448,14 +449,14 @@ const JobDetailsScreen = () => {
             <Text style={styles.salaryDescription}>
               Compare salaries of {jobData.job_title || "this position"} with similar companies.
             </Text>
-            
+
             <View style={styles.salaryCard}>
               <Text style={styles.avgSalaryText}>
-                Avg. Salary - {formatSalary(jobData.salary_range) !== "NA" 
-                  ? formatSalary(jobData.salary_range) 
+                Avg. Salary - {formatSalary(jobData.salary_range) !== "NA"
+                  ? formatSalary(jobData.salary_range)
                   : "Not disclosed"}
               </Text>
-          </View>
+            </View>
           </View>
         )}
 
@@ -465,7 +466,7 @@ const JobDetailsScreen = () => {
             <Image source={COMPANYNAME} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>Company Address</Text>
           </View>
-          
+
           <View style={styles.infoRow}>
             <Image source={MAIL} style={styles.infoIcon} />
             <Text style={styles.infoLabel}>Email:</Text>
@@ -521,7 +522,7 @@ const JobDetailsScreen = () => {
             <Image source={SOCIALACCOUNT} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>Social Accounts</Text>
           </View>
-          
+
           <View style={styles.infoRow}>
             <Image source={FACEBOOK} style={styles.infoIcon} />
             <Text style={styles.infoLabel}>Facebook:</Text>

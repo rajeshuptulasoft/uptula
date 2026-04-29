@@ -193,7 +193,7 @@ const ChangePasswordScreen = ({ navigation }) => {
         }
     };
 
-    
+
 
     /* ---------- VALIDATION ---------- */
     const onChangePassword = () => {
@@ -544,6 +544,7 @@ const ChangePasswordScreen = ({ navigation }) => {
 
             <Container style={{ flex: 1, backgroundColor: WHITE }}>
                 <MyHeader
+                    showNotification={false}
                     showBack
                     showCenterTitle
                     title="Change Password"

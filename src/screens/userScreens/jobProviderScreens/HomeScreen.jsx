@@ -2515,7 +2515,8 @@ const HomeScreen = ({ navigation }) => {
         <MyHeader
           showLogo={true}
           onProfilePress={handleProfileIconPress}
-          onNotificationPress={handleNotificationPress}
+          showNotification={false}
+          // onNotificationPress={handleNotificationPress}
         />
 
         <ScrollView 

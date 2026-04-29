@@ -54,15 +54,15 @@ const CategoryJobCard = ({ item, onPress, onEdit, onDelete }) => {
 
   // Get logo URL
   const logoUrl = item.company_logo || item.companyLogo || item.logo
-    ? ((item.company_logo || item.companyLogo || item.logo).startsWith('http://') || (item.company_logo || item.companyLogo || item.logo).startsWith('https://') 
-        ? (item.company_logo || item.companyLogo || item.logo) 
-        : `${BASE_URL.replace('/api/', '/')}${(item.company_logo || item.companyLogo || item.logo).replace(/^\//, '')}`)
+    ? ((item.company_logo || item.companyLogo || item.logo).startsWith('http://') || (item.company_logo || item.companyLogo || item.logo).startsWith('https://')
+      ? (item.company_logo || item.companyLogo || item.logo)
+      : `${BASE_URL.replace('/api/', '/')}${(item.company_logo || item.companyLogo || item.logo).replace(/^\//, '')}`)
     : null;
 
   return (
-    <TouchableOpacity 
-      style={styles.squareCard} 
-      onPress={() => onPress(item)} 
+    <TouchableOpacity
+      style={styles.squareCard}
+      onPress={() => onPress(item)}
       activeOpacity={0.8}
     >
       {/* Logo */}
@@ -75,11 +75,11 @@ const CategoryJobCard = ({ item, onPress, onEdit, onDelete }) => {
         {/* Status Indicator */}
         {item.status && (
           <View style={styles.statusBadge}>
-            <View 
+            <View
               style={[
-                styles.statusDot, 
+                styles.statusDot,
                 { backgroundColor: item.status === "active" ? "#4CAF50" : "#FF5252" }
-              ]} 
+              ]}
             />
             <Text style={styles.statusBadgeText}>
               {item.status === "active" ? "Active" : "Inactive"}
@@ -93,7 +93,7 @@ const CategoryJobCard = ({ item, onPress, onEdit, onDelete }) => {
         <Text style={styles.cardTitle} numberOfLines={2}>
           {item.job_title || item.jobTitle || item.title || 'N/A'}
         </Text>
-        
+
         <Text style={styles.cardCompany} numberOfLines={1}>
           {item.company_name || item.companyName || item.company || 'N/A'}
         </Text>
@@ -115,21 +115,21 @@ const CategoryJobCard = ({ item, onPress, onEdit, onDelete }) => {
 
       {/* Action Buttons */}
       <View style={styles.cardActions}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={(e) => {
             e.stopPropagation();
             onEdit(item);
-          }} 
+          }}
           style={styles.actionButton}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons name="pencil" size={HEIGHT * 0.018} color={BRANDCOLOR} />
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={(e) => {
             e.stopPropagation();
             onDelete(item);
-          }} 
+          }}
           style={styles.actionButton}
           activeOpacity={0.7}
         >
@@ -168,8 +168,8 @@ const CategoriesScreen = () => {
     const normalized1 = normalizeCategory(cat1);
     const normalized2 = normalizeCategory(cat2);
     return normalized1 === normalized2 ||
-           cat1.toString().toLowerCase() === cat2.toString().toLowerCase() ||
-           normalized1.replace(/\s/g, '') === normalized2.replace(/\s/g, '');
+      cat1.toString().toLowerCase() === cat2.toString().toLowerCase() ||
+      normalized1.replace(/\s/g, '') === normalized2.replace(/\s/g, '');
   };
 
   // Fetch jobs from all three endpoints
@@ -184,7 +184,7 @@ const CategoriesScreen = () => {
         if (loginResponse && loginResponse.token) {
           const url1 = `${BASE_URL}employer/jobs`;
           const result1 = await GETNETWORK(url1, true);
-          
+
           let jobsData1 = [];
           if (Array.isArray(result1)) {
             jobsData1 = result1;
@@ -205,7 +205,7 @@ const CategoriesScreen = () => {
       try {
         const url2 = `${BASE_URL}jobs`;
         const result2 = await GETNETWORK(url2, false);
-        
+
         if (result2 && !result2.message) {
           const jobsData2 = result2?.data || result2?.jobs || result2?.list || result2 || [];
           allJobs.push(...(Array.isArray(jobsData2) ? jobsData2 : []));
@@ -218,7 +218,7 @@ const CategoriesScreen = () => {
       try {
         const url3 = `${BASE_URL}jobs/latest`;
         const result3 = await GETNETWORK(url3, false);
-        
+
         if (result3 && !result3.message) {
           const jobsData3 = result3?.data || result3?.jobs || result3?.list || result3 || [];
           allJobs.push(...(Array.isArray(jobsData3) ? jobsData3 : []));
@@ -352,7 +352,7 @@ const CategoriesScreen = () => {
       }
 
       const url = `${BASE_URL}employer/jobs/${jobId}`;
-      
+
       const response = await fetch(url, {
         method: "DELETE",
         headers: {
@@ -372,7 +372,7 @@ const CategoriesScreen = () => {
         }));
         setDeleteAlertVisible(false);
         setSelectedJob(null);
-        
+
         setToastMessage({
           type: "success",
           msg: "Job deleted successfully!",
@@ -436,6 +436,7 @@ const CategoriesScreen = () => {
           Platform.OS === "android" && styles.headerSpacerAndroid
         ]} />
         <MyHeader
+          showNotification={false}
           showBack={true}
           showCenterTitle={true}
           title={formatCategoryName(category)}

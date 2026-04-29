@@ -63,7 +63,7 @@ import {
   VERIFIEDPROVIDER,
 } from "../../../constant/imagePath";
 import { HEIGHT, WIDTH } from "../../../constant/config";
-import { getObjByKey } from "../../../utils/Storage";
+import { getObjByKey, storeObjByKey } from "../../../utils/Storage";
 import { MyAlert } from "../../../components/commonComponents/MyAlert";
 import { MyHeader } from "../../../components/commonComponents/MyHeader";
 import { TextInputComponent } from "../../../components/commonComponents/TextInputComponent";
@@ -72,16 +72,6 @@ import { ToastMessage } from "../../../components/commonComponents/ToastMessage"
 import { handleProfilePress } from "../../../navigations/CustomDrawerContent";
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK, POSTNETWORK, DELETENETWORK } from "../../../utils/Network";
-
-const companies = [
-  { id: "c-1", name: "Mukti", logo: require("../../../assets/images/mukti.png"), tag: "Top" },
-  { id: "c-2", name: "Vikash", logo: require("../../../assets/images/vikash.png"), tag: "Featured" },
-  { id: "c-3", name: "VDeal", logo: require("../../../assets/images/vdeal.png"), tag: "Sponsored" },
-  { id: "c-4", name: "Yubi", logo: require("../../../assets/images/yubi.png"), tag: "Top" },
-  { id: "c-5", name: "GC", logo: require("../../../assets/images/gc2.png"), tag: "Featured" },
-  { id: "c-6", name: "UptulaSoft", logo: require("../../../assets/images/uptulasoft1.png"), tag: "Sponsored" },
-  { id: "c-7", name: "Vikash Foundation", logo: require("../../../assets/images/vf.png"), tag: "Top" },
-];
 
 // Format jobType: full_time -> Full Time
 const formatJobType = (jobType) => {
@@ -180,13 +170,10 @@ const formatSalary = (salaryRange) => {
   return salaryRange.trim().replace(/^INR\s*/i, '');
 };
 
-const SectionGrid = ({ title, filterTag, expanded, onToggle }) => {
+const SectionGrid = ({ title, companiesData, expanded, onToggle }) => {
   const data = useMemo(
-    () =>
-      expanded
-        ? companies.filter((c) => c.tag === filterTag)
-        : companies.filter((c) => c.tag === filterTag).slice(0, 3),
-    [expanded, filterTag]
+    () => (expanded ? companiesData : companiesData.slice(0, 3)),
+    [expanded, companiesData]
   );
 
   return (
@@ -197,18 +184,17 @@ const SectionGrid = ({ title, filterTag, expanded, onToggle }) => {
           <Text style={styles.viewAll}>{expanded ? "View less" : "View all"}</Text>
         </TouchableOpacity>
       </View>
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.squareCard} activeOpacity={0.7}>
-            <Image source={item.logo} style={styles.squareCardLogo} defaultSource={LOGO} />
-            <Text style={styles.squareCardText}>{item.name}</Text>
-          </TouchableOpacity>
-        )}
-      />
+      {data.length > 0 ? (
+        <FlatList
+          data={data}
+          keyExtractor={(item, index) => item.id?.toString() || item._id?.toString() || `${item.companyName}-${index}`}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => <CompanyCard item={item} />}
+        />
+      ) : (
+        <Text style={styles.emptyText}>No companies available</Text>
+      )}
     </View>
   );
 };
@@ -837,15 +823,27 @@ const AllCategoriesSlider = ({ categories, onCategoryPress }) => {
 );
 };
 
-const SearchOverlay = ({ onClose, navigation }) => {
+const SearchOverlay = ({ onClose, navigation, companiesData = [] }) => {
+  const RECENT_SEARCHES_KEY = "user_recent_job_searches";
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [recentSearches, setRecentSearches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [wishlistedJobs, setWishlistedJobs] = useState(new Set());
   const [expandedTop, setExpandedTop] = useState(false);
   const [expandedFeatured, setExpandedFeatured] = useState(false);
   const [expandedSponsored, setExpandedSponsored] = useState(false);
+  const verifiedCompanies = useMemo(
+    () => companiesData.filter((item) => getVerifiedStatus(item)),
+    [companiesData]
+  );
+  const topCompaniesData = useMemo(() => companiesData, [companiesData]);
+  const featuredCompaniesData = useMemo(() => verifiedCompanies.slice(0, 6), [verifiedCompanies]);
+  const sponsoredCompaniesData = useMemo(() => {
+    const sliced = verifiedCompanies.slice(6, 12);
+    return sliced.length > 0 ? sliced : verifiedCompanies.slice(0, 6);
+  }, [verifiedCompanies]);
 
   // Fetch wishlist status
   const fetchWishlistStatus = useCallback(async () => {
@@ -881,6 +879,14 @@ const SearchOverlay = ({ onClose, navigation }) => {
   useEffect(() => {
     fetchWishlistStatus();
   }, [fetchWishlistStatus]);
+
+  useEffect(() => {
+    const loadRecentSearches = async () => {
+      const saved = await getObjByKey(RECENT_SEARCHES_KEY);
+      setRecentSearches(Array.isArray(saved) ? saved : []);
+    };
+    loadRecentSearches();
+  }, []);
 
   // BackHandler: close search overlay
   const handleBackPress = () => {
@@ -935,8 +941,17 @@ const SearchOverlay = ({ onClose, navigation }) => {
           filteredJobs = filteredJobs.filter((job) => {
             const jobTitle = (job.jobTitle || job.title || '').toLowerCase();
             const companyName = (job.companyName || job.company || '').toLowerCase();
-            // Match if jobTitle or companyName starts with the search query
-            return jobTitle.startsWith(searchLower) || companyName.startsWith(searchLower);
+            const designation = (job.designation || '').toLowerCase();
+            const skills = Array.isArray(job.skills)
+              ? job.skills.join(" ").toLowerCase()
+              : (job.skills || '').toLowerCase();
+            // Match if any relevant field contains the query (not only startsWith)
+            return (
+              jobTitle.includes(searchLower) ||
+              companyName.includes(searchLower) ||
+              designation.includes(searchLower) ||
+              skills.includes(searchLower)
+            );
           });
         }
         
@@ -967,6 +982,23 @@ const SearchOverlay = ({ onClose, navigation }) => {
       jobId: jobId,
       jobData: jobData,
     });
+  };
+
+  // Handle search button to navigate to full search screen
+  const saveSearchTerm = useCallback(async (term) => {
+    const value = term.trim();
+    if (!value) return;
+    const updated = [value, ...recentSearches.filter((item) => item.toLowerCase() !== value.toLowerCase())].slice(0, 8);
+    setRecentSearches(updated);
+    await storeObjByKey(RECENT_SEARCHES_KEY, updated);
+  }, [recentSearches]);
+
+  const handleSearchSubmit = () => {
+    if (query.trim()) {
+      saveSearchTerm(query);
+      onClose();
+      navigation.navigate('UserSearchJob', { keyword: query.trim() });
+    }
   };
 
   const handleApply = async (item) => {
@@ -1054,6 +1086,8 @@ const SearchOverlay = ({ onClose, navigation }) => {
           placeholder="e.g. React, Designer, Uptula"
           placeholderTextColor="#7A7A7A"
           style={styles.input}
+          onSubmitEditing={handleSearchSubmit}
+          returnKeyType="search"
         />
       </View>
 
@@ -1067,6 +1101,48 @@ const SearchOverlay = ({ onClose, navigation }) => {
           style={styles.input}
         />
       </View>
+
+      {recentSearches.length > 0 && query.trim() === "" && (
+        <View style={styles.inputGroup}>
+          <View style={styles.recentSearchesWrap}>
+            <View style={styles.recentSearchesHeader}>
+              <Text style={styles.recentSearchesTitle}>Previous Searches</Text>
+              <TouchableOpacity
+                onPress={async () => {
+                  setRecentSearches([]);
+                  await storeObjByKey(RECENT_SEARCHES_KEY, []);
+                }}
+              >
+                <Text style={styles.recentSearchesClear}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+            {recentSearches.map((item) => (
+              <TouchableOpacity
+                key={item}
+                style={styles.recentSearchItem}
+                onPress={() => {
+                  setQuery(item);
+                  handleSearch(item, location);
+                }}
+              >
+                <MaterialCommunityIcons name="history" size={16} color="#8B93A6" />
+                <Text style={styles.recentSearchText}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {query.trim() && (
+        <TouchableOpacity 
+          style={styles.searchSubmitButton}
+          onPress={handleSearchSubmit}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.searchSubmitButtonText}>Search for "{query}"</Text>
+          <MaterialCommunityIcons name="arrow-right" size={20} color={WHITE} />
+        </TouchableOpacity>
+      )}
 
         {loading && (
           <View style={styles.loadingIndicatorContainer}>
@@ -1159,19 +1235,19 @@ const SearchOverlay = ({ onClose, navigation }) => {
       <ScrollView showsVerticalScrollIndicator={false}>
         <SectionGrid
           title="Top Companies"
-          filterTag="Top"
+          companiesData={topCompaniesData}
           expanded={expandedTop}
           onToggle={() => setExpandedTop(!expandedTop)}
         />
         <SectionGrid
           title="Featured Companies"
-          filterTag="Featured"
+          companiesData={featuredCompaniesData}
           expanded={expandedFeatured}
           onToggle={() => setExpandedFeatured(!expandedFeatured)}
         />
         <SectionGrid
           title="Sponsored Companies"
-          filterTag="Sponsored"
+          companiesData={sponsoredCompaniesData}
           expanded={expandedSponsored}
           onToggle={() => setExpandedSponsored(!expandedSponsored)}
         />
@@ -1529,7 +1605,6 @@ const CompanyCard = ({ item }) => {
         ? item.logo
         : `${BASE_URL.replace('/api/', '/')}${item.logo.replace(/^\//, '')}`)
     : null;
-  const locationText = getCompanyLocationText(item);
   const isVerified = getVerifiedStatus(item);
   const handleCompanyPress = () => {
     navigation.navigate("DisplayCompanyProfile", {
@@ -1553,17 +1628,6 @@ const CompanyCard = ({ item }) => {
           <Image source={VERIFIEDPROVIDER} style={styles.companyVerifiedIcon} />
         ) : null}
       </View>
-      {locationText ? (
-        <View style={styles.companyLocationRow}>
-          <MaterialCommunityIcons name="map-marker-outline" size={WIDTH * 0.032} color={BRANDCOLOR} />
-          <Text style={styles.companyCardMeta} numberOfLines={2}>
-            {locationText}
-          </Text>
-        </View>
-      ) : null}
-      <Text style={styles.companyCardOpenings} numberOfLines={2}>
-        {item.jobCount ? `${item.jobCount} openings` : 'No openings'}
-      </Text>
     </TouchableOpacity>
   );
 };
@@ -1728,7 +1792,7 @@ const PosterSection = () => {
   );
 };
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation, route }) => {
   const nav = useNavigation();
   const [searchOpen, setSearchOpen] = useState(false);
   const [loginPromptVisible, setLoginPromptVisible] = useState(false);
@@ -1778,6 +1842,7 @@ const HomeScreen = ({ navigation }) => {
   const [profileCompletionAlertVisible, setProfileCompletionAlertVisible] = useState(false);
   const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(100);
   const [profileCompletionCheckDone, setProfileCompletionCheckDone] = useState(false);
+  const [skipProfileCheckAlert] = useState(route?.params?.skipProfileCheckAlert || false);
  
   // Request location permission
   const requestLocationPermission = async () => {
@@ -2216,7 +2281,8 @@ const HomeScreen = ({ navigation }) => {
         setProfileCompletionPercentage(completionPercentage);
 
         // Show alert only if profile is not 100% complete and not already checked
-        if (completionPercentage < 100 && !profileCompletionCheckDone) {
+        // Skip showing alert if coming from notification screen (skipProfileCheckAlert = true)
+        if (completionPercentage < 100 && !profileCompletionCheckDone && !skipProfileCheckAlert) {
           setProfileCompletionAlertVisible(true);
           setProfileCompletionCheckDone(true);
         }
@@ -2224,7 +2290,7 @@ const HomeScreen = ({ navigation }) => {
     } catch (error) {
       // Silently fail
     }
-  }, [calculateCompletionPercentage, profileCompletionCheckDone]);
+  }, [calculateCompletionPercentage, profileCompletionCheckDone, skipProfileCheckAlert]);
 
   // Fetch jobs based on applied jobs (same jobTitle from other companies)
   const fetchJobsBasedOnApplied = useCallback(async () => {
@@ -3270,7 +3336,13 @@ const HomeScreen = ({ navigation }) => {
   };
 
   if (searchOpen) {
-    return <SearchOverlay onClose={() => setSearchOpen(false)} navigation={navigation} />;
+    return (
+      <SearchOverlay
+        onClose={() => setSearchOpen(false)}
+        navigation={navigation}
+        companiesData={topCompanies}
+      />
+    );
   }
 
   return (
@@ -4048,6 +4120,57 @@ const styles = StyleSheet.create({
     paddingVertical: HEIGHT * 0.012,
     color: BLACK,
     fontSize: WIDTH * 0.035,
+  },
+  recentSearchesWrap: {
+    marginTop: HEIGHT * 0.01,
+    borderWidth: 1,
+    borderColor: "#ECEFF4",
+    borderRadius: WIDTH * 0.025,
+    padding: WIDTH * 0.03,
+    backgroundColor: "#FAFBFD",
+  },
+  recentSearchesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: HEIGHT * 0.008,
+  },
+  recentSearchesTitle: {
+    color: "#5E687C",
+    fontFamily: FIRASANSSEMIBOLD,
+    fontSize: WIDTH * 0.032,
+  },
+  recentSearchesClear: {
+    color: BRANDCOLOR,
+    fontFamily: FIRASANSSEMIBOLD,
+    fontSize: WIDTH * 0.032,
+  },
+  recentSearchItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: WIDTH * 0.02,
+    paddingVertical: HEIGHT * 0.007,
+  },
+  recentSearchText: {
+    color: BLACK,
+    fontFamily: FIRASANS,
+    fontSize: WIDTH * 0.034,
+  },
+  searchSubmitButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BRANDCOLOR,
+    borderRadius: WIDTH * 0.025,
+    paddingVertical: HEIGHT * 0.014,
+    paddingHorizontal: WIDTH * 0.03,
+    marginBottom: HEIGHT * 0.015,
+    gap: WIDTH * 0.02,
+  },
+  searchSubmitButtonText: {
+    color: WHITE,
+    fontFamily: FIRASANSBOLD,
+    fontSize: WIDTH * 0.036,
   },
   searchButton: {
     flexDirection: "row",
