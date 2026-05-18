@@ -1,21 +1,8 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Image, StatusBar, StyleSheet, Text, View, Platform, SafeAreaView } from "react-native";
-import { BLACK, BRANDCOLOR, WHITE } from "../../constant/color";
+import { Animated, StatusBar, StyleSheet, View, Platform, SafeAreaView } from "react-native";
+import { BLACK, WHITE } from "../../constant/color";
 import { LOGO, UP } from "../../constant/imagePath";
-import {
-    CANTARELLBOLD,
-    CANTARELL,
-    FIRASANSBOLD,
-    FIRASANS,
-    FIRASANSSEMIBOLD,
-    OXYGENBOLD,
-    OXYGEN,
-    ROBOTOBOLD,
-    ROBOTOSEMIBOLD,
-    ROBOTO,
-    UBUNTUBOLD,
-    UBUNTU
-} from "../../constant/fontPath";
+import { UBUNTUBOLD } from "../../constant/fontPath";
 // import 'firebase/auth'
 import { PermissionsAndroid } from 'react-native';
 import { getObjByKey, getStringByKey } from "../../utils/Storage";
@@ -24,13 +11,87 @@ import SpInAppUpdates, { IAUUpdateKind } from "sp-react-native-in-app-updates";
 import { BASE_URL } from "../../constant/url";
 import messaging from '@react-native-firebase/messaging';
 
+const SLOGAN_LINES = ['Put your "CV"', "Dream job Waiting"];
+
+const SLOGAN_LETTERS = SLOGAN_LINES.flatMap((line, lineIndex) =>
+    [...line].map((char) => ({ char, lineIndex }))
+);
+
+const LETTER_ENTER_MS = 55;
+const LETTER_EXIT_MS = 42;
+const HOLD_AFTER_SLOGAN_MS = 1400;
+
+const createLetterAnims = () =>
+    SLOGAN_LETTERS.map(() => ({
+        opacity: new Animated.Value(0),
+        translateY: new Animated.Value(14),
+        scale: new Animated.Value(0.55),
+    }));
+
+const animateLettersIn = (letterAnims) =>
+    Animated.stagger(
+        LETTER_ENTER_MS,
+        letterAnims.map(({ opacity, translateY, scale }) =>
+            Animated.parallel([
+                Animated.timing(opacity, {
+                    toValue: 1,
+                    duration: 240,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(translateY, {
+                    toValue: 0,
+                    duration: 240,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(scale, {
+                    toValue: 1,
+                    friction: 7,
+                    tension: 90,
+                    useNativeDriver: true,
+                }),
+            ])
+        )
+    );
+
+const animateLettersOut = (letterAnims) =>
+    Animated.stagger(
+        LETTER_EXIT_MS,
+        letterAnims.map(({ opacity, translateY, scale }) =>
+            Animated.parallel([
+                Animated.timing(opacity, {
+                    toValue: 0,
+                    duration: 170,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(translateY, {
+                    toValue: -16,
+                    duration: 170,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(scale, {
+                    toValue: 0.45,
+                    duration: 170,
+                    useNativeDriver: true,
+                }),
+            ])
+        )
+    );
+
+const resetLetterAnims = (letterAnims) => {
+    letterAnims.forEach(({ opacity, translateY, scale }) => {
+        opacity.setValue(0);
+        translateY.setValue(14);
+        scale.setValue(0.55);
+    });
+};
+
 export default SplashScreen = ({ navigation }) => {
 
     const logoScale = useRef(new Animated.Value(0.8)).current;
     const logoOpacity = useRef(new Animated.Value(0)).current;
     const sloganOpacity = useRef(new Animated.Value(0)).current;
     const sloganTranslate = useRef(new Animated.Value(-10)).current;
-    const screenOpacity = useRef(new Animated.Value(0)).current;
+    const letterAnims = useRef(createLetterAnims()).current;
     const inAppUpdates = new SpInAppUpdates(false);
 
     /* ✅ PlayStore Update Concept Start */
@@ -106,9 +167,9 @@ export default SplashScreen = ({ navigation }) => {
 
 
     useEffect(() => {
-        // Zoom-in then zoom-out for logo, then show text
-        // Ensure slogan is hidden during zoom-in
+        resetLetterAnims(letterAnims);
         sloganOpacity.setValue(0);
+        sloganTranslate.setValue(-10);
 
         Animated.sequence([
             Animated.parallel([
@@ -120,7 +181,6 @@ export default SplashScreen = ({ navigation }) => {
                 Animated.timing(logoScale, {
                     toValue: 1.4,
                     duration: 800,
-                    easing: undefined,
                     useNativeDriver: true,
                 }),
             ]),
@@ -147,25 +207,19 @@ export default SplashScreen = ({ navigation }) => {
                     useNativeDriver: true,
                 }),
             ]),
-            Animated.delay(1600),
-            Animated.timing(screenOpacity, {
-                toValue: 0,
-                duration: 400,
-                useNativeDriver: true,
-            }),
+            animateLettersIn(letterAnims),
+            Animated.delay(HOLD_AFTER_SLOGAN_MS),
+            animateLettersOut(letterAnims),
         ]).start(async () => {
-            // Check if user has seen onboarding before
             const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
 
             if (hasSeenOnboarding === "true") {
-                // User has seen onboarding, go directly to MainTabs (HomeScreen)
                 navigation.navigate('MainTabs');
             } else {
-                // First time user, show OnBoarding
                 navigation.navigate('OnBoarding');
             }
         });
-    }, [navigation]);
+    }, [navigation, letterAnims]);
 
     // Your Firebase configuration
     const firebaseConfig = {
@@ -291,21 +345,58 @@ export default SplashScreen = ({ navigation }) => {
                         styles.txtConatiner,
                         Platform.OS === "ios" && styles.txtConatinerIOS,
                         Platform.OS === "android" && styles.txtConatinerAndroid,
-                        {
-                            opacity: sloganOpacity,
-                        }]
-                    }
-                    >
+                        { opacity: sloganOpacity },
+                    ]}>
                         <Animated.Image
                             source={LOGO}
                             style={[
                                 styles.sloganLogo,
                                 Platform.OS === "ios" && styles.sloganLogoIOS,
                                 Platform.OS === "android" && styles.sloganLogoAndroid,
-                                { transform: [{ translateY: sloganTranslate }] }
+                                { transform: [{ translateY: sloganTranslate }] },
                             ]}
                             resizeMode="contain"
                         />
+
+                        <View style={styles.sloganTextBlock}>
+                            {SLOGAN_LINES.map((line, lineIndex) => {
+                                const lineStartIndex = SLOGAN_LINES.slice(0, lineIndex)
+                                    .reduce((sum, l) => sum + l.length, 0);
+
+                                return (
+                                    <View
+                                        key={`slogan-line-${lineIndex}`}
+                                        style={[
+                                            styles.sloganRow,
+                                            lineIndex > 0 && styles.sloganRowSecond,
+                                        ]}
+                                    >
+                                        {[...line].map((char, charIndex) => {
+                                            const index = lineStartIndex + charIndex;
+                                            return (
+                                                <Animated.Text
+                                                    key={`slogan-${index}-${char}`}
+                                                    style={[
+                                                        styles.sloganLetter,
+                                                        Platform.OS === "ios" && styles.sloganLetterIOS,
+                                                        Platform.OS === "android" && styles.sloganLetterAndroid,
+                                                        {
+                                                            opacity: letterAnims[index].opacity,
+                                                            transform: [
+                                                                { translateY: letterAnims[index].translateY },
+                                                                { scale: letterAnims[index].scale },
+                                                            ],
+                                                        },
+                                                    ]}
+                                                >
+                                                    {char === " " ? "\u00A0" : char}
+                                                </Animated.Text>
+                                            );
+                                        })}
+                                    </View>
+                                );
+                            })}
+                        </View>
                     </Animated.View>
                 </View>
             </Container>
@@ -363,7 +454,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginTop: 10,
-        width: 300
+        width: 300,
     },
     txtConatinerIOS: {
         marginTop: Platform.OS === "ios" ? 15 : 10,
@@ -385,10 +476,36 @@ const styles = StyleSheet.create({
         width: Platform.OS === "android" ? 260 : 280,
         height: Platform.OS === "android" ? 260 : 280,
     },
-    sloganTxt: {
+    sloganTextBlock: {
+        marginTop: 12,
+        width: "100%",
+        alignItems: "center",
+        paddingHorizontal: 4,
+    },
+    sloganRow: {
+        flexDirection: "row",
+        flexWrap: "nowrap",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    sloganRowSecond: {
+        marginTop: 6,
+    },
+    sloganLetter: {
         color: BLACK,
-        fontSize: 20,
+        fontFamily: UBUNTUBOLD,
+        fontWeight: "bold",
+        fontSize: 24,
+        lineHeight: 30,
         textAlign: "center",
-        fontFamily: UBUNTUBOLD
-    }
+        includeFontPadding: false,
+    },
+    sloganLetterIOS: {
+        fontSize: Platform.OS === "ios" ? 26 : 24,
+        lineHeight: Platform.OS === "ios" ? 32 : 30,
+    },
+    sloganLetterAndroid: {
+        fontSize: Platform.OS === "android" ? 23 : 24,
+        lineHeight: Platform.OS === "android" ? 29 : 30,
+    },
 })

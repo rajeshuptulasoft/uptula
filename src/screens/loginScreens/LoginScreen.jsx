@@ -1059,7 +1059,7 @@ const LoginScreen = ({ navigation }) => {
                                     Platform.OS === "android" && styles.textInputViewAndroid
                                 ]}>
                                     <TextInputComponent
-                                        placeholder="Enter Your Email or Mobile Number"
+                                        placeholder="Enter Your Registered Email"
                                         type="email"
                                         inputdata={email}
                                         setInputdata={setEmail}
