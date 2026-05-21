@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Image, StyleSheet, Text } from "react-native";
+import { LOGO } from "../../constant/imagePath";
 
 export const ToastMessage = ({
-    image = "",
+    image = LOGO,
     message = "",
     bacgroundColor = "#e0e0e0",
     visible = false,
@@ -59,7 +60,7 @@ export const ToastMessage = ({
                 }}
                 >
 
-                    {image != "" && <Image source={image} style={styles.tostIcon} />}
+                    <Image source={image || LOGO} style={styles.tostIcon} resizeMode="contain" />
 
                     <Text allowFontScaling={false} style={{ ...styles.toastText, color: textColor }}>{message}</Text>
 

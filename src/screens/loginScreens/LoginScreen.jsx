@@ -25,6 +25,7 @@ import {
 import { TextInputComponent } from "../../components/commonComponents/TextInputComponent";
 import {
     MAIL,
+    PHONE,
     PASSWORD,
     JOBSEEKER,
     HIDE,
@@ -72,6 +73,23 @@ const LoginScreen = ({ navigation }) => {
     const [confirmPassword, setConfirmPassword] = useState("");
 
     const MAX_RESEND_ATTEMPTS = 5;
+
+    const isPhoneMode = (value) => {
+        if (!value) return false;
+        if (/[a-zA-Z@]/.test(value)) return false;
+        return /^[0-9]+$/.test(value);
+    };
+
+    const handleLoginIdentifierChange = (value) => {
+        if (/[a-zA-Z@]/.test(value)) {
+            setEmail(value);
+            return;
+        }
+        const digitsOnly = value.replace(/\D/g, "").slice(0, 10);
+        setEmail(digitsOnly);
+    };
+
+    const phoneMode = isPhoneMode(email);
 
     // ✅ ADD YOUR PASSWORD TOGGLE STATES HERE
     const [showNewPassword, setShowNewPassword] = useState(false);
@@ -858,7 +876,6 @@ const LoginScreen = ({ navigation }) => {
             return;
         }
 
-        // Detect input type
         const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         const isPhone = /^[0-9]{10}$/.test(email);
 
@@ -874,12 +891,10 @@ const LoginScreen = ({ navigation }) => {
         try {
             const url = `${BASE_URL}auth/login`;
 
-            // Dynamic payload
+            // API expects email field for both email and mobile (same as Postman)
             const payload = {
+                email: email,
                 password: password,
-                ...(isEmail
-                    ? { email: email }
-                    : { phone: email })
             };
 
             // console.log("Login request:", { url, payload });
@@ -1059,13 +1074,19 @@ const LoginScreen = ({ navigation }) => {
                                     Platform.OS === "android" && styles.textInputViewAndroid
                                 ]}>
                                     <TextInputComponent
-                                        placeholder="Enter Your Email or Mobile Number"
-                                        type="email"
+                                        placeholder={
+                                            phoneMode
+                                                ? "Enter Mobile Number"
+                                                : "Enter Email or Mobile Number"
+                                        }
+                                        type={phoneMode ? "number" : "email"}
                                         inputdata={email}
-                                        setInputdata={setEmail}
-                                        image={MAIL}
+                                        setInputdata={handleLoginIdentifierChange}
+                                        image={phoneMode ? PHONE : MAIL}
                                         borderColor={BRANDCOLOR}
                                         autoCapitalize="none"
+                                        keyboardType={phoneMode ? "phone-pad" : "email-address"}
+                                        maxLength={phoneMode ? 10 : 100}
                                         width="95%"
                                     />
                                 </View>

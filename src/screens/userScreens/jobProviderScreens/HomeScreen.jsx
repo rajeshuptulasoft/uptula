@@ -2200,28 +2200,33 @@ const HomeScreen = ({ navigation }) => {
     return () => clearInterval(interval);
   }, [companyList]);
 
-  // Handle back button press
-  useEffect(() => {
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (searchOpen) {
-        setSearchOpen(false);
+  // Handle back button press on home — confirm before closing app
+  useFocusEffect(
+    useCallback(() => {
+      const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+        if (searchOpen) {
+          setSearchOpen(false);
+          return true;
+        }
+        if (editModalVisible) {
+          setEditModalVisible(false);
+          return true;
+        }
+        if (deleteAlertVisible) {
+          setDeleteAlertVisible(false);
+          return true;
+        }
+        if (exitAlertVisible) {
+          setExitAlertVisible(false);
+          return true;
+        }
+        setExitAlertVisible(true);
         return true;
-      }
-      if (editModalVisible) {
-        setEditModalVisible(false);
-        return true;
-      }
-      if (deleteAlertVisible) {
-        setDeleteAlertVisible(false);
-        return true;
-      }
-      // Show exit confirmation
-      setExitAlertVisible(true);
-      return true;
-    });
+      });
 
-    return () => backHandler.remove();
-  }, [searchOpen, editModalVisible, deleteAlertVisible]);
+      return () => backHandler.remove();
+    }, [searchOpen, editModalVisible, deleteAlertVisible, exitAlertVisible])
+  );
 
   const handleExitApp = () => {
     BackHandler.exitApp();
@@ -2740,18 +2745,19 @@ const HomeScreen = ({ navigation }) => {
         {/* Exit App Confirmation Alert */}
         <MyAlert
           visible={exitAlertVisible}
-          title="Exit App"
-          message="Are you sure you want to exit the app?"
+          title="Close App"
+          message="Are you sure to close the app?"
           textLeft="No"
           textRight="Yes"
+          showLeftButton
+          showRightButton
           image={LOGO}
-          onPressLeft={() => {
+          onPressLeft={() => setExitAlertVisible(false)}
+          onPressRight={() => {
             setExitAlertVisible(false);
+            handleExitApp();
           }}
-          onPressRight={handleExitApp}
-          onRequestClose={() => {
-            setExitAlertVisible(false);
-          }}
+          onRequestClose={() => setExitAlertVisible(false)}
         />
 
         {/* Profile Completion Alert */}
