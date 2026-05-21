@@ -1909,20 +1909,25 @@ const HomeScreen = ({ navigation, route }) => {
     }
   }, [applyFormVisible]);
 
-  // BackHandler for main screen - use navigation.goBack() when no modals are open
-  useEffect(() => {
-    if (Platform.OS === "android" && !applyFormVisible && !searchOpen) {
+  // BackHandler for main home screen — confirm before closing app
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== "android" || applyFormVisible || searchOpen) {
+        return undefined;
+      }
+
       const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-        if (navigation.canGoBack()) {
-          navigation.goBack();
+        if (exitAlertVisible) {
+          setExitAlertVisible(false);
           return true;
-        } else {
-          return false; // Do nothing if can't go back
         }
+        setExitAlertVisible(true);
+        return true;
       });
+
       return () => backHandler.remove();
-    }
-  }, [applyFormVisible, searchOpen, navigation]);
+    }, [applyFormVisible, searchOpen, exitAlertVisible])
+  );
 
   // Fetch recommended jobs
   const fetchRecommendedJobs = useCallback(async () => {
@@ -3617,15 +3622,18 @@ const HomeScreen = ({ navigation, route }) => {
 
       <MyAlert
         visible={exitAlertVisible}
-        title="Exit App"
-        message="Are you sure you want to exit the app?"
+        title="Close App"
+        message="Are you sure to close the app?"
         textLeft="No"
         textRight="Yes"
         showLeftButton
         showRightButton
         image={LOGO}
         onPressLeft={() => setExitAlertVisible(false)}
-        onPressRight={() => BackHandler.exitApp()}
+        onPressRight={() => {
+          setExitAlertVisible(false);
+          BackHandler.exitApp();
+        }}
         onRequestClose={() => setExitAlertVisible(false)}
       />
 

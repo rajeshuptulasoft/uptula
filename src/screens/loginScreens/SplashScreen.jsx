@@ -5,7 +5,7 @@ import { LOGO, UP } from "../../constant/imagePath";
 import { UBUNTUBOLD } from "../../constant/fontPath";
 // import 'firebase/auth'
 import { PermissionsAndroid } from 'react-native';
-import { getObjByKey, getStringByKey } from "../../utils/Storage";
+import { getObjByKey, getStringByKey, storeStringByKey } from "../../utils/Storage";
 import { NotificationListener, requestUserPermission } from "../../utils/PushNotification";
 import SpInAppUpdates, { IAUUpdateKind } from "sp-react-native-in-app-updates";
 import { BASE_URL } from "../../constant/url";
@@ -167,11 +167,22 @@ export default SplashScreen = ({ navigation }) => {
 
 
     useEffect(() => {
-        resetLetterAnims(letterAnims);
-        sloganOpacity.setValue(0);
-        sloganTranslate.setValue(-10);
+        const runSplashFlow = async () => {
+            const skipSplash = await getStringByKey("skipSplash");
+            if (skipSplash === "true") {
+                await storeStringByKey("skipSplash", "");
+                const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
+                navigation.replace(
+                    hasSeenOnboarding === "true" ? "MainTabs" : "OnBoarding"
+                );
+                return;
+            }
 
-        Animated.sequence([
+            resetLetterAnims(letterAnims);
+            sloganOpacity.setValue(0);
+            sloganTranslate.setValue(-10);
+
+            Animated.sequence([
             Animated.parallel([
                 Animated.timing(logoOpacity, {
                     toValue: 1,
@@ -210,15 +221,18 @@ export default SplashScreen = ({ navigation }) => {
             animateLettersIn(letterAnims),
             Animated.delay(HOLD_AFTER_SLOGAN_MS),
             animateLettersOut(letterAnims),
-        ]).start(async () => {
-            const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
+            ]).start(async () => {
+                const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
 
-            if (hasSeenOnboarding === "true") {
-                navigation.navigate('MainTabs');
-            } else {
-                navigation.navigate('OnBoarding');
-            }
-        });
+                if (hasSeenOnboarding === "true") {
+                    navigation.replace("MainTabs");
+                } else {
+                    navigation.replace("OnBoarding");
+                }
+            });
+        };
+
+        runSplashFlow();
     }, [navigation, letterAnims]);
 
     // Your Firebase configuration
