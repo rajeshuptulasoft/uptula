@@ -25,6 +25,9 @@ import {
   CALENDAR,
   LANGUAGE,
   LINKEDIN,
+  GITHUB,
+  PORTFOLIO,
+  OTHERS,
   TWITTER,
   FACEBOOK,
   GOOGLE,
@@ -37,6 +40,7 @@ import {
 import { getObjByKey } from "../../../utils/Storage";
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK } from "../../../utils/Network";
+import { calculateCompletionPercentage } from "../../../utils/profileCompletion";
 
 // Helper function to capitalize first letter
 const capitalizeFirst = (str) => {
@@ -130,91 +134,6 @@ const getResumeName = (resume) => {
   return parts.length ? parts[parts.length - 1] : 'N/A';
 };
 
-const calculateCompletionPercentage = ({
-  name, email, phone, address, gender, dob, profilePicture,
-  preferredLocation, currentSalary, expectedSalary, noticePeriod, bio,
-  slogan, resume,
-  experienceItems, educationItems, certificationItems, keySkills, languages
-}) => {
-  let percentage = 0;
-
-  // Helper function to check if field is truly filled
-  const isFieldFilled = (field) => {
-    if (!field) return false;
-    const strValue = String(field).trim();
-    return strValue !== '' && strValue !== 'N/A';
-  };
-
-  // Personal Details Section: 20% (if name, email, phone, address, gender, dob are filled)
-  const personalDetailsFields = [name, email, phone, address, gender, dob];
-  const personalDetailsFilled = personalDetailsFields.filter(isFieldFilled).length;
-  if (personalDetailsFilled === personalDetailsFields.length) {
-    percentage += 20;
-  }
-
-  // Profile Picture: 10% (if profilePicture is set)
-  if (profilePicture) {
-    // Handle both object with uri and string URL
-    const hasPicture = profilePicture.uri ? true : (typeof profilePicture === 'string' && profilePicture.trim() !== '');
-    if (hasPicture) {
-      percentage += 10;
-    }
-  }
-
-  // Career Preference Section: 10% (if preferredLocation, currentSalary, expectedSalary, noticePeriod, bio are filled)
-  const careerFields = [preferredLocation, currentSalary, expectedSalary, noticePeriod, bio];
-  const careerFieldsFilled = careerFields.filter(isFieldFilled).length;
-  if (careerFieldsFilled === careerFields.length) {
-    percentage += 10;
-  }
-
-  // Profile Summary Section: 5% (if slogan is filled)
-  if (isFieldFilled(slogan)) {
-    percentage += 5;
-  }
-
-  // Resume Added: 10% (if resume is added and not empty)
-  if (resume && String(resume).trim() !== '') {
-    percentage += 10;
-  }
-
-  // Employment History: 10% (if experienceItems has at least one filled entry)
-  const filledExperience = experienceItems && Array.isArray(experienceItems)
-    ? experienceItems.filter((exp) => exp.companyName && String(exp.companyName).trim() !== '').length
-    : 0;
-  if (filledExperience > 0) {
-    percentage += 10;
-  }
-
-  // Certification: 2% (if certificationItems has at least one filled entry)
-  const filledCertifications = certificationItems && Array.isArray(certificationItems)
-    ? certificationItems.filter((cert) => cert.name && String(cert.name).trim() !== '').length
-    : 0;
-  if (filledCertifications > 0) {
-    percentage += 2;
-  }
-
-  // Education: 20% (if educationItems has at least one filled entry)
-  const filledEducation = educationItems && Array.isArray(educationItems)
-    ? educationItems.filter((edu) => edu.degree && String(edu.degree).trim() !== '').length
-    : 0;
-  if (filledEducation > 0) {
-    percentage += 20;
-  }
-
-  // Skills: 20% (if keySkills array has at least one skill)
-  if (keySkills && Array.isArray(keySkills) && keySkills.length > 0) {
-    percentage += 20;
-  }
-
-  // Language: 13% (if languages array has at least one language)
-  if (languages && Array.isArray(languages) && languages.length > 0) {
-    percentage += 13;
-  }
-
-  return Math.min(Math.round(percentage), 100);
-};
- 
 const UserProfileScreen = ({ navigation }) => {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -264,8 +183,11 @@ const UserProfileScreen = ({ navigation }) => {
       
       // Extract social media data from various possible field names
       const socialMedia = {
-        linkedIn: fetchedData?.linkedIn || fetchedData?.linkedin || fetchedData?.linked_in || 
+        linkedIn: fetchedData?.linkedIn || fetchedData?.linkedin || fetchedData?.linked_in ||
                   result?.linkedIn || result?.linkedin || '',
+        github: fetchedData?.github || fetchedData?.githubUrl || result?.github || '',
+        portfolio: fetchedData?.google || fetchedData?.portfolio || fetchedData?.portfolioUrl || result?.google || result?.portfolio || '',
+        others: fetchedData?.others || fetchedData?.other || fetchedData?.otherUrl || result?.others || '',
         twitter: fetchedData?.twitter || result?.twitter || '',
         facebook: fetchedData?.facebook || result?.facebook || '',
         google: fetchedData?.google || result?.google || '',
@@ -335,9 +257,14 @@ const UserProfileScreen = ({ navigation }) => {
   const user = profileData || {};
 
   const fullName = capitalizeWords(user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User Name');
-  const jobTitle = user.currentJobRole || user.designation || user.role || user.jobTitle || '';
-  const company = user.company || user.currentCompany || '';
-  const jobInfo = jobTitle || company ? [jobTitle, company].filter(Boolean).join(', ') : 'N/A';
+  const sloganText = String(
+    user.slogan ||
+    user.slogans ||
+    user.summary ||
+    user.preferredRole ||
+    user.preferred_role ||
+    ''
+  ).trim();
   
   // Calculate profile completion percentage
   const parseArrayField = (value) => {
@@ -352,7 +279,7 @@ const UserProfileScreen = ({ navigation }) => {
     phone: user.phone || user.mobile || user.mobileNumber,
     address: user.address || user.location,
     gender: user.gender,
-    dob: user.dob || user.dateOfBirth || user.date_of_birth || user.birthDate,
+    dob: user.dateOfBirth || user.dob || user.date_of_birth || user.birthDate,
     profilePicture: profilePicture,
     preferredLocation: user.preferredLocation || user.preferred_location,
     currentSalary: user.currentSalary || user.current_salary,
@@ -360,12 +287,17 @@ const UserProfileScreen = ({ navigation }) => {
     noticePeriod: user.noticePeriod || user.notice_period,
     bio: user.bio || user.biography || user.about,
     slogan: user.slogan || user.slogans || user.summary,
+    linkedin: user.linkedin || user.linkedIn,
+    github: user.github,
+    portfolio: user.google || user.portfolio,
+    others: user.others || user.other,
     resume: user.resume || user.resumeUrl || user.resume_url,
     experienceItems: parseArrayField(user.experiences || user.experience || user.workExperience || []),
+    projectItems: parseArrayField(user.projects || user.project || []),
     educationItems: parseArrayField(user.education || user.educations || []),
     certificationItems: parseArrayField(user.certifications || user.certification || []),
     keySkills: parseArrayField(user.skills || user.keySkills || []),
-    languages: parseArrayField(user.languages || user.language || [])
+    languages: parseArrayField(user.languages || user.language || []),
   });
 
   return (
@@ -432,10 +364,10 @@ const UserProfileScreen = ({ navigation }) => {
                   </TouchableOpacity>
                 </View>
 
-                {/* Job Title/Company */}
-                {jobInfo && (
-                  <Text style={styles.jobInfo}>{jobInfo}</Text>
-                )}
+                {/* Preferred job role (slogan) */}
+                {sloganText ? (
+                  <Text style={styles.profileSlogan}>{sloganText}</Text>
+                ) : null}
 
                 {/* Profile Summary/Bio */}
                 {user.bio && (
@@ -451,8 +383,7 @@ const UserProfileScreen = ({ navigation }) => {
                 onEdit={() => navigateToEdit(user)}
               >
                 <View style={styles.preferencesGrid}>
-                  <PreferenceItem label="Preferred location" value={getValue(user.preferredLocation)} />
-                  {/* <PreferenceItem label="Employment type" value={getValue(user.employmentType)} /> */}
+                  <PreferenceItem label="Primary location" value={getValue(user.preferredLocation || user.preferred_location)} />
                   <PreferenceItem label="Expected salary" value={getValue(user.expectedSalary)} />
                   <PreferenceItem label="Notice period" value={getValue(user.noticePeriod)} />
                 </View>
@@ -470,18 +401,29 @@ const UserProfileScreen = ({ navigation }) => {
                   <DetailRow label="Phone" value={getValue(user.phone)} />
                   <DetailRow label="Address" value={getValue(user.address)} />
                   <DetailRow label="Gender" value={capitalizeFirst(getValue(user.gender))} />
-                  <DetailRow label="Date of Birth" value={getValue(user.dateOfBirth)} />
-                  <DetailRow label="LinkedIn" value={getValue(user.linkedin)} />
+                  <DetailRow
+                    label="Date of Birth"
+                    value={getValue(
+                      formatDate(
+                        user.dateOfBirth || user.dob || user.date_of_birth || user.birthDate
+                      )
+                    )}
+                  />
                 </View>
               </SectionCard>
 
-              {/* Profile Summary Section */}
+              {/* Portfolio and Other Section */}
               <SectionCard
-                title="Profile summary"
-                icon={JOBDESCRIPTION}
+                title="Portfolio and other"
+                icon={PORTFOLIO}
                 onEdit={() => navigateToEdit(user)}
               >
-                <Text style={styles.summaryText}>{getValue(user.slogan || user.slogans)}</Text>
+                <View style={styles.detailsList}>
+                  <DetailRowWithIcon icon={LINKEDIN} label="LinkedIn" value={getValue(user.linkedin || user.linkedIn)} />
+                  <DetailRowWithIcon icon={GITHUB} label="GitHub" value={getValue(user.github)} />
+                  <DetailRowWithIcon icon={PORTFOLIO} label="Portfolio" value={getValue(user.google)} />
+                  <DetailRowWithIcon icon={OTHERS} label="Other" value={getValue(user.others || user.other)} />
+                </View>
               </SectionCard>
 
               {/* Bio Section */}
@@ -754,6 +696,16 @@ const DetailItem = ({ icon, label, verified = false }) => (
   </View>
 );
 
+const DetailRowWithIcon = ({ icon, label, value }) => (
+  <View style={styles.detailRowWithIcon}>
+    {icon ? <Image source={icon} style={styles.detailRowIcon} resizeMode="contain" /> : null}
+    <View style={styles.detailRowIconContent}>
+      <Text style={styles.detailRowLabel}>{label}:</Text>
+      <Text style={styles.detailRowValue}>{value}</Text>
+    </View>
+  </View>
+);
+
 const DetailRow = ({ label, value }) => (
   <View style={styles.detailRow}>
     <Text style={styles.detailRowLabel}>{label}:</Text>
@@ -894,11 +846,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     padding: 4,
   },
-  jobInfo: {
+  profileSlogan: {
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
     marginBottom: 12,
+    paddingHorizontal: 20,
   },
   profileSummary: {
     fontSize: 14,
@@ -933,7 +886,6 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     marginRight: 8,
-    tintColor: BRANDCOLOR,
     resizeMode: 'contain',
   },
   sectionTitle: {
@@ -992,6 +944,20 @@ const styles = StyleSheet.create({
   },
   detailRow: {
     marginBottom: 12,
+  },
+  detailRowWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  detailRowIcon: {
+    width: 22,
+    height: 22,
+    marginRight: 10,
+    marginTop: 2,
+  },
+  detailRowIconContent: {
+    flex: 1,
   },
   detailRowLabel: {
     fontSize: 14,

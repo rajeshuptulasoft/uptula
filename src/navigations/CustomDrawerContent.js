@@ -14,7 +14,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { PROFILE, LOGOUT } from '../constant/imagePath';
 import { useDispatch } from 'react-redux';
 import { checkuserToken } from '../redux/actions/auth';
-import { deleteByKeys, getObjByKey } from '../utils/Storage';
+import { deleteByKeys, getObjByKey, storeStringByKey } from '../utils/Storage';
 import { HEIGHT, WIDTH } from '../constant/config';
 import { WHITE } from '../constant/color';
 import { BASE_URL } from '../constant/url';
@@ -685,7 +685,8 @@ const CustomDrawerContent = (props) => {
 
   const confirmLogout = () => {
     // Remove auth-related entries but keep onboarding flag so users are not shown onboarding again
-    deleteByKeys(['loginResponse', 'fcmtoken']).then(() => {
+    deleteByKeys(['loginResponse', 'fcmtoken']).then(async () => {
+      await storeStringByKey('skipSplash', 'true');
       dispatch(checkuserToken());
     });
     setLogoutModalVisible(false);
