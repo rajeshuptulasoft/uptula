@@ -41,6 +41,11 @@ import { getObjByKey } from "../../../utils/Storage";
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK } from "../../../utils/Network";
 import { calculateCompletionPercentage } from "../../../utils/profileCompletion";
+import {
+  extractCategoryPreferences,
+  formatCategoryPreferenceNames,
+  resolveCategoryPreferenceLabels,
+} from "../../../utils/profileCategoryPreferences";
 
 // Helper function to capitalize first letter
 const capitalizeFirst = (str) => {
@@ -199,6 +204,16 @@ const UserProfileScreen = ({ navigation }) => {
         ...fetchedData,
         ...socialMedia,
       };
+
+      const categoryPrefs = extractCategoryPreferences(profileWithSocial);
+      const resolvedPrefs = await resolveCategoryPreferenceLabels(categoryPrefs);
+      const profileWithCategories = {
+        ...profileWithSocial,
+        categories: resolvedPrefs.categories,
+        subcategories: resolvedPrefs.subcategories,
+        categoryIds: resolvedPrefs.categoryIds,
+        subcategoryIds: resolvedPrefs.subcategoryIds,
+      };
       
       // Extract profile picture
       const fetchedProfilePicture = 
@@ -223,7 +238,7 @@ const UserProfileScreen = ({ navigation }) => {
         setProfilePicture(null);
       }
       
-      setProfileData(profileWithSocial);
+      setProfileData(profileWithCategories);
     } catch (error) {
       // console.error('❌ UserProfile: Error fetching profile:', error);
       // Fallback to stored data if API fails
@@ -384,6 +399,8 @@ const UserProfileScreen = ({ navigation }) => {
               >
                 <View style={styles.preferencesGrid}>
                   <PreferenceItem label="Primary location" value={getValue(user.preferredLocation || user.preferred_location)} />
+                  <PreferenceItem label="Categories" value={formatCategoryPreferenceNames(user.categories)} />
+                  <PreferenceItem label="Subcategories" value={formatCategoryPreferenceNames(user.subcategories)} />
                   <PreferenceItem label="Expected salary" value={getValue(user.expectedSalary)} />
                   <PreferenceItem label="Notice period" value={getValue(user.noticePeriod)} />
                 </View>

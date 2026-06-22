@@ -100,12 +100,17 @@ const LoginScreen = ({ navigation }) => {
     /* ---------- EFFECT ---------- */
     useEffect(() => {
         // Configure Google Sign-In
+        const webClientId = '193282547247-o8ccoi23uh80eb4vnb8sdnit0hnvd10l.apps.googleusercontent.com';
         GoogleSignin.configure({
-            webClientId: '193282547247-o8ccoi23uh80eb4vnb8sdnit0hnvd10l.apps.googleusercontent.com',
+            webClientId,
             offlineAccess: true,
             scopes: ['profile', 'email'],
             forceCodeForRefreshToken: true,
         });
+        // console.log("[GoogleLogin] GoogleSignin.configure done", {
+        //     platform: Platform.OS,
+        //     webClientIdSuffix: webClientId.slice(-20),
+        // });
 
         if (Platform.OS === "android") {
             const backAction = () => {
@@ -654,61 +659,102 @@ const LoginScreen = ({ navigation }) => {
     // };
 
     const onGoogleLogin = async () => {
-        // console.log("🔵 Google Login Started");
+        const apiUrl = `${BASE_URL}auth/firebase`;
+        const rolePayload = userType === "JobSeeker" ? "JobSeeker" : "JobProvider";
+
+        // console.log("[GoogleLogin] Started", {
+        //     platform: Platform.OS,
+        //     userType,
+        //     rolePayload,
+        //     apiUrl,
+        // });
 
         try {
-            // console.log("🟡 Checking Google Play Services...");
+            // console.log("[GoogleLogin] Step 1: hasPlayServices...");
             await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-            // console.log("✅ Play Services OK");
+            // console.log("[GoogleLogin] Step 1: Play Services OK");
 
-            // console.log("🟡 Signing out previous session...");
+            // console.log("[GoogleLogin] Step 2: signOut (clear prior session)...");
             await GoogleSignin.signOut();
+            // console.log("[GoogleLogin] Step 2: signOut done");
 
-            // console.log("🟡 Signing in with Google...");
-            await GoogleSignin.signIn();
-            // console.log("✅ Google Sign-In Success");
+            // console.log("[GoogleLogin] Step 3: signIn...");
+            const signInResult = await GoogleSignin.signIn();
+            // console.log("[GoogleLogin] Step 3: signIn result", {
+            //     type: signInResult?.type,
+            //     hasData: !!signInResult?.data,
+            //     email: signInResult?.data?.user?.email ?? signInResult?.user?.email ?? "(none)",
+            //     cancelled: signInResult?.type === "cancelled",
+            // });
 
-            // console.log("🟡 Fetching Google ID Token...");
-            const { idToken } = await GoogleSignin.getTokens();
+            if (signInResult?.type === "cancelled") {
+                throw Object.assign(new Error("User cancelled Google sign-in"), { code: "SIGN_IN_CANCELLED" });
+            }
+
+            // console.log("[GoogleLogin] Step 4: getTokens...");
+            const tokens = await GoogleSignin.getTokens();
+            const { idToken, accessToken } = tokens || {};
+
+            // console.log("[GoogleLogin] Step 4: tokens", {
+            //     hasIdToken: !!idToken,
+            //     idTokenLength: idToken?.length ?? 0,
+            //     hasAccessToken: !!accessToken,
+            // });
 
             if (!idToken) {
-                // console.log("❌ ERROR: No ID Token received");
+                // console.log("[GoogleLogin] ERROR: No idToken from getTokens()");
                 throw new Error("No ID token found");
             }
-            // console.log("✅ ID Token received");
 
-            // console.log("🟡 Creating Firebase credential...");
+            // console.log("[GoogleLogin] Step 5: Firebase credential...");
             const googleCredential = auth.GoogleAuthProvider.credential(idToken);
 
-            // console.log("🟡 Signing into Firebase...");
+            // console.log("[GoogleLogin] Step 6: signInWithCredential...");
             const userCredential = await auth().signInWithCredential(googleCredential);
-            // console.log("✅ Firebase login success");
+            // console.log("[GoogleLogin] Step 6: Firebase auth OK", {
+            //     uid: userCredential?.user?.uid,
+            //     email: userCredential?.user?.email,
+            // });
 
             const user = userCredential.user;
-            // console.log("👤 Firebase User:", user);
 
-            // console.log("🟡 Getting Firebase ID token...");
+            // console.log("[GoogleLogin] Step 7: getIdToken...");
             const firebaseToken = await user.getIdToken();
-            // console.log("✅ Firebase Token:", firebaseToken);
+            // console.log("[GoogleLogin] Step 7: Firebase idToken length:", firebaseToken?.length ?? 0);
 
-            // console.log("🟡 Sending token to backend...");
-            const response = await fetch(`${BASE_URL}auth/firebase`, {
+            // console.log("[GoogleLogin] Step 8: POST backend...", apiUrl);
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     token: firebaseToken,
-                    role: userType === "JobSeeker" ? "JobSeeker" : "JobProvider"
-                })
+                    role: rolePayload,
+                }),
             });
 
-            // console.log("📡 API Response Status:", response.status);
+            const responseText = await response.text();
+            // console.log("[GoogleLogin] Step 8: API response", {
+            //     status: response.status,
+            //     ok: response.ok,
+            //     bodyPreview: responseText?.slice(0, 500),
+            // });
 
-            const data = await response.json();
-            // console.log("📡 API Response Data:", data);
+            let data = {};
+            try {
+                data = responseText ? JSON.parse(responseText) : {};
+            } catch (parseErr) {
+                // console.log("[GoogleLogin] ERROR: API response is not JSON", parseErr?.message);
+                throw new Error(`Invalid API response (status ${response.status})`);
+            }
+
+            // console.log("[GoogleLogin] Step 8: parsed API data", {
+            //     success: data?.success,
+            //     message: data?.message,
+            //     hasToken: !!data?.token,
+            //     userRole: data?.user?.role,
+            // });
 
             if (response.ok) {
-                // console.log("✅ Backend authentication success");
-
                 const loginDataToStore = {
                     token: data.token,
                     role: data.user?.role,
@@ -720,9 +766,8 @@ const LoginScreen = ({ navigation }) => {
                     },
                 };
 
-                // console.log("💾 Storing login data...");
                 await storeObjByKey("loginResponse", loginDataToStore);
-                // console.log("✅ Data stored successfully");
+                // console.log("[GoogleLogin] SUCCESS: login stored, navigating as", userType);
 
                 setToastMessage({
                     type: "success",
@@ -732,7 +777,6 @@ const LoginScreen = ({ navigation }) => {
 
                 dispatch(checkuserToken());
 
-                // console.log("🧭 Navigating user...");
                 if (userType === "JobProvider") {
                     navigation.navigate("EmployerProfile");
                 } else {
@@ -740,7 +784,11 @@ const LoginScreen = ({ navigation }) => {
                 }
 
             } else {
-                // console.log("❌ Backend error:", data?.message);
+                // console.log("[GoogleLogin] FAILED: backend rejected login", {
+                //     status: response.status,
+                //     message: data?.message,
+                //     error: data?.error,
+                // });
 
                 setToastMessage({
                     type: "error",
@@ -750,18 +798,27 @@ const LoginScreen = ({ navigation }) => {
             }
 
         } catch (error) {
-            // console.log("🔥 Google Login Error:", error);
-            // console.log("🔥 Error Code:", error.code);
-            // console.log("🔥 Error Message:", error.message);
+            // console.log("[GoogleLogin] ERROR caught", {
+            //     code: error?.code,
+            //     message: error?.message,
+            //     nativeErrorCode: error?.nativeErrorCode,
+            //     name: error?.name,
+            // });
+            if (error?.stack) {
+                // console.log("[GoogleLogin] stack:", error.stack);
+            }
 
             let errorMessage = "Google sign-in failed. Please try again.";
 
-            if (error.code === 'SIGN_IN_CANCELLED') {
+            if (error.code === 'SIGN_IN_CANCELLED' || error.code === '12501') {
                 errorMessage = "Google sign-in was cancelled.";
             } else if (error.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
                 errorMessage = "Google Play Services not available.";
-            } else if (error.code === 'DEVELOPER_ERROR') {
-                errorMessage = "Fix SHA-1 / Firebase config.";
+            } else if (error.code === 'DEVELOPER_ERROR' || error.code === '10') {
+                errorMessage = "Developer error: check SHA-1 fingerprint & OAuth client in Google Cloud / Firebase.";
+                // console.log("[GoogleLogin] HINT: Release build needs release SHA-1 in Firebase. DEVELOPER_ERROR = wrong OAuth client.");
+            } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/account-exists-with-different-credential') {
+                errorMessage = `Firebase: ${error.message}`;
             }
 
             setToastMessage({
@@ -770,7 +827,7 @@ const LoginScreen = ({ navigation }) => {
                 visible: true,
             });
         } finally {
-            // console.log("🔵 Google Login Finished");
+            // console.log("[GoogleLogin] Finished");
         }
     };
 

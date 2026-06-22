@@ -52,10 +52,16 @@ import {
   JOBTITLE,
   SALARYRANGE,
   EXPERIENCED,
+  SKILLS,
 } from "../../../constant/imagePath";
 import { getObjByKey, storeObjByKey } from "../../../utils/Storage";
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK, PUTNETWORK } from "../../../utils/Network";
+import {
+  extractCategoryPreferences,
+  formatCategoryPreferenceNames,
+  resolveCategoryPreferenceLabels,
+} from "../../../utils/profileCategoryPreferences";
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import { calculateCompletionPercentage } from "../../../utils/profileCompletion";
 
@@ -319,6 +325,10 @@ const EditUserProfileScreen = ({ navigation, route }) => {
   const [others, setOthers] = useState("");
   const [toastMessage, setToastMessage] = useState({ type: "", msg: "", visible: false });
   const [loading, setLoading] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedSubcategories, setSelectedSubcategories] = useState([]);
+  const [categoryIds, setCategoryIds] = useState([]);
+  const [subcategoryIds, setSubcategoryIds] = useState([]);
 
   const parseToArray = (value) => {
     if (Array.isArray(value)) return value;
@@ -402,6 +412,13 @@ const EditUserProfileScreen = ({ navigation, route }) => {
     }));
   };
 
+  const applyCategoryPreferences = (prefs) => {
+    setSelectedCategories(prefs.categories || []);
+    setSelectedSubcategories(prefs.subcategories || []);
+    setCategoryIds(prefs.categoryIds || []);
+    setSubcategoryIds(prefs.subcategoryIds || []);
+  };
+
   const loadProfileData = (user, fromParams = false) => {
     const data = user || {};
     const nameValue = data.name || `${data.firstName || ""} ${data.lastName || ""}`.trim();
@@ -481,6 +498,8 @@ const EditUserProfileScreen = ({ navigation, route }) => {
     if (fullUri) {
       setProfilePicture({ uri: fullUri });
     }
+
+    applyCategoryPreferences(extractCategoryPreferences(data));
   };
 
   useFocusEffect(
@@ -601,6 +620,11 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         },
         false
       );
+
+      const mergedUser = { ...storedUser, ...user };
+      const categoryPrefs = extractCategoryPreferences(mergedUser);
+      const resolvedPrefs = await resolveCategoryPreferenceLabels(categoryPrefs);
+      applyCategoryPreferences(resolvedPrefs);
     } catch (error) {
       const stored = await getObjByKey('loginResponse');
       const user = stored?.data || stored?.user || stored || {};
@@ -1329,6 +1353,28 @@ const EditUserProfileScreen = ({ navigation, route }) => {
           {renderInlinePicker('Expected Salary', expectedSalary, setExpectedSalary, EXPECTED_SALARY_OPTIONS, SALARYRANGE)}
           <View style={styles.rowDivider} />
           {renderInlinePicker('Notice Period', noticePeriod, setNoticePeriod, NOTICE_PERIOD_OPTIONS, EXPERIENCED)}
+          <View style={styles.rowDivider} />
+          {renderEditableRow(
+            'Categories',
+            formatCategoryPreferenceNames(selectedCategories),
+            () => {},
+            SKILLS,
+            'default',
+            false,
+            false,
+            true
+          )}
+          <View style={styles.rowDivider} />
+          {renderEditableRow(
+            'Subcategories',
+            formatCategoryPreferenceNames(selectedSubcategories),
+            () => {},
+            SKILLS,
+            'default',
+            false,
+            false,
+            true
+          )}
           <View style={styles.rowDivider} />
           <TextInput
             style={styles.bioTextInput}

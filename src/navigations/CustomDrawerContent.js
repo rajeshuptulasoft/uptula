@@ -13,7 +13,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import { PROFILE, LOGOUT } from '../constant/imagePath';
 import { useDispatch } from 'react-redux';
-import { checkuserToken } from '../redux/actions/auth';
+import { checkuserToken, logoutUser } from '../redux/actions/auth';
+import { store } from '../redux/store';
 import { deleteByKeys, getObjByKey, storeStringByKey } from '../utils/Storage';
 import { HEIGHT, WIDTH } from '../constant/config';
 import { WHITE } from '../constant/color';
@@ -40,24 +41,33 @@ const capitalizeWords = (str = '') => {
     .join(' ');
 };
 
-// Helper function to handle profile press - checks for token and navigates to LoginScreen if not present
+// Helper function to handle profile press - guest on home goes to Login; auth stack without token switches to login flow
 export const handleProfilePress = async (navigation, openDrawerCallback = null) => {
   try {
     const loginResponse = await getObjByKey('loginResponse');
 
-    // If no token exists, navigate to LoginScreen
-    if (!loginResponse || !loginResponse.token) {
-      navigation.navigate('Login');
+    if (!loginResponse?.token) {
+      const isAuthenticatedStack = store.getState()?.authStatus === true;
+
+      if (!isAuthenticatedStack) {
+        navigation.navigate('Login');
+        return;
+      }
+
+      store.dispatch(logoutUser());
       return;
     }
 
-    // If token exists and callback is provided, open drawer
     if (openDrawerCallback && typeof openDrawerCallback === 'function') {
       openDrawerCallback();
     }
   } catch (error) {
-    // If error checking token, navigate to LoginScreen
-    navigation.navigate('Login');
+    const isAuthenticatedStack = store.getState()?.authStatus === true;
+    if (!isAuthenticatedStack) {
+      navigation.navigate('Login');
+    } else {
+      store.dispatch(logoutUser());
+    }
   }
 };
 
@@ -704,6 +714,8 @@ const CustomDrawerContent = (props) => {
     { key: 'privacy', label: 'Privacy & Policies', icon: 'shield-lock-outline' },
     { key: 'terms', label: 'Terms & Conditions', icon: 'file-document-outline' },
     { key: 'aboutUs', label: 'About US', icon: 'information-outline' },
+    { key: 'helpCenter', label: 'Help Center', icon: 'help-circle-outline' },
+    { key: 'reportIssue', label: 'Report Issue', icon: 'alert-circle-outline' },
   ];
 
   const seekerItems = [
@@ -714,6 +726,8 @@ const CustomDrawerContent = (props) => {
     { key: 'privacy', label: 'Privacy & Policies', icon: 'shield-lock-outline' },
     { key: 'terms', label: 'Terms & Conditions', icon: 'file-document-outline' },
     { key: 'aboutUs', label: 'About US', icon: 'information-outline' },
+    { key: 'helpCenter', label: 'Help Center', icon: 'help-circle-outline' },
+    { key: 'reportIssue', label: 'Report Issue', icon: 'alert-circle-outline' },
   ];
 
   const renderProviderItem = (item) => {
@@ -754,6 +768,12 @@ const CustomDrawerContent = (props) => {
           break;
         case 'aboutUs':
           navigation.navigate('AboutUs');
+          break;
+        case 'helpCenter':
+          navigation.navigate('HelpCenterProvider');
+          break;
+        case 'reportIssue':
+          navigation.navigate('ReportIssueProvider');
           break;
         default:
           break;
@@ -797,6 +817,12 @@ const CustomDrawerContent = (props) => {
           break;
         case 'aboutUs':
           navigation.navigate('AboutUs');
+          break;
+        case 'helpCenter':
+          navigation.navigate('HelpCenterSeeker');
+          break;
+        case 'reportIssue':
+          navigation.navigate('ReportIssueSeeker');
           break;
         default:
           break;

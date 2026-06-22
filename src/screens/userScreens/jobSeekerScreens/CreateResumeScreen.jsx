@@ -18,6 +18,7 @@ import {
   PermissionsAndroid,
   Image,
 } from "react-native";
+import Voice from "@react-native-voice/voice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ReactNativeBlobUtil from "react-native-blob-util";
 import DateComponent from "../../../components/dateComponents/DateComponent";
@@ -26,7 +27,7 @@ import { MyStatusBar } from "../../../components/commonComponents/MyStatusBar";
 import { POSTNETWORK } from "../../../utils/Network";
 import { getObjByKey } from "../../../utils/Storage";
 import { BRANDCOLOR, WHITE, BLACK } from "../../../constant/color";
-import { MAIL, LINKEDIN, GITHUB, PORTFOLIO as PORTFOLIO_ICON } from "../../../constant/imagePath";
+import { MAIL, LINKEDIN, GITHUB, PORTFOLIO as PORTFOLIO_ICON, MIC } from "../../../constant/imagePath";
 import { BASE_URL } from "../../../constant/url";
 
 const { width: WIDTH } = Dimensions.get("screen");
@@ -94,7 +95,11 @@ const VoiceTextInput = ({ label, required, value, onChangeText, placeholder,
         />
         <TouchableOpacity style={s.micBtn} onPress={() => onMicPress(fieldKey)} activeOpacity={0.7}>
           <Animated.View style={{ transform: [{ scale: pulse }] }}>
-            <Text style={s.micIcon}>{active ? "⏹" : "🎤"}</Text>
+            {active ? (
+              <Text style={s.micStopIcon}>⏹</Text>
+            ) : (
+              <Image source={MIC} style={s.micImg} resizeMode="contain" />
+            )}
           </Animated.View>
         </TouchableOpacity>
       </View>
@@ -174,45 +179,223 @@ const CreateResumeScreen = ({ navigation }) => {
   const VoiceRef = useRef(null);
   const voiceOK = useRef(false);
   const activeKeyRef = useRef(null);
+  const voiceBaseRef = useRef("");
+  const voiceListeningRef = useRef(false);
+  const voiceStoppingRef = useRef(false);
+  const voiceErrorShownRef = useRef(false);
+  const stateRef = useRef({});
   const scrollRef = useRef(null);
   const inputRefs = useRef({});
 
+  stateRef.current = { pi, obj, skills, exps, projs, certs, edus };
+
+  const getFieldValue = (key) => {
+    const st = stateRef.current;
+    if (!key) return "";
+    if (key === "obj") return st.obj || "";
+    if (key === "skills") return st.skills || "";
+    if (key.startsWith("pi_")) return st.pi?.[key.slice(3)] || "";
+    const fromArr = (arr, prefix) => {
+      if (!key.startsWith(prefix)) return null;
+      const rest = key.slice(prefix.length).split("_");
+      const idx = parseInt(rest[0], 10);
+      const f = rest.slice(1).join("_");
+      return arr?.[idx]?.[f] ?? "";
+    };
+    return fromArr(st.exps, "exp_") ?? fromArr(st.projs, "proj_") ?? fromArr(st.certs, "cert_") ?? fromArr(st.edus, "edu_") ?? "";
+  };
+
+  const setFieldValue = (key, text) => {
+    if (!key) return;
+    if (key === "obj") return setObj(text);
+    if (key === "skills") return setSkills(text);
+    if (key.startsWith("pi_")) {
+      const f = key.slice(3);
+      return setPi(p => ({ ...p, [f]: text }));
+    }
+    const arrSet = (setter, prefix) => {
+      if (!key.startsWith(prefix)) return false;
+      const rest = key.slice(prefix.length).split("_");
+      const idx = parseInt(rest[0], 10);
+      const f = rest.slice(1).join("_");
+      setter(prev => {
+        const a = [...prev];
+        a[idx] = { ...a[idx], [f]: text };
+        return a;
+      });
+      return true;
+    };
+    arrSet(setExps, "exp_") || arrSet(setProjs, "proj_") || arrSet(setCerts, "cert_") || arrSet(setEdus, "edu_");
+  };
+
+  const setVoiceTranscript = (key, spoken) => {
+    if (!key || !spoken?.trim()) return;
+    const base = voiceBaseRef.current ?? "";
+    const sep = base && !/[\s\n]$/.test(base) ? " " : "";
+    const merged = base ? `${base}${sep}${spoken.trim()}` : spoken.trim();
+    setFieldValue(key, merged);
+    // console.log("[Voice] Transcript applied →", key, ":", merged);
+  };
+
+  const clearVoiceUI = () => {
+    setIsRecording(false);
+    setActiveRecField(null);
+    activeKeyRef.current = null;
+    voiceListeningRef.current = false;
+  };
+
+  /** Stop native recognizer only when user taps mic — never from onSpeechEnd/onSpeechError (avoids error-5 loop). */
+  const stopVoiceSession = async (source = "user") => {
+    if (voiceStoppingRef.current) return;
+    voiceStoppingRef.current = true;
+
+    const wasListening = voiceListeningRef.current;
+    clearVoiceUI();
+
+    if (source === "user" && wasListening && voiceOK.current) {
+      try {
+        await Voice.cancel();
+      } catch (_) { /* ignore — cancel often emits client error 5 */ }
+    }
+
+    voiceStoppingRef.current = false;
+    // console.log("[Voice] Session stopped", source !== "user" ? `(${source})` : "");
+  };
+
+  const parseVoiceError = (e) => {
+    const err = e?.error;
+    if (typeof err === "string") return err;
+    if (err?.message) return String(err.message);
+    if (err?.code != null) return String(err.code);
+    return "";
+  };
+
+  const isBenignVoiceError = (msg) =>
+    /client side error/i.test(msg) || /^5\//.test(msg) || msg === "5";
+
+  const attachVoiceListeners = () => {
+    Voice.onSpeechStart = () => {
+      voiceListeningRef.current = true;
+      voiceErrorShownRef.current = false;
+      // console.log("[Voice] onSpeechStart — listening");
+      setIsRecording(true);
+    };
+
+    Voice.onSpeechPartialResults = (e) => {
+      const text = e?.value?.[0] || "";
+      if (text && activeKeyRef.current && voiceListeningRef.current) {
+        setVoiceTranscript(activeKeyRef.current, text);
+        // console.log("[Voice] Partial:", text);
+      }
+    };
+
+    Voice.onSpeechResults = (e) => {
+      const text = e?.value?.[0] || "";
+      // console.log("[Voice] Final:", text);
+      if (text && activeKeyRef.current) {
+        const key = activeKeyRef.current;
+        const base = voiceBaseRef.current ?? "";
+        const sep = base && !/[\s\n]$/.test(base) ? " " : "";
+        const merged = base ? `${base}${sep}${text.trim()}` : text.trim();
+        setFieldValue(key, merged);
+        voiceBaseRef.current = merged;
+      }
+      voiceListeningRef.current = false;
+      clearVoiceUI();
+      // console.log("[Voice] Session ended (results received)");
+    };
+
+    Voice.onSpeechEnd = () => {
+      if (!voiceListeningRef.current || voiceStoppingRef.current) return;
+      voiceListeningRef.current = false;
+      clearVoiceUI();
+      // console.log("[Voice] onSpeechEnd");
+    };
+
+    Voice.onSpeechError = (e) => {
+      if (voiceStoppingRef.current) return;
+      const msg = parseVoiceError(e);
+      const wasListening = voiceListeningRef.current;
+
+      voiceListeningRef.current = false;
+      clearVoiceUI();
+
+      if (isBenignVoiceError(msg)) {
+        if (!voiceErrorShownRef.current) {
+          voiceErrorShownRef.current = true;
+          if (wasListening) {
+            toast("No speech detected. Speak clearly, or install/update Google app.", "error");
+          } else {
+            // console.log("[Voice] Recognition ended (client error — ignored)");
+          }
+        }
+        return;
+      }
+
+      if (voiceErrorShownRef.current) return;
+      voiceErrorShownRef.current = true;
+      // console.log("[Voice] onSpeechError:", msg || e);
+      const userMsg = msg.includes("/") ? msg.split("/").pop().trim() : msg;
+      toast(
+        userMsg || (wasListening ? "Could not hear you. Try speaking louder." : "Voice recognition failed"),
+        "error"
+      );
+    };
+  };
+
+  const requestMicPermission = async () => {
+    if (Platform.OS !== "android") return true;
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        {
+          title: "Microphone Permission",
+          message: "Uptula needs microphone access for voice input on your resume.",
+          buttonPositive: "Allow",
+          buttonNegative: "Deny",
+        }
+      );
+      const ok = granted === PermissionsAndroid.RESULTS.GRANTED;
+      // console.log("[Voice] Microphone permission:", ok ? "granted" : "denied");
+      return ok;
+    } catch (e) {
+      // console.log("[Voice] Permission request error:", e?.message || e);
+      return false;
+    }
+  };
+
   // ─── Init ────────────────────────────────────────────────────────────────
   useEffect(() => {
-    initVoice(); loadUser(); fetchDL(); fetchPlans();
-    return () => { if (VoiceRef.current && voiceOK.current) VoiceRef.current.destroy().catch(() => { }); };
+    loadUser();
+    fetchDL();
+    fetchPlans();
+
+    if (typeof Voice.start !== "function") {
+      voiceOK.current = false;
+      // console.log("[Voice] Voice.start is not a function — rebuild the app");
+      return undefined;
+    }
+
+    VoiceRef.current = Voice;
+    voiceOK.current = true;
+    // const turbo = global.__turboModuleProxy != null;
+    // console.log("[Voice] Module ready", turbo ? "(New Architecture / TurboModule)" : "(Legacy bridge)");
+
+    attachVoiceListeners();
+
+    Voice.isAvailable().catch(() => { });
+
+    return () => {
+      Voice.destroy()
+        .then(() => Voice.removeAllListeners())
+        .catch(() => { });
+    };
   }, []);
 
   useEffect(() => {
     const u = navigation.addListener("focus", () => { loadUser(); fetchDL(); });
     return u;
   }, [navigation]);
-
-  const initVoice = () => {
-    try {
-      const mod = require("@react-native-voice/voice");
-      const V = mod?.default && typeof mod.default.start === "function" ? mod.default
-        : typeof mod?.start === "function" ? mod : null;
-      if (!V) { voiceOK.current = false; return; }
-      VoiceRef.current = V; voiceOK.current = true;
-    } catch { voiceOK.current = false; }
-  };
-
-  const applyVoice = (key, text) => {
-    if (!key || !text) return;
-    if (key === "obj") return setObj(p => p ? p + " " + text : text);
-    if (key === "skills") return setSkills(p => p ? p + ", " + text : text);
-    if (key.startsWith("pi_")) { const f = key.slice(3); return setPi(p => ({ ...p, [f]: text })); }
-    const arrApply = (setter, prefix) => {
-      if (!key.startsWith(prefix)) return false;
-      const rest = key.slice(prefix.length).split("_");
-      const idx = parseInt(rest[0]);
-      const f = rest.slice(1).join("_");
-      setter(prev => { const a = [...prev]; a[idx] = { ...a[idx], [f]: text }; return a; });
-      return true;
-    };
-    arrApply(setExps, "exp_") || arrApply(setProjs, "proj_") || arrApply(setCerts, "cert_") || arrApply(setEdus, "edu_");
-  };
 
   const updArr = (setter, idx, field, val) =>
     setter(p => { const a = [...p]; a[idx] = { ...a[idx], [field]: val }; return a; });
@@ -250,17 +433,70 @@ const CreateResumeScreen = ({ navigation }) => {
     if (inputRef && typeof inputRef.focus === "function") inputRef.focus();
   };
 
-  const handleMic = (fieldKey) => {
-    focusInputAndShowKeyboard(fieldKey);
-    // Toggle a "recording" visual state per field, while using device keyboard mic for actual speech input
-    setActiveRecField(prev => {
-      if (prev === fieldKey && isRecording) {
-        setIsRecording(false);
-        return null;
+  const handleMic = async (fieldKey) => {
+    // console.log("[Voice] Mic pressed, field:", fieldKey);
+
+    if (isRecording && activeRecField === fieldKey) {
+      // console.log("[Voice] User stopped listening");
+      await stopVoiceSession();
+      return;
+    }
+
+    if (isRecording) {
+      await stopVoiceSession();
+    }
+
+    if (!voiceOK.current) {
+      // console.log("[Voice] Cannot start — module not initialized. Rebuild: npx react-native run-android");
+      toast("Voice not available. Rebuild the app after npm install.", "error");
+      return;
+    }
+
+    const permitted = await requestMicPermission();
+    if (!permitted) {
+      toast("Microphone permission is required for voice input", "error");
+      return;
+    }
+
+    try {
+      const available = await Voice.isAvailable();
+      // console.log("[Voice] isAvailable:", available);
+      if (!available) {
+        toast("Speech recognition not available on this device. Install Google app.", "error");
+        return;
       }
+    } catch (e) {
+      // console.log("[Voice] isAvailable error:", e?.message || e);
+    }
+
+    Keyboard.dismiss();
+    voiceErrorShownRef.current = false;
+    voiceBaseRef.current = getFieldValue(fieldKey);
+    activeKeyRef.current = fieldKey;
+    setActiveRecField(fieldKey);
+
+    // console.log("[Voice] Starting recognition, base text:", voiceBaseRef.current || "(empty)");
+
+    try {
+      voiceStoppingRef.current = true;
+      await Voice.destroy().catch(() => { });
+      Voice.removeAllListeners();
+      attachVoiceListeners();
+      voiceStoppingRef.current = false;
+
+      await Voice.start("en-US", {
+        REQUEST_PERMISSIONS_AUTO: false,
+        EXTRA_PARTIAL_RESULTS: true,
+      });
+      voiceListeningRef.current = true;
       setIsRecording(true);
-      return fieldKey;
-    });
+      // console.log("[Voice] Voice.start() succeeded — speak now");
+    } catch (err) {
+      voiceStoppingRef.current = false;
+      // console.log("[Voice] Voice.start() failed:", err?.message || err);
+      clearVoiceUI();
+      toast("Could not start voice input. Install Google app & allow microphone.", "error");
+    }
   };
 
   // ─── API ─────────────────────────────────────────────────────────────────
@@ -1191,7 +1427,8 @@ const s = StyleSheet.create({
   textInput: { flex: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: BLACK, minHeight: 48 },
   textInputMulti: { minHeight: 100, textAlignVertical: "top" },
   micBtn: { width: 46, height: 48, justifyContent: "center", alignItems: "center", borderLeftWidth: 1, borderLeftColor: BORDER, backgroundColor: SURFACE },
-  micIcon: { fontSize: 20 },
+  micImg: { width: 22, height: 22 },
+  micStopIcon: { fontSize: 18, color: DANGER },
   recBadge: { flexDirection: "row", alignItems: "center", marginTop: 6, backgroundColor: "#FEE2E2", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: "flex-start" },
   recDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: DANGER, marginRight: 6 },
   recText: { fontSize: 12, color: DANGER, fontWeight: "600" },

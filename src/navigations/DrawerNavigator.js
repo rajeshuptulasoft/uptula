@@ -22,16 +22,18 @@ import ChangePasswordScreen from '../screens/userScreens/jobSeekerScreens/Change
 import ProviderChangePasswordScreen from '../screens/userScreens/jobProviderScreens/ChangePasswordScreen';
 import CreateResumeScreen from '../screens/userScreens/jobSeekerScreens/CreateResumeScreen';
 import MockInterviewScreen from '../screens/userScreens/jobSeekerScreens/MockInterviewScreen';
+import AboutUsScreen from '../screens/userScreens/AboutUsScreen';
+import JobSeekerHelpCenterScreen from '../screens/userScreens/jobSeekerScreens/HelpCenterScreen';
+import JobProviderHelpCenterScreen from '../screens/userScreens/jobProviderScreens/HelpCenterScreen';
+import JobSeekerReportIssueScreen from '../screens/userScreens/jobSeekerScreens/ReportIssueScreen';
+import JobProviderReportIssueScreen from '../screens/userScreens/jobProviderScreens/ReportIssueScreen';
 
 // Placeholder screens for new drawer routes used in CustomDrawerContent.
-// Replace these with your real screen components when you create them.
 const PlaceholderScreen = ({ title }) => (
   <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
     <Text>{title} Screen</Text>
   </View>
 );
-// const ChangePasswordScreen = () => <PlaceholderScreen title="Change Password" />;
-const AboutUsScreen = () => <PlaceholderScreen title="About Us" />;
 const AuthScreen = () => <PlaceholderScreen title="Login / Register" />;
 
 const Drawer = createDrawerNavigator();
@@ -94,6 +96,10 @@ function DrawerNavigator() {
       <Drawer.Screen name="ChangePasswordProvider" component={ProviderChangePasswordScreen} />
       <Drawer.Screen name="CreateResume" component={CreateResumeScreen} />
       <Drawer.Screen name="AboutUs" component={AboutUsScreen} />
+      <Drawer.Screen name="HelpCenterSeeker" component={JobSeekerHelpCenterScreen} />
+      <Drawer.Screen name="HelpCenterProvider" component={JobProviderHelpCenterScreen} />
+      <Drawer.Screen name="ReportIssueSeeker" component={JobSeekerReportIssueScreen} />
+      <Drawer.Screen name="ReportIssueProvider" component={JobProviderReportIssueScreen} />
 
       {/* Guest login / register */}
       <Drawer.Screen name="Auth" component={AuthScreen} />

@@ -8,3 +8,11 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# Google Sign-In & Play Services (release minify)
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+
+# Firebase Auth
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**

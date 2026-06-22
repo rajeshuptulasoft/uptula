@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { StatusBar, StyleSheet, Text, TouchableOpacity, View, Image, BackHandler, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView } from "react-native";
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View, Image, BackHandler, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView, Modal, FlatList } from "react-native";
 import { useDispatch } from "react-redux";
 import { useFocusEffect } from "@react-navigation/native";
 import { BLACK, BRANDCOLOR, WHITE } from "../../constant/color";
@@ -14,9 +14,45 @@ import { CustomButton } from "../../components/commonComponents/Button";
 import { MyAlert } from "../../components/commonComponents/MyAlert";
 import { HEIGHT, WIDTH } from "../../constant/config";
 import { BASE_URL } from "../../constant/url";
-import { POSTNETWORK } from "../../utils/Network";
+import { POSTNETWORK, GETNETWORK } from "../../utils/Network";
 import { storeObjByKey } from "../../utils/Storage";
 import { checkuserToken } from "../../redux/actions/auth";
+
+const extractCategories = (result) => {
+    if (Array.isArray(result?.categories)) return result.categories;
+    if (Array.isArray(result?.data?.categories)) return result.data.categories;
+    if (result?.success && Array.isArray(result?.data)) return result.data;
+    if (Array.isArray(result)) return result;
+    return [];
+};
+
+const extractSubcategories = (result) => {
+    if (Array.isArray(result?.subcategories)) return result.subcategories;
+    if (Array.isArray(result?.data?.subcategories)) return result.data.subcategories;
+    if (result?.success && Array.isArray(result?.data)) return result.data;
+    if (Array.isArray(result)) return result;
+    return [];
+};
+
+const getRecordId = (item) => {
+    if (!item) return null;
+    const raw = item.id ?? item._id ?? item.category_id ?? item.categoryId ?? item.subcategory_id ?? item.subcategoryId;
+    if (raw == null || raw === "") return null;
+    const num = Number(raw);
+    return Number.isNaN(num) ? raw : num;
+};
+
+const buildCategoryPayload = (category, subcategory) => {
+    const categoryId = getRecordId(category);
+    const subcategoryId = getRecordId(subcategory);
+    if (!categoryId || !subcategoryId) return null;
+    return {
+        categoryId,
+        subcategoryId,
+        categoryIds: [categoryId],
+        subcategoryIds: [subcategoryId],
+    };
+};
 
 export default function RegisterScreen({ navigation }) {
     const dispatch = useDispatch();
@@ -39,6 +75,18 @@ export default function RegisterScreen({ navigation }) {
     const [resendCount, setResendCount] = useState(0);
 
     const timerRef = useRef(null);
+
+    // Category and SubCategory states
+    const [categories, setCategories] = useState([]);
+    const [subcategories, setSubcategories] = useState([]);
+    const [selectedCategory, setSelectedCategory] = useState(null);
+    const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+    const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
+    const [subcategoriesDropdownOpen, setSubcategoriesDropdownOpen] = useState(false);
+    const [loadingCategories, setLoadingCategories] = useState(false);
+    const [loadingSubcategories, setLoadingSubcategories] = useState(false);
+    const selectedCategoryRef = useRef(null);
+    const selectedSubcategoryRef = useRef(null);
 
     // const sendOtp = (isResend = false) => {
     //     if (!name || !email || !contactNumber || !password || !confirmPassword) {
@@ -93,6 +141,28 @@ export default function RegisterScreen({ navigation }) {
             return;
         }
 
+        const category = selectedCategoryRef.current ?? selectedCategory;
+        const subcategory = selectedSubcategoryRef.current ?? selectedSubcategory;
+        let categoryPayload = null;
+
+        if (userType === "JobSeeker") {
+            categoryPayload = buildCategoryPayload(category, subcategory);
+            console.log("[Register] Send OTP — category selection", {
+                categoryName: category?.name,
+                subcategoryName: subcategory?.name,
+                categoryPayload,
+            });
+            if (!categoryPayload) {
+                console.log("[Register] Send OTP blocked — category or subcategory missing");
+                setToastMessage({
+                    type: "error",
+                    msg: "Please select category and subcategory",
+                    visible: true,
+                });
+                return;
+            }
+        }
+
         try {
             const url = isResend
                 ? `${BASE_URL}auth/resend-register-otp`
@@ -103,12 +173,28 @@ export default function RegisterScreen({ navigation }) {
                 fullName: name,
                 email: email,
                 phone: contactNumber,
-                password: password
+                password: password,
+                ...(categoryPayload || {}),
             };
 
-            // console.log("[RegisterScreen] sendOtp request", { url, payload, isResend });
+            console.log("[Register] Send OTP — posting", {
+                isResend,
+                url,
+                payload: {
+                    ...payload,
+                    password: "***",
+                },
+            });
+
             const result = await POSTNETWORK(url, payload, false);
-            // console.log("[RegisterScreen] sendOtp response", result);
+
+            console.log("[Register] Send OTP — response", {
+                isResend,
+                success: result?.success,
+                status: result?.status,
+                message: result?.message,
+                raw: result,
+            });
 
             const message = (result?.message || "").toString();
             const isSuccess =
@@ -117,11 +203,7 @@ export default function RegisterScreen({ navigation }) {
                 /otp\s*sent/i.test(message);
 
             if (isSuccess) {
-                // console.log("[RegisterScreen] sendOtp success", {
-                //     isResend,
-                //     message: message || "OTP sent successfully",
-                //     raw: result,
-                // });
+                console.log("[Register] Send OTP — success", { isResend, message: message || "OTP sent" });
 
                 setIsOtpStep(true);
                 setEnteredOtp("");
@@ -139,11 +221,11 @@ export default function RegisterScreen({ navigation }) {
                 });
 
             } else {
-                // console.log("[RegisterScreen] sendOtp failed", {
-                //     isResend,
-                //     message: message || "Failed to send OTP",
-                //     raw: result,
-                // });
+                console.log("[Register] Send OTP — failed", {
+                    isResend,
+                    message: message || "Failed to send OTP",
+                    raw: result,
+                });
                 setOtpStatus(message || "Failed to send OTP.");
                 setToastMessage({
                     type: "error",
@@ -153,11 +235,11 @@ export default function RegisterScreen({ navigation }) {
             }
 
         } catch (error) {
-            // console.log("[RegisterScreen] sendOtp error", {
-            //     isResend,
-            //     message: error?.message || "Network error",
-            //     raw: error,
-            // });
+            console.log("[Register] Send OTP — error", {
+                isResend,
+                message: error?.message,
+                raw: error,
+            });
             setToastMessage({
                 type: "error",
                 msg: "Network error",
@@ -245,13 +327,18 @@ export default function RegisterScreen({ navigation }) {
     const [alertVisible, setAlertVisible] = useState(false);
 
     useEffect(() => {
-        // Configure Google Sign-In
+        // Configure Google Sign-In (web client = type WEB from Firebase / Google Cloud)
+        const webClientId = '193282547247-o8ccoi23uh80eb4vnb8sdnit0hnvd10l.apps.googleusercontent.com';
         GoogleSignin.configure({
-            webClientId: '193282547247-o8ccoi23uh80eb4vnb8sdnit0hnvd10l.apps.googleusercontent.com',
+            webClientId,
             offlineAccess: true,
             scopes: ['profile', 'email'],
             forceCodeForRefreshToken: true,
         });
+        // console.log("[GoogleRegister] GoogleSignin.configure done", {
+        //     platform: Platform.OS,
+        //     webClientIdSuffix: webClientId.slice(-20),
+        // });
 
         if (Platform.OS === "android") {
             const backAction = () => {
@@ -268,6 +355,40 @@ export default function RegisterScreen({ navigation }) {
             return () => backHandler.remove();
         }
     }, [navigation]);
+
+    // Fetch categories on component mount
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                setLoadingCategories(true);
+                const url = `${BASE_URL}categories/categories`;
+                const result = await GETNETWORK(url, false);
+                const list = extractCategories(result);
+
+                if (list.length > 0) {
+                    setCategories(list);
+                } else {
+                    setCategories([]);
+                    setToastMessage({
+                        type: "error",
+                        msg: result?.message || "No categories available",
+                        visible: true,
+                    });
+                }
+            } catch (error) {
+                setCategories([]);
+                setToastMessage({
+                    type: "error",
+                    msg: "Failed to load categories",
+                    visible: true,
+                });
+            } finally {
+                setLoadingCategories(false);
+            }
+        };
+
+        fetchCategories();
+    }, []);
 
     // Reset state when the screen is focused
     useFocusEffect(
@@ -290,6 +411,14 @@ export default function RegisterScreen({ navigation }) {
             setResendCount(0);
             setAlertVisible(false);
             setToastMessage({ type: "", msg: "", visible: false });
+            setSelectedCategory(null);
+            setSelectedSubcategory(null);
+            selectedCategoryRef.current = null;
+            selectedSubcategoryRef.current = null;
+            setCategoriesDropdownOpen(false);
+            setSubcategoriesDropdownOpen(false);
+            setLoadingCategories(false);
+            setLoadingSubcategories(false);
         }, [])
     );
 
@@ -510,6 +639,27 @@ export default function RegisterScreen({ navigation }) {
     // };
 
     const handleRegister = async () => {
+        const category = selectedCategoryRef.current ?? selectedCategory;
+        const subcategory = selectedSubcategoryRef.current ?? selectedSubcategory;
+
+        if (userType === "JobSeeker") {
+            const categoryPayload = buildCategoryPayload(category, subcategory);
+            console.log("[Register] Verify OTP — category selection", {
+                categoryName: category?.name,
+                subcategoryName: subcategory?.name,
+                categoryPayload,
+            });
+            if (!categoryPayload) {
+                console.log("[Register] Verify OTP blocked — category or subcategory missing");
+                setToastMessage({
+                    type: "error",
+                    msg: "Please select category and subcategory",
+                    visible: true,
+                });
+                return;
+            }
+        }
+
         if (enteredOtp.length !== 6) {
             setToastMessage({
                 type: "error",
@@ -521,15 +671,34 @@ export default function RegisterScreen({ navigation }) {
 
         try {
             const url = `${BASE_URL}auth/verify-register-otp`;
+            const categoryPayload = userType === "JobSeeker"
+                ? buildCategoryPayload(category, subcategory)
+                : null;
 
             const payload = {
                 email: email,
-                otp: enteredOtp
+                otp: enteredOtp,
+                ...(categoryPayload || {}),
             };
 
-            // console.log("[RegisterScreen] handleRegister request", { url, payload });
+            console.log("[Register] Verify OTP — posting", {
+                url,
+                payload: {
+                    ...payload,
+                    otp: "******",
+                },
+            });
+
             const result = await POSTNETWORK(url, payload, false);
-            // console.log("[RegisterScreen] handleRegister response", result);
+
+            console.log("[Register] Verify OTP — response", {
+                success: result?.success,
+                status: result?.status,
+                statusCode: result?.statusCode,
+                message: result?.message,
+                hasToken: !!result?.token,
+                raw: result,
+            });
 
             const msg = (result?.message || "").toString();
             const isSuccess =
@@ -542,6 +711,10 @@ export default function RegisterScreen({ navigation }) {
                 /otp\s*verified|registration\s*successful|success/i.test(msg);
 
             if (isSuccess) {
+                console.log("[Register] Verify OTP — success, storing login data", {
+                    role: result?.user?.role,
+                    categoryPayload,
+                });
                 setOtpStatus("OTP Verified Successfully");
 
                 const loginDataToStore = {
@@ -550,7 +723,8 @@ export default function RegisterScreen({ navigation }) {
                     userType: result?.user?.role,
                     user: {
                         ...result?.user,
-                        email: email, // Preserve the original email entered by user
+                        email: email,
+                        ...(categoryPayload || {}),
                     },
                 };
 
@@ -567,7 +741,7 @@ export default function RegisterScreen({ navigation }) {
                 }, 1500);
 
             } else {
-                // console.log("[RegisterScreen] handleRegister failed", result);
+                console.log("[Register] Verify OTP — failed", result);
                 setOtpStatus(result?.message || "Invalid OTP");
                 setToastMessage({
                     type: "error",
@@ -577,7 +751,10 @@ export default function RegisterScreen({ navigation }) {
             }
 
         } catch (error) {
-            // console.log("[RegisterScreen] handleRegister error", error);
+            console.log("[Register] Verify OTP — error", {
+                message: error?.message,
+                raw: error,
+            });
             setOtpStatus("Something went wrong");
             setToastMessage({
                 type: "error",
@@ -657,67 +834,109 @@ export default function RegisterScreen({ navigation }) {
     // };
 
     const onGoogleRegister = async () => {
-        // console.log("🔵 Google Register Started");
+        const apiUrl = `${BASE_URL}auth/firebase`;
+        const rolePayload = userType === "JobSeeker" ? "JobSeeker" : "JobProvider";
+
+        // console.log("[GoogleRegister] Started", {
+        //     platform: Platform.OS,
+        //     userType,
+        //     rolePayload,
+        //     apiUrl,
+        // });
 
         try {
-            // console.log("🟡 Checking Play Services...");
+            // console.log("[GoogleRegister] Step 1: hasPlayServices...");
             await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-            // console.log("✅ Play Services OK");
+            // console.log("[GoogleRegister] Step 1: Play Services OK");
 
+            // console.log("[GoogleRegister] Step 2: signOut (clear prior session)...");
             await GoogleSignin.signOut();
+            // console.log("[GoogleRegister] Step 2: signOut done");
 
-            // console.log("🟡 Signing in with Google...");
-            await GoogleSignin.signIn();
-            // console.log("✅ Google Sign-In Success");
+            // console.log("[GoogleRegister] Step 3: signIn...");
+            const signInResult = await GoogleSignin.signIn();
+            // console.log("[GoogleRegister] Step 3: signIn result", {
+            //     type: signInResult?.type,
+            //     hasData: !!signInResult?.data,
+            //     email: signInResult?.data?.user?.email ?? signInResult?.user?.email ?? "(none)",
+            //     cancelled: signInResult?.type === "cancelled",
+            // });
 
-            // console.log("🟡 Getting ID Token...");
-            const { idToken } = await GoogleSignin.getTokens();
+            if (signInResult?.type === "cancelled") {
+                throw Object.assign(new Error("User cancelled Google sign-up"), { code: "SIGN_IN_CANCELLED" });
+            }
+
+            // console.log("[GoogleRegister] Step 4: getTokens...");
+            const tokens = await GoogleSignin.getTokens();
+            const { idToken } = tokens || {};
+
+            // console.log("[GoogleRegister] Step 4: tokens", {
+            //     hasIdToken: !!idToken,
+            //     idTokenLength: idToken?.length ?? 0,
+            // });
 
             if (!idToken) {
-                // console.log("❌ No ID Token");
+                // console.log("[GoogleRegister] ERROR: No idToken from getTokens()");
                 throw new Error("No ID token found");
             }
 
-            // console.log("🟡 Creating Firebase credential...");
+            // console.log("[GoogleRegister] Step 5: Firebase credential...");
             const googleCredential = auth.GoogleAuthProvider.credential(idToken);
 
-            // console.log("🟡 Signing into Firebase...");
+            // console.log("[GoogleRegister] Step 6: signInWithCredential...");
             const userCredential = await auth().signInWithCredential(googleCredential);
-            // console.log("✅ Firebase Auth Success");
-
             const user = userCredential.user;
-            // console.log("👤 User:", user);
+            // console.log("[GoogleRegister] Step 6: Firebase auth OK", {
+            //     uid: user?.uid,
+            //     email: user?.email,
+            // });
 
-            // console.log("🟡 Getting Firebase token...");
+            // console.log("[GoogleRegister] Step 7: getIdToken...");
             const firebaseToken = await user.getIdToken();
-            // console.log("✅ Firebase Token:", firebaseToken);
+            // console.log("[GoogleRegister] Step 7: Firebase idToken length:", firebaseToken?.length ?? 0);
 
-            // 🔥 BACKEND CALL (THIS WAS MISSING IN YOUR REGISTER)
-            const apiUrl = `${BASE_URL}auth/firebase`;
-            // console.log("🌐 API URL:", apiUrl);
+            const requestBody = {
+                token: firebaseToken,
+                role: rolePayload,
+                fullName: user.displayName || "",
+                email: user.email || "",
+            };
 
-            // console.log("🟡 Sending token to backend...");
+            // console.log("[GoogleRegister] Step 8: POST backend...", apiUrl, {
+            //     role: requestBody.role,
+            //     fullName: requestBody.fullName,
+            //     email: requestBody.email,
+            //     tokenLength: firebaseToken?.length ?? 0,
+            // });
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    token: firebaseToken,
-                    role: userType === "JobSeeker" ? "seeker" : "provider",
-                    // ✅ ADD THESE
-                    fullName: user.displayName || "",
-                    email: user.email || "",
-                    phone: user.phoneNumber || contactNumber || ""
-                })
+                body: JSON.stringify(requestBody),
             });
 
-            // console.log("📡 Response Status:", response.status);
+            const responseText = await response.text();
+            // console.log("[GoogleRegister] Step 8: API response", {
+            //     status: response.status,
+            //     ok: response.ok,
+            //     bodyPreview: responseText?.slice(0, 500),
+            // });
 
-            const data = await response.json();
-            // console.log("📡 Response Data:", data);
+            let data = {};
+            try {
+                data = responseText ? JSON.parse(responseText) : {};
+            } catch (parseErr) {
+                // console.log("[GoogleRegister] ERROR: API response is not JSON", parseErr?.message);
+                throw new Error(`Invalid API response (status ${response.status})`);
+            }
+
+            // console.log("[GoogleRegister] Step 8: parsed API data", {
+            //     success: data?.success,
+            //     message: data?.message,
+            //     hasToken: !!data?.token,
+            //     userRole: data?.user?.role,
+            // });
 
             if (response.ok) {
-                // console.log("✅ Backend Register/Login Success");
-
                 const loginDataToStore = {
                     token: data.token,
                     role: data.user?.role,
@@ -729,8 +948,8 @@ export default function RegisterScreen({ navigation }) {
                     },
                 };
 
-                // console.log("💾 Storing user...");
                 await storeObjByKey("loginResponse", loginDataToStore);
+                // console.log("[GoogleRegister] SUCCESS: registration stored, navigating as", userType);
 
                 setToastMessage({
                     type: "success",
@@ -740,7 +959,6 @@ export default function RegisterScreen({ navigation }) {
 
                 dispatch(checkuserToken());
 
-                // console.log("🧭 Navigating...");
                 if (userType === "JobProvider") {
                     navigation.navigate("EmployerProfile");
                 } else {
@@ -748,7 +966,11 @@ export default function RegisterScreen({ navigation }) {
                 }
 
             } else {
-                // console.log("❌ Backend Error:", data?.message);
+                // console.log("[GoogleRegister] FAILED: backend rejected signup", {
+                //     status: response.status,
+                //     message: data?.message,
+                //     error: data?.error,
+                // });
 
                 setToastMessage({
                     type: "error",
@@ -758,18 +980,27 @@ export default function RegisterScreen({ navigation }) {
             }
 
         } catch (error) {
-            // console.log("🔥 Google Register Error:", error);
-            // console.log("🔥 Code:", error.code);
-            // console.log("🔥 Message:", error.message);
+            // console.log("[GoogleRegister] ERROR caught", {
+            //     code: error?.code,
+            //     message: error?.message,
+            //     nativeErrorCode: error?.nativeErrorCode,
+            //     name: error?.name,
+            // });
+            if (error?.stack) {
+                // console.log("[GoogleRegister] stack:", error.stack);
+            }
 
             let errorMessage = "Google sign-up failed. Please try again.";
 
-            if (error.code === 'SIGN_IN_CANCELLED') {
+            if (error.code === 'SIGN_IN_CANCELLED' || error.code === '12501') {
                 errorMessage = "Google sign-up was cancelled.";
             } else if (error.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
                 errorMessage = "Google Play Services not available.";
-            } else if (error.code === 'DEVELOPER_ERROR') {
-                errorMessage = "Fix SHA-1 / Firebase config.";
+            } else if (error.code === 'DEVELOPER_ERROR' || error.code === '10') {
+                errorMessage = "Developer error: add Play Store signing SHA-1 to Firebase / Google Cloud.";
+                // console.log("[GoogleRegister] HINT: Release build needs App signing key SHA-1 from Play Console → App integrity.");
+            } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/account-exists-with-different-credential') {
+                errorMessage = `Firebase: ${error.message}`;
             }
 
             setToastMessage({
@@ -778,11 +1009,130 @@ export default function RegisterScreen({ navigation }) {
                 visible: true,
             });
         } finally {
-            // console.log("🔵 Google Register Finished");
+            // console.log("[GoogleRegister] Finished");
         }
     };
 
     const Container = Platform.OS === "ios" ? SafeAreaView : View;
+
+    // Fetch subcategories when category is selected
+    const handleCategorySelect = async (category) => {
+        console.log("[Register] Category selected", {
+            id: getRecordId(category),
+            name: category?.name,
+            raw: category,
+        });
+        setSelectedCategory(category);
+        selectedCategoryRef.current = category;
+        setCategoriesDropdownOpen(false);
+        setSelectedSubcategory(null);
+        selectedSubcategoryRef.current = null;
+        setSubcategories([]);
+
+        if (!category?.id) {
+            return;
+        }
+
+        try {
+            setLoadingSubcategories(true);
+            const url = `${BASE_URL}categories/categories/${category.id}/subcategories`;
+            const result = await GETNETWORK(url, false);
+            const list = extractSubcategories(result);
+            console.log("[Register] Subcategories loaded", {
+                categoryId: getRecordId(category),
+                count: list.length,
+                items: list.map((s) => ({ id: getRecordId(s), name: s?.name })),
+            });
+            setSubcategories(list);
+        } catch (error) {
+            setSubcategories([]);
+            setToastMessage({
+                type: "error",
+                msg: "Failed to load subcategories",
+                visible: true,
+            });
+        } finally {
+            setLoadingSubcategories(false);
+        }
+    };
+
+    const renderPickerModal = ({
+        visible,
+        title,
+        items,
+        loading,
+        emptyText,
+        onClose,
+        onSelect,
+        centered = false,
+    }) => {
+        const listContent = loading ? (
+            <View style={styles.pickerModalBody}>
+                <Text style={styles.pickerModalEmpty}>Loading...</Text>
+            </View>
+        ) : !items?.length ? (
+            <View style={styles.pickerModalBody}>
+                <Text style={styles.pickerModalEmpty}>{emptyText}</Text>
+            </View>
+        ) : (
+            <FlatList
+                style={styles.pickerModalList}
+                data={items}
+                keyExtractor={(item, index) => `${item?.id ?? item?.slug ?? index}`}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        style={styles.pickerModalItem}
+                        onPress={() => onSelect(item)}
+                    >
+                        <Text style={styles.pickerModalItemText}>{item?.name || item?.label || "—"}</Text>
+                    </TouchableOpacity>
+                )}
+                showsVerticalScrollIndicator
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.pickerModalListContent}
+            />
+        );
+
+        const sheetContent = (
+            <>
+                <View style={[styles.pickerModalHeader, centered && styles.pickerModalHeaderCenter]}>
+                    <Text style={styles.pickerModalTitle}>{title}</Text>
+                    <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                        <Text style={styles.pickerModalClose}>✕</Text>
+                    </TouchableOpacity>
+                </View>
+                {listContent}
+            </>
+        );
+
+        return (
+            <Modal
+                visible={visible}
+                transparent={centered}
+                animationType={centered ? "fade" : "slide"}
+                statusBarTranslucent
+                onRequestClose={onClose}
+            >
+                {centered ? (
+                    <View style={styles.pickerModalCenterRoot}>
+                        <TouchableOpacity
+                            style={styles.pickerModalDismissArea}
+                            activeOpacity={1}
+                            onPress={onClose}
+                        />
+                        <View style={styles.pickerModalCenterSheet}>
+                            {sheetContent}
+                        </View>
+                    </View>
+                ) : (
+                    <View style={styles.pickerModalRoot}>
+                        <StatusBar backgroundColor={WHITE} barStyle="dark-content" />
+                        {sheetContent}
+                    </View>
+                )}
+            </Modal>
+        );
+    };
 
     return (
         <KeyboardAvoidingView
@@ -977,6 +1327,68 @@ export default function RegisterScreen({ navigation }) {
                                         onRightPress={() => setShowConfirmPassword(!showConfirmPassword)}
                                     />
                                 </View>
+
+                                {/* Category Dropdown - Only for JobSeeker */}
+                                {userType === "JobSeeker" && (
+                                    <View style={[
+                                        styles.txtInputContainer,
+                                        Platform.OS === "ios" && styles.txtInputContainerIOS,
+                                        Platform.OS === "android" && styles.txtInputContainerAndroid,
+                                    ]}>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.categoryDropdown,
+                                                Platform.OS === "ios" && styles.categoryDropdownIOS,
+                                                Platform.OS === "android" && styles.categoryDropdownAndroid
+                                            ]}
+                                            onPress={() => {
+                                                setSubcategoriesDropdownOpen(false);
+                                                setCategoriesDropdownOpen(true);
+                                            }}
+                                        >
+                                            <Text style={[
+                                                styles.categoryDropdownText,
+                                                Platform.OS === "ios" && styles.categoryDropdownTextIOS,
+                                                Platform.OS === "android" && styles.categoryDropdownTextAndroid,
+                                                !selectedCategory && { color: "#999" }
+                                            ]}>
+                                                {loadingCategories ? "Loading..." : (selectedCategory?.name || "Select Category")}
+                                            </Text>
+                                            <Image source={require("../../assets/images/downarrow.png")} style={styles.dropdownIcon} />
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+
+                                {/* SubCategory Dropdown - Only for JobSeeker and when Category is selected */}
+                                {userType === "JobSeeker" && selectedCategory && (
+                                    <View style={[
+                                        styles.txtInputContainer,
+                                        Platform.OS === "ios" && styles.txtInputContainerIOS,
+                                        Platform.OS === "android" && styles.txtInputContainerAndroid,
+                                    ]}>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.categoryDropdown,
+                                                Platform.OS === "ios" && styles.categoryDropdownIOS,
+                                                Platform.OS === "android" && styles.categoryDropdownAndroid
+                                            ]}
+                                            onPress={() => {
+                                                setCategoriesDropdownOpen(false);
+                                                setSubcategoriesDropdownOpen(true);
+                                            }}
+                                        >
+                                            <Text style={[
+                                                styles.categoryDropdownText,
+                                                Platform.OS === "ios" && styles.categoryDropdownTextIOS,
+                                                Platform.OS === "android" && styles.categoryDropdownTextAndroid,
+                                                !selectedSubcategory && { color: "#999" }
+                                            ]}>
+                                                {loadingSubcategories ? "Loading..." : (selectedSubcategory?.name || "Select SubCategory")}
+                                            </Text>
+                                            <Image source={require("../../assets/images/downarrow.png")} style={styles.dropdownIcon} />
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
                             </>
                         )}
 
@@ -1100,6 +1512,38 @@ export default function RegisterScreen({ navigation }) {
                     {/* Date Picker removed for static registration */}
 
                 </ScrollView>
+
+                {/* Category picker popup */}
+                {renderPickerModal({
+                    visible: categoriesDropdownOpen,
+                    title: "Select Category",
+                    items: categories,
+                    loading: loadingCategories,
+                    emptyText: "No categories available",
+                    onClose: () => setCategoriesDropdownOpen(false),
+                    onSelect: handleCategorySelect,
+                })}
+
+                {/* Subcategory picker popup */}
+                {renderPickerModal({
+                    visible: subcategoriesDropdownOpen,
+                    title: "Select SubCategory",
+                    items: subcategories,
+                    loading: loadingSubcategories,
+                    emptyText: "No subcategories available",
+                    onClose: () => setSubcategoriesDropdownOpen(false),
+                    onSelect: (subcategory) => {
+                        console.log("[Register] Subcategory selected", {
+                            id: getRecordId(subcategory),
+                            name: subcategory?.name,
+                            raw: subcategory,
+                        });
+                        setSelectedSubcategory(subcategory);
+                        selectedSubcategoryRef.current = subcategory;
+                        setSubcategoriesDropdownOpen(false);
+                    },
+                    centered: true,
+                })}
 
                 {/* Toast Message */}
                 {toastMessage.visible && (
@@ -1495,5 +1939,142 @@ const styles = StyleSheet.create({
     },
     otpError: {
         color: 'red',
+    },
+    categoryDropdown: {
+        paddingVertical: HEIGHT * 0.018,
+        paddingHorizontal: WIDTH * 0.04,
+        borderWidth: 1,
+        borderRadius: 10,
+        borderColor: BRANDCOLOR,
+        backgroundColor: WHITE,
+        width: "100%",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    categoryDropdownIOS: {
+        paddingVertical: Platform.OS === "ios" ? HEIGHT * 0.02 : HEIGHT * 0.018,
+        paddingHorizontal: Platform.OS === "ios" ? WIDTH * 0.05 : WIDTH * 0.04,
+        borderRadius: Platform.OS === "ios" ? 12 : 10,
+        borderWidth: Platform.OS === "ios" ? 1.5 : 1,
+    },
+    categoryDropdownAndroid: {
+        paddingVertical: Platform.OS === "android" ? HEIGHT * 0.017 : HEIGHT * 0.018,
+        paddingHorizontal: Platform.OS === "android" ? WIDTH * 0.03 : WIDTH * 0.04,
+        borderRadius: Platform.OS === "android" ? 8 : 10,
+        elevation: 1,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 1,
+    },
+    categoryDropdownText: {
+        fontSize: HEIGHT * 0.015,
+        fontFamily: FIRASANSSEMIBOLD,
+        color: BLACK,
+        flex: 1,
+    },
+    categoryDropdownTextIOS: {
+        fontSize: Platform.OS === "ios" ? HEIGHT * 0.016 : HEIGHT * 0.015,
+    },
+    categoryDropdownTextAndroid: {
+        fontSize: Platform.OS === "android" ? HEIGHT * 0.014 : HEIGHT * 0.015,
+    },
+    dropdownOptionText: {
+        fontSize: HEIGHT * 0.014,
+        fontFamily: FIRASANS,
+        color: BLACK,
+    },
+    pickerModalRoot: {
+        flex: 1,
+        backgroundColor: WHITE,
+    },
+    pickerModalCenterRoot: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: WIDTH * 0.06,
+    },
+    pickerModalDismissArea: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    pickerModalCenterSheet: {
+        width: "100%",
+        height: HEIGHT * 0.5,
+        backgroundColor: WHITE,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: BRANDCOLOR,
+        overflow: "hidden",
+        zIndex: 2,
+        ...Platform.select({
+            ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+            },
+            android: { elevation: 10 },
+        }),
+    },
+    pickerModalBody: {
+        flex: 1,
+        backgroundColor: WHITE,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    pickerModalList: {
+        flex: 1,
+        backgroundColor: WHITE,
+    },
+    pickerModalHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: WIDTH * 0.05,
+        paddingTop: Platform.OS === "android" ? (StatusBar.currentHeight || 0) + HEIGHT * 0.012 : HEIGHT * 0.02,
+        paddingBottom: HEIGHT * 0.018,
+        borderBottomWidth: 1,
+        borderBottomColor: "#E8E8E8",
+        backgroundColor: WHITE,
+    },
+    pickerModalHeaderCenter: {
+        paddingTop: HEIGHT * 0.018,
+    },
+    pickerModalTitle: {
+        fontSize: HEIGHT * 0.018,
+        fontFamily: FIRASANSSEMIBOLD,
+        color: BLACK,
+        flex: 1,
+    },
+    pickerModalClose: {
+        fontSize: HEIGHT * 0.02,
+        color: "#666",
+        paddingLeft: 12,
+    },
+    pickerModalListContent: {
+        flexGrow: 1,
+        paddingBottom: HEIGHT * 0.03,
+        backgroundColor: WHITE,
+    },
+    pickerModalItem: {
+        paddingVertical: HEIGHT * 0.018,
+        paddingHorizontal: WIDTH * 0.05,
+        borderBottomWidth: 1,
+        borderBottomColor: "#F0F0F0",
+        backgroundColor: WHITE,
+    },
+    pickerModalItemText: {
+        fontSize: HEIGHT * 0.016,
+        fontFamily: FIRASANS,
+        color: BLACK,
+    },
+    pickerModalEmpty: {
+        padding: WIDTH * 0.05,
+        fontSize: HEIGHT * 0.015,
+        fontFamily: FIRASANS,
+        color: "#666",
+        textAlign: "center",
+        backgroundColor: WHITE,
     },
 });
