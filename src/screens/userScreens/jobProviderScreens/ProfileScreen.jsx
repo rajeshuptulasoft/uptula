@@ -38,8 +38,10 @@ import {
 import { getObjByKey } from "../../../utils/Storage";
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK } from "../../../utils/Network";
+import { useTranslation } from "../../../hooks/useTranslation";
 
 const ProfileScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const [apiProfileData, setApiProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -184,7 +186,7 @@ const ProfileScreen = () => {
   const industry = apiProfileData?.industry || "";
   const companySize = apiProfileData?.companySize || "";
   const companyType = apiProfileData?.companyType || "";
-  const companyTypeLabel = companyType === "small_business" ? "Small Business" : companyType;
+  const companyTypeLabel = companyType === "small_business" ? t('providerProfile.smallBusiness') : companyType;
   const founded = apiProfileData?.foundedYear || "";
   const companyDescription = apiProfileData?.description || "";
   const twitter = apiProfileData?.twitter || "";
@@ -226,7 +228,7 @@ const ProfileScreen = () => {
           showNotification={false}
           showBack
           showCenterTitle
-          title="Profile"
+          title={t('providerProfile.title')}
           onBackPress={handleBackPress}
         />
 
@@ -237,11 +239,11 @@ const ProfileScreen = () => {
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={BRANDCOLOR} />
-              <Text style={styles.loadingText}>Loading profile...</Text>
+              <Text style={styles.loadingText}>{t('providerProfile.loading')}</Text>
             </View>
           ) : !apiProfileData ? (
             <View style={styles.loadingContainer}>
-              <Text style={styles.errorText}>No profile data available</Text>
+              <Text style={styles.errorText}>{t('providerProfile.noProfileData')}</Text>
             </View>
           ) : (
             <>
@@ -276,7 +278,7 @@ const ProfileScreen = () => {
 
                 {/* Name with Edit Icon */}
                 <View style={styles.nameContainer}>
-                  <Text style={styles.profileName}>{companyName || "Company Name"}</Text>
+                  <Text style={styles.profileName}>{companyName || t('providerProfile.companyName')}</Text>
                   <TouchableOpacity
                     onPress={() => {
                       const profileDataToPass = {
@@ -314,7 +316,7 @@ const ProfileScreen = () => {
                 {isVerified && (
                   <View style={styles.verifiedBadgeContainer}>
                     <Image source={VERIFIED} style={styles.verifiedBadgeIcon} />
-                    <Text style={styles.verifiedBadgeText}>Verified Company</Text>
+                    <Text style={styles.verifiedBadgeText}>{t('providerProfile.verifiedCompany')}</Text>
                   </View>
                 )}
 
@@ -328,7 +330,7 @@ const ProfileScreen = () => {
 
               {/* Company Information Section */}
               <SectionCard
-                title="Company Information"
+                title={t('providerProfile.companyInfo')}
                 icon={COMPANYNAME}
                 onEdit={() => {
                   const profileDataToPass = {
@@ -359,19 +361,19 @@ const ProfileScreen = () => {
               >
                 <View style={styles.detailsList}>
                   {companyName && (
-                    <DetailRow label="Company Name" value={companyName} />
+                    <DetailRow label={t('providerProfile.companyName')} value={companyName} />
                   )}
                   {industry && (
-                    <DetailRow label="Industry" value={industry} />
+                    <DetailRow label={t('providerProfile.industry')} value={industry} />
                   )}
                   {companySize && (
-                    <DetailRow label="Company Size" value={companySize} />
+                    <DetailRow label={t('providerProfile.companySize')} value={companySize} />
                   )}
                   {companyType && (
-                    <DetailRow label="Company Type" value={companyTypeLabel} />
+                    <DetailRow label={t('providerProfile.companyType')} value={companyTypeLabel} />
                   )}
                   {founded && (
-                    <DetailRow label="Founded" value={founded} />
+                    <DetailRow label={t('providerProfile.founded')} value={founded} />
                   )}
                 </View>
               </SectionCard>
@@ -379,7 +381,7 @@ const ProfileScreen = () => {
               {/* Contact Details Section */}
               {(contactPersonName || companyEmail || companyPhone || companyWebsite || companyAddress) && (
                 <SectionCard
-                  title="Contact Details"
+                  title={t('providerProfile.contactDetails')}
                   icon={USER}
                   onEdit={() => {
                     const profileDataToPass = {
@@ -431,7 +433,7 @@ const ProfileScreen = () => {
               {/* Company Description Section */}
               {companyDescription && (
                 <SectionCard
-                  title="Company Description"
+                  title={t('providerProfile.companyDescription')}
                   icon={JOBDESCRIPTION}
                   onEdit={() => {
                     const profileDataToPass = {
@@ -466,7 +468,7 @@ const ProfileScreen = () => {
 
               {/* Additional Company Details Section */}
               <SectionCard
-                title="Additional Information"
+                title={t('providerProfile.additionalInfo')}
                 icon={INDUSTRY}
                 onEdit={() => {
                   const profileDataToPass = {
@@ -496,14 +498,14 @@ const ProfileScreen = () => {
                 }}
               >
                 <View style={styles.detailsList}>
-                  <DetailRow label="GSTIN" value="Available" />
+                  <DetailRow label={t('providerProfile.gstin')} value={t('providerProfile.available')} />
                 </View>
               </SectionCard>
 
               {/* Social Media Section */}
               {(twitter || facebook || google || linkedin) && (
                 <SectionCard
-                  title="Social Media"
+                  title={t('providerProfile.socialMedia')}
                   icon={GOOGLE}
                   onEdit={() => {
                     const profileDataToPass = {

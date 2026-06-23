@@ -1,5 +1,6 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import { Image, StatusBar, StyleSheet, Text, TouchableOpacity, View, SafeAreaView, Platform } from "react-native";
+import { useTranslation } from "../../hooks/useTranslation";
 import { BLACK, BRANDCOLOR, WHITE } from "../../constant/color";
 import { FlatList } from "react-native-gesture-handler";
 import { ONBOARDING } from "../../assets/data/onBoardingData";
@@ -8,7 +9,8 @@ import { LOGO } from "../../constant/imagePath";
 import { HEIGHT, WIDTH } from "../../constant/config";
 import { storeStringByKey } from "../../utils/Storage";
 
-export default OnBoardingScreen = ({ navigation }) => {
+export default function OnBoardingScreen({ navigation }) {
+    const { t } = useTranslation();
     const [screen, setScreen] = useState(1);
 
     const onNext = async () => {
@@ -145,7 +147,7 @@ export default OnBoardingScreen = ({ navigation }) => {
                                     Platform.OS === "android" && styles.navBtnTextAndroid
                                 ]}
                             >
-                                Skip
+                                {t('onboarding.skip')}
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity 
@@ -166,7 +168,7 @@ export default OnBoardingScreen = ({ navigation }) => {
                                     Platform.OS === "android" && styles.navBtnTextAndroid
                                 ]}
                             >
-                                {screen === ONBOARDING.length ? "Get Started" : "Next"}
+                                {screen === ONBOARDING.length ? t('onboarding.getStarted') : t('onboarding.next')}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -174,7 +176,7 @@ export default OnBoardingScreen = ({ navigation }) => {
             </Container>
         </>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {

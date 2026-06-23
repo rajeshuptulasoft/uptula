@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -58,10 +58,22 @@ import { GETNETWORK, POSTNETWORK, DELETENETWORK } from "../../../utils/Network";
 import { ToastMessage } from "../../../components/commonComponents/ToastMessage";
 import { getObjByKey } from "../../../utils/Storage";
 import ApplyJobForm from "../../../components/jobSeekerComponents/ApplyJobForm";
+import { useTranslation } from "../../../hooks/useTranslation";
 // import DocumentPicker from "react-native-document-picker";
 
 const JobDetailsScreen = ({ navigation, route }) => {
+  const { t, i18n } = useTranslation();
   const { jobId, jobData } = route?.params || {};
+  const tabs = useMemo(
+    () => [
+      { id: "jobDetails", label: t("jobDetails.tabJobDetails") },
+      { id: "aboutCompany", label: t("jobDetails.tabAboutCompany") },
+      { id: "reviews", label: t("jobDetails.tabReviews") },
+      { id: "benefits", label: t("jobDetails.tabBenefits") },
+      { id: "salaries", label: t("jobDetails.tabSalaries") },
+    ],
+    [t]
+  );
   const [jobDetails, setJobDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -73,7 +85,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
     msg: "",
     visible: false,
   });
-  const [activeTab, setActiveTab] = useState("Job Details");
+  const [activeTab, setActiveTab] = useState("jobDetails");
   const [followCompany, setFollowCompany] = useState(false);
   const [isApplied, setIsApplied] = useState(
     route?.params?.isApplied ? true : false
@@ -471,7 +483,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
       }
     };
     
-    if (jobDetails && activeTab === "Job Details") {
+    if (jobDetails && activeTab === "jobDetails") {
       fetchSimilarJobs();
     }
   }, [jobDetails, activeTab, jobId]);
@@ -707,7 +719,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
 
       if (isSuccess) {
         const chatId = result?.id || result?.chatId || result?.threadId || result?.data?.id || result?.data?.chatId || result?.data?.threadId;
-        const successMessage = result?.message || "Chat request sent successfully!";
+        const successMessage = result?.message || t("jobDetails.chatSent");
         
         console.log('✅ JobDetailsScreen: Chat request successful!');
         console.log('✅ JobDetailsScreen: Chat ID:', chatId);
@@ -730,7 +742,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
           }
         }, 1500);
       } else {
-        const errorMessage = result?.message || result?.error || "Failed to send chat request. Please try again.";
+        const errorMessage = result?.message || result?.error || t("jobDetails.chatFailed");
         console.log('❌ JobDetailsScreen: Chat request failed');
         console.log('❌ JobDetailsScreen: Error message:', errorMessage);
         console.log('❌ JobDetailsScreen: Full error response:', JSON.stringify(result, null, 2));
@@ -748,7 +760,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
       
       setChatToastMessage({
         type: "error",
-        msg: "An error occurred while sending chat request. Please try again.",
+        msg: t("jobDetails.chatError"),
         visible: true,
       });
     } finally {
@@ -845,7 +857,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={BRANDCOLOR} />
-        <Text style={styles.loadingText}>Loading job details...</Text>
+        <Text style={styles.loadingText}>{t("jobDetails.loading")}</Text>
       </View>
     );
   }
@@ -856,11 +868,11 @@ const JobDetailsScreen = ({ navigation, route }) => {
         <MyHeader
           showBack
           showCenterTitle
-          title="Job Details"
+          title={t("jobDetails.title")}
           onBackPress={() => navigation.goBack()}
         />
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Job details not found</Text>
+          <Text style={styles.errorText}>{t("jobDetails.notFound")}</Text>
         </View>
       </View>
     );
@@ -881,7 +893,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
       <MyHeader
         showBack
         showCenterTitle
-        title="Job Details"
+        title={t("jobDetails.title")}
         onBackPress={() => navigation.goBack()}
       />
 
@@ -986,28 +998,28 @@ const JobDetailsScreen = ({ navigation, route }) => {
         {/* Tab Navigation */}
         <View style={styles.tabContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScrollContent}>
-            {["Job Details", "About Company", "Reviews", "Benefits", "Salaries"].map((tab) => (
+            {tabs.map((tab) => (
               <TouchableOpacity
-                key={tab}
-                style={[styles.tab, activeTab === tab && styles.activeTab]}
-                onPress={() => setActiveTab(tab)}
+                key={tab.id}
+                style={[styles.tab, activeTab === tab.id && styles.activeTab]}
+                onPress={() => setActiveTab(tab.id)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-                  {tab}
+                <Text style={[styles.tabText, activeTab === tab.id && styles.activeTabText]}>
+                  {tab.label}
                 </Text>
-                {activeTab === tab && <View style={styles.tabIndicator} />}
+                {activeTab === tab.id && <View style={styles.tabIndicator} />}
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
 
         {/* Content based on active tab */}
-        {activeTab === "Job Details" && (
+        {activeTab === "jobDetails" && (
           <>
             {/* Job Highlights Card */}
             <View style={styles.highlightsCard}>
-              <Text style={styles.highlightsTitle}>Job highlights</Text>
+              <Text style={styles.highlightsTitle}>{t("jobDetails.jobHighlights")}</Text>
               <View style={styles.highlightsList}>
                 <Text style={styles.highlightItem}>
                   • {jobDetails.experience || "1-3 years"} of experience in software development with proficiency in {jobDetails.skills?.split(",")[0] || "React.js"}, JavaScript, HTML5, and CSS
@@ -1026,7 +1038,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
               </View>
               <View style={styles.infoItem}>
                 <MaterialCommunityIcons name="account-outline" size={20} color={BRANDCOLOR} />
-                <Text style={styles.infoItemText}>{jobDetails.noOfVacancy || 1} vacancy</Text>
+                <Text style={styles.infoItemText}>{t("jobDetails.vacancyCount", { count: jobDetails.noOfVacancy || 1 })}</Text>
               </View>
             <View style={styles.infoItem}>
               <MaterialCommunityIcons name="map-marker-outline" size={20} color={BRANDCOLOR} />
@@ -1039,7 +1051,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
                 <Text style={styles.infoItemText}>
                   {formatSalary(jobDetails.salaryRange || jobDetails.salary) !== "NA" 
                     ? formatSalary(jobDetails.salaryRange || jobDetails.salary) 
-                    : "Not disclosed"}
+                    : t("jobDetails.notDisclosed")}
                 </Text>
               </View>
             </View>
@@ -1047,7 +1059,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
             {/* Skills Section */}
             {jobDetails.skills && (
               <View style={styles.skillsSection}>
-                <Text style={styles.skillsLabel}>Must have skills:</Text>
+                <Text style={styles.skillsLabel}>{t("jobDetails.mustHaveSkills")}</Text>
                 <View style={styles.skillsContainer}>
                   {jobDetails.skills.split(",").slice(0, 5).map((skill, index) => (
                     <View key={index} style={styles.skillTag}>
@@ -1057,7 +1069,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
                 </View>
                 {jobDetails.skills.split(",").length > 5 && (
                   <>
-                    <Text style={styles.skillsLabel}>Good to have skills:</Text>
+                    <Text style={styles.skillsLabel}>{t("jobDetails.goodToHaveSkills")}</Text>
                     <View style={styles.skillsContainer}>
                       {jobDetails.skills.split(",").slice(5).map((skill, index) => (
                         <View key={index} style={styles.skillTag}>
@@ -1072,7 +1084,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
 
             {/* Job Description Section */}
             <View style={styles.descriptionSection}>
-              <Text style={styles.sectionTitle}>Job description</Text>
+              <Text style={styles.sectionTitle}>{t("jobDetails.jobDescription")}</Text>
               
               {jobDetails.description && (
                 <Text style={styles.descriptionText}>{jobDetails.description}</Text>
@@ -1155,7 +1167,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
               {displayApplied ? (
                 <View style={styles.appliedButton}>
                   <MaterialCommunityIcons name="check-circle" size={WIDTH * 0.05} color="#28a745" />
-                  <Text style={styles.appliedButtonText}>Applied</Text>
+                  <Text style={styles.appliedButtonText}>{t("jobDetails.applied")}</Text>
                 </View>
               ) : (
                 <TouchableOpacity
@@ -1163,7 +1175,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
                   onPress={handleApply}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.applyNowButtonText}>Apply now</Text>
+                  <Text style={styles.applyNowButtonText}>{t("jobDetails.applyNow")}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -1178,12 +1190,12 @@ const JobDetailsScreen = ({ navigation, route }) => {
                 {requestChatLoading ? (
                   <View style={styles.requestChatButtonContent}>
                     <ActivityIndicator size="small" color={WHITE} />
-                    <Text style={styles.requestChatButtonText}>Requesting...</Text>
+                    <Text style={styles.requestChatButtonText}>{t("jobDetails.requesting")}</Text>
                   </View>
                 ) : (
                   <View style={styles.requestChatButtonContent}>
                     <MaterialCommunityIcons name="message-text-outline" size={WIDTH * 0.04} color={WHITE} />
-                    <Text style={styles.requestChatButtonText}>Request Chat</Text>
+                    <Text style={styles.requestChatButtonText}>{t("jobDetails.requestChat")}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -1191,19 +1203,19 @@ const JobDetailsScreen = ({ navigation, route }) => {
           </>
         )}
 
-        {activeTab === "About Company" && (
+        {activeTab === "aboutCompany" && (
           <View style={styles.aboutCompanySection}>
-            <Text style={styles.sectionTitle}>About Company</Text>
+            <Text style={styles.sectionTitle}>{t("jobDetails.aboutCompany")}</Text>
             <Text style={styles.descriptionText}>
-              Company information will be displayed here.
+              {t("jobDetails.aboutCompanyPlaceholder")}
             </Text>
           </View>
         )}
 
-        {activeTab === "Reviews" && (
+        {activeTab === "reviews" && (
           <View style={styles.reviewsSection}>
             <View style={styles.reviewsHeader}>
-              <Text style={styles.sectionTitle}>Reviews</Text>
+              <Text style={styles.sectionTitle}>{t("jobDetails.reviews")}</Text>
               <TouchableOpacity
                 style={styles.wishlistButtonInReviews}
                 onPress={handleWishlist}
@@ -1219,16 +1231,16 @@ const JobDetailsScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        {activeTab === "Benefits" && (
+        {activeTab === "benefits" && (
           <View style={styles.benefitsSection}>
-            <Text style={styles.sectionTitle}>Benefits</Text>
+            <Text style={styles.sectionTitle}>{t("jobDetails.benefits")}</Text>
             <Text style={styles.descriptionText}>
-              Benefits information will be displayed here.
+              {t("jobDetails.benefitsPlaceholder")}
             </Text>
           </View>
         )}
 
-        {activeTab === "Salaries" && (() => {
+        {activeTab === "salaries" && (() => {
           const salaryData = calculateAvgSalary(jobDetails.salaryRange || jobDetails.salary);
           const rangePercentage = salaryData.max > salaryData.min 
             ? ((salaryData.avg - salaryData.min) / (salaryData.max - salaryData.min)) * 100 
@@ -1236,14 +1248,16 @@ const JobDetailsScreen = ({ navigation, route }) => {
           
           return (
             <View style={styles.salariesSection}>
-              <Text style={styles.sectionTitle}>Salary insights</Text>
+              <Text style={styles.sectionTitle}>{t("jobDetails.salaryInsights")}</Text>
               <Text style={styles.salaryDescription}>
-                Compare salaries of {jobDetails.title || jobDetails.jobTitle || "Software Development Engineer"} with similar companies.
+                {t("jobDetails.compareSalaries", {
+                  jobTitle: jobDetails.title || jobDetails.jobTitle || t("jobDetails.thisPosition"),
+                })}
               </Text>
               
               <View style={styles.salaryCard}>
                 <Text style={styles.avgSalaryText}>
-                  Avg. Salary - ₹ {salaryData.avg.toLocaleString()}
+                  {t("jobDetails.avgSalary", { amount: salaryData.avg.toLocaleString() })}
                 </Text>
                 <View style={styles.salaryRangeContainer}>
                   <View style={styles.salaryRangeBar}>
@@ -1251,10 +1265,10 @@ const JobDetailsScreen = ({ navigation, route }) => {
                   </View>
                   <View style={styles.salaryRangeLabels}>
                     <Text style={styles.salaryRangeLabel}>
-                      Min ₹{salaryData.min.toLocaleString()}
+                      {t("jobDetails.minSalary", { amount: salaryData.min.toLocaleString() })}
                     </Text>
                     <Text style={styles.salaryRangeLabel}>
-                      Max ₹{salaryData.max.toLocaleString()}
+                      {t("jobDetails.maxSalary", { amount: salaryData.max.toLocaleString() })}
                     </Text>
                   </View>
                 </View>
@@ -1264,9 +1278,9 @@ const JobDetailsScreen = ({ navigation, route }) => {
         })()}
 
         {/* Similar Jobs Section */}
-        {activeTab === "Job Details" && (
+        {activeTab === "jobDetails" && (
           <View style={styles.similarJobsSection}>
-            <Text style={styles.sectionTitle}>Similar jobs</Text>
+            <Text style={styles.sectionTitle}>{t("jobDetails.similarJobs")}</Text>
             {similarJobs.length > 0 ? (
               similarJobs.map((job, index) => {
                 const similarJobId = job.id || job._id;
@@ -1303,7 +1317,10 @@ const JobDetailsScreen = ({ navigation, route }) => {
                           <View style={styles.similarJobInfoItem}>
                             <MaterialCommunityIcons name="star" size={14} color="#FFB800" />
                             <Text style={styles.similarJobInfoText}>
-                              {job.rating} ({job.reviewsCount || 0} Reviews)
+                              {t("jobDetails.similarJobReviews", {
+                                rating: job.rating,
+                                count: job.reviewsCount || 0,
+                              })}
                             </Text>
                           </View>
                         )}
@@ -1369,7 +1386,7 @@ const JobDetailsScreen = ({ navigation, route }) => {
               })
             ) : (
               <View style={styles.noSimilarJobs}>
-                <Text style={styles.noSimilarJobsText}>No similar jobs found</Text>
+                <Text style={styles.noSimilarJobsText}>{t("jobDetails.noSimilarJobs")}</Text>
               </View>
             )}
           </View>

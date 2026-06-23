@@ -34,6 +34,7 @@ import {
     FIRASANS,
     FIRASANSSEMIBOLD,
 } from "../../../constant/fontPath";
+import { useTranslation } from "../../../hooks/useTranslation";
 
 const { width, height } = Dimensions.get("window");
 
@@ -61,6 +62,7 @@ const MOCK_QUESTIONS = [
 ];
 
 export default MockInterviewScreen = () => {
+    const { t } = useTranslation();
     // Navigation
     const navigation = useNavigation();
     // const soundRef = useRef(null);
@@ -213,12 +215,12 @@ export default MockInterviewScreen = () => {
 
     const handleCreateInterview = () => {
         if (!jobRole.trim() || !jobDescription.trim() || !yearsOfExperience.trim()) {
-            Alert.alert("Error", "Please fill all fields");
+            Alert.alert(t("mockInterview.error"), t("mockInterview.fillAllFields"));
             return;
         }
 
         if (isNaN(yearsOfExperience) || parseInt(yearsOfExperience) < 0) {
-            Alert.alert("Error", "Years of experience must be a valid number");
+            Alert.alert(t("mockInterview.error"), t("mockInterview.invalidExperience"));
             return;
         }
 
@@ -258,7 +260,7 @@ export default MockInterviewScreen = () => {
             setIsRecording(true);
         } catch (error) {
             console.error("Error starting recording:", error);
-            Alert.alert("Error", "Failed to start recording. Make sure microphone permission is granted.");
+            Alert.alert(t("mockInterview.error"), t("mockInterview.recordingStartFailed"));
         }
     };
 
@@ -284,7 +286,7 @@ export default MockInterviewScreen = () => {
             });
         } catch (error) {
             console.error("Error stopping recording:", error);
-            Alert.alert("Error", "Failed to stop recording.");
+            Alert.alert(t("mockInterview.error"), t("mockInterview.recordingStopFailed"));
         }
     };
 
@@ -297,7 +299,7 @@ export default MockInterviewScreen = () => {
             
             if (!audioPath) {
                 // console.log("❌ No Recording Found!");
-                Alert.alert("No Recording", "No recording found for this question.");
+                Alert.alert(t("mockInterview.noRecording"), t("mockInterview.noRecordingFound"));
                 return;
             }
 
@@ -308,12 +310,12 @@ export default MockInterviewScreen = () => {
             // }
 
             // Sound playing disabled - react-native-sound removed
-            Alert.alert("Feature Disabled", "Audio playback is temporarily disabled.");
+            Alert.alert(t("mockInterview.featureDisabled"), t("mockInterview.playbackDisabled"));
             setIsPlayingAudio(false);
         } catch (error) {
             console.error("Error playing recording:", error);
             setIsPlayingAudio(false);
-            Alert.alert("Error", "Failed to play recording.");
+            Alert.alert(t("mockInterview.error"), t("mockInterview.playbackFailed"));
         }
     };
 
@@ -369,7 +371,7 @@ export default MockInterviewScreen = () => {
             <MyHeader
                 // backgroundColor={BRANDCOLOR}
                 showCenterTitle
-                title="Mock Interview"
+                title={t("mockInterview.title")}
                 showBack = {true}
                 onBackPress={()=>{
                     navigation.goBack();
@@ -381,13 +383,13 @@ export default MockInterviewScreen = () => {
                         allowFontScaling={false}
                         style={styles.emptyStateText}
                     >
-                        No Interviews Yet
+                        {t("mockInterview.noInterviews")}
                     </Text>
                     <Text
                         allowFontScaling={false}
                         style={styles.emptyStateSubtext}
                     >
-                        Create a new mock interview to get started
+                        {t("mockInterview.createNew")}
                     </Text>
                     <Pressable
                         style={styles.floatingButton}
@@ -406,7 +408,7 @@ export default MockInterviewScreen = () => {
                 {previousInterviews.length > 0 && (
                     <View style={styles.previousInterviewsSection}>
                         <Text allowFontScaling={false} style={styles.previousInterviewsTitle}>
-                            Previous Mock Interviews
+                            {t("mockInterview.previousInterviews")}
                         </Text>
                         <FlatList
                             data={previousInterviews}
@@ -415,7 +417,7 @@ export default MockInterviewScreen = () => {
                             scrollEnabled={false}
                             renderItem={({ item }) => {
                                 const performanceColor = item.score >= 80 ? '#10B981' : item.score >= 50 ? '#F59E0B' : BRANDCOLOR;
-                                const performanceBadge = item.score >= 80 ? '⭐ Excellent' : item.score >= 50 ? '🎯 Good' : '📝 Attempted';
+                                const performanceBadge = item.score >= 80 ? t("mockInterview.excellent") : item.score >= 50 ? t("mockInterview.good") : t("mockInterview.attempted");
                                 
                                  return (
                                     <View style={styles.interviewCardContainer}>
@@ -454,7 +456,7 @@ export default MockInterviewScreen = () => {
                                                 <View style={styles.detailItem}>
                                                     <Text allowFontScaling={false} style={styles.detailIcon}>⏰</Text>
                                                     <Text allowFontScaling={false} style={styles.detailText}>
-                                                        {item.yearsOfExperience}y exp
+                                                        {t("mockInterview.yearsExp", { years: item.yearsOfExperience })}
                                                     </Text>
                                                 </View>
                                                 <View style={styles.detailItem}>
@@ -473,16 +475,16 @@ export default MockInterviewScreen = () => {
                                             {/* Action Buttons */}
                                             <View style={styles.cardButtons}>
                                                 <CustomButton
-                                                    text="Feedback"
+                                                    text={t("mockInterview.feedback")}
                                                     width="48%"
                                                     height={38}
                                                     backgroundColor="#F3F4F6"
                                                     color={BRANDCOLOR}
                                                     fontSize={12}
-                                                    onPress={() => Alert.alert("Feedback", "Feedback feature coming soon")}
+                                                    onPress={() => Alert.alert(t("mockInterview.feedback"), t("mockInterview.feedbackComingSoon"))}
                                                 />
                                                 <CustomButton
-                                                    text="Retake"
+                                                    text={t("mockInterview.retake")}
                                                     width="48%"
                                                     height={38}
                                                     backgroundColor={BRANDCOLOR}
@@ -521,7 +523,7 @@ export default MockInterviewScreen = () => {
                                 allowFontScaling={false}
                                 style={styles.modalTitle}
                             >
-                                Create New Mock Interview
+                                {t("mockInterview.createNewTitle")}
                             </Text>
                             <Pressable onPress={handleCloseModal}>
                                 <Text
@@ -543,10 +545,10 @@ export default MockInterviewScreen = () => {
                                     allowFontScaling={false}
                                     style={styles.inputLabel}
                                 >
-                                    Job Role / Position
+                                    {t("mockInterview.jobRole")}
                                 </Text>
                                 <TextInputComponent
-                                    placeholder="e.g., Full Stack Developer"
+                                    placeholder={t("mockInterview.jobRolePlaceholder")}
                                     inputdata={jobRole}
                                     setInputdata={setJobRole}
                                     borderColor={BRANDCOLOR}
@@ -559,10 +561,10 @@ export default MockInterviewScreen = () => {
                                     allowFontScaling={false}
                                     style={styles.inputLabel}
                                 >
-                                    Job Description / Tech Stack
+                                    {t("mockInterview.jobDescription")}
                                 </Text>
                                 <TextInputComponent
-                                    placeholder="e.g., React, Node.js, MongoDB, Express"
+                                    placeholder={t("mockInterview.jobDescriptionPlaceholder")}
                                     inputdata={jobDescription}
                                     setInputdata={setJobDescription}
                                     borderColor={BRANDCOLOR}
@@ -573,7 +575,7 @@ export default MockInterviewScreen = () => {
                                     allowFontScaling={false}
                                     style={styles.helperText}
                                 >
-                                    Separate technologies with commas
+                                    {t("mockInterview.separateTechnologies")}
                                 </Text>
                             </View>
 
@@ -582,10 +584,10 @@ export default MockInterviewScreen = () => {
                                     allowFontScaling={false}
                                     style={styles.inputLabel}
                                 >
-                                    Years of Experience
+                                    {t("mockInterview.yearsOfExperience")}
                                 </Text>
                                 <TextInputComponent
-                                    placeholder="e.g., 2"
+                                    placeholder={t("mockInterview.yearsPlaceholder")}
                                     inputdata={yearsOfExperience}
                                     setInputdata={setYearsOfExperience}
                                     borderColor={BRANDCOLOR}
@@ -600,27 +602,27 @@ export default MockInterviewScreen = () => {
                                     allowFontScaling={false}
                                     style={styles.infoTitle}
                                 >
-                                    ℹ Information
+                                    {t("mockInterview.information")}
                                 </Text>
                                 <Text
                                     allowFontScaling={false}
                                     style={styles.infoText}
                                 >
-                                    Enable your video & microphone, webcam recommended.
+                                    {t("mockInterview.enableWebcamInfo")}
                                 </Text>
                             </View>
                         </ScrollView>
 
                         <View style={styles.modalButtons}>
                             <CustomButton
-                                text="Cancel"
+                                text={t("mockInterview.cancel")}
                                 width="45%"
                                 backgroundColor="#E8E8E8"
                                 color={BLACK}
                                 onPress={handleCloseModal}
                             />
                             <CustomButton
-                                text="Create"
+                                text={t("mockInterview.create")}
                                 width="45%"
                                 backgroundColor={BRANDCOLOR}
                                 color={WHITE}
@@ -646,7 +648,7 @@ export default MockInterviewScreen = () => {
                 // backgroundColor={BRANDCOLOR}
                 showBack
                 showCenterTitle
-                title="Interview Setup"
+                title={t("mockInterview.interviewSetup")}
                 onBackPress={handleSetupBackPress}
             />
             <ScrollView contentContainerStyle={styles.setupContent}>
@@ -657,7 +659,7 @@ export default MockInterviewScreen = () => {
                             allowFontScaling={false}
                             style={styles.detailLabel}
                         >
-                            Job Role/Position:
+                            {t("mockInterview.jobRoleLabel")}
                         </Text>
                         <Text
                             allowFontScaling={false}
@@ -671,7 +673,7 @@ export default MockInterviewScreen = () => {
                             allowFontScaling={false}
                             style={styles.detailLabel}
                         >
-                            Job Description/Tech Stack:
+                            {t("mockInterview.jobDescriptionLabel")}
                         </Text>
                         <Text
                             allowFontScaling={false}
@@ -685,7 +687,7 @@ export default MockInterviewScreen = () => {
                             allowFontScaling={false}
                             style={styles.detailLabel}
                         >
-                            Years of Experience:
+                            {t("mockInterview.yearsLabel")}
                         </Text>
                         <Text
                             allowFontScaling={false}
@@ -702,7 +704,7 @@ export default MockInterviewScreen = () => {
                         allowFontScaling={false}
                         style={styles.getStartedTitle}
                     >
-                        Let's Get Started
+                        {t("mockInterview.letsGetStarted")}
                     </Text>
 
                     {/* Camera Icon Placeholder */}
@@ -723,20 +725,20 @@ export default MockInterviewScreen = () => {
                             allowFontScaling={false}
                             style={styles.alertTitle}
                         >
-                            ℹ Information
+                            {t("mockInterview.information")}
                         </Text>
                         <Text
                             allowFontScaling={false}
                             style={styles.alertText}
                         >
-                            Enable your video & microphone, webcam recommended.
+                            {t("mockInterview.enableWebcamInfo")}
                         </Text>
                     </View>
 
                     {/* Buttons */}
                     <View style={styles.setupButtons}>
                         <CustomButton
-                            text="Enable WebCam"
+                            text={t("mockInterview.enableWebcam")}
                             width="100%"
                             height={50}
                             backgroundColor={BRANDCOLOR}
@@ -744,7 +746,7 @@ export default MockInterviewScreen = () => {
                             onPress={handleEnableWebcam}
                         />
                         <CustomButton
-                            text="Start Interview"
+                            text={t("mockInterview.startInterview")}
                             width="100%"
                             height={50}
                             backgroundColor="#7C3AED"
@@ -766,16 +768,16 @@ export default MockInterviewScreen = () => {
             }
             
             Alert.alert(
-                "Exit Interview",
-                "Are you sure you want to exit?",
+                t("mockInterview.exitInterview"),
+                t("mockInterview.exitConfirm"),
                 [
                     {
-                        text: "Cancel",
+                        text: t("mockInterview.cancel"),
                         onPress: () => {},
                         style: "cancel",
                     },
                     {
-                        text: "Exit",
+                        text: t("mockInterview.exit"),
                         onPress: () => {
                             setCurrentScreen("home");
                             setInterviewData(null);
@@ -799,7 +801,7 @@ export default MockInterviewScreen = () => {
                     // backgroundColor={BRANDCOLOR}
                     showBack
                     showCenterTitle
-                    title={`Question ${currentQuestionIndex + 1} of ${MOCK_QUESTIONS.length}`}
+                    title={t("mockInterview.questionOf", { current: currentQuestionIndex + 1, total: MOCK_QUESTIONS.length })}
                     onBackPress={handleInterviewBackPress}
                 />
 
@@ -868,7 +870,7 @@ export default MockInterviewScreen = () => {
                                 allowFontScaling={false}
                                 style={styles.webcamLabel}
                             >
-                                WebCam Preview
+                                {t("mockInterview.webcamPreview")}
                             </Text>
                         </View>
 
@@ -878,7 +880,7 @@ export default MockInterviewScreen = () => {
                                     allowFontScaling={false}
                                     style={styles.recordingText}
                                 >
-                                    ● Recording...
+                                    {t("mockInterview.recording")}
                                 </Text>
                             </View>
                         )}
@@ -887,7 +889,7 @@ export default MockInterviewScreen = () => {
                     {/* Control Buttons */}
                     <View style={styles.controlButtons}>
                         <CustomButton
-                            text="Enable WebCam"
+                            text={t("mockInterview.enableWebcam")}
                             width="100%"
                             height={45}
                             backgroundColor={BRANDCOLOR}
@@ -900,8 +902,8 @@ export default MockInterviewScreen = () => {
                             <CustomButton
                                 text={
                                     isRecording
-                                        ? "Stop Recording"
-                                        : "Record Answer"
+                                        ? t("mockInterview.stopRecording")
+                                        : t("mockInterview.recordAnswer")
                                 }
                                 width="48%"
                                 height={45}
@@ -921,8 +923,8 @@ export default MockInterviewScreen = () => {
                                 text={
                                     currentQuestionIndex ===
                                     MOCK_QUESTIONS.length - 1
-                                        ? "Finish"
-                                        : "Next Question"
+                                        ? t("mockInterview.finish")
+                                        : t("mockInterview.nextQuestion")
                                 }
                                 width="48%"
                                 height={45}
@@ -953,7 +955,7 @@ export default MockInterviewScreen = () => {
                                     allowFontScaling={false}
                                     style={styles.playbackLabel}
                                 >
-                                    {isPlayingAudio ? "Playing..." : "Listen to your answer"}
+                                    {isPlayingAudio ? t("mockInterview.playing") : t("mockInterview.listenAnswer")}
                                 </Text>
                             </View>
                         )}
@@ -966,7 +968,7 @@ export default MockInterviewScreen = () => {
                                 allowFontScaling={false}
                                 style={styles.statusText}
                             >
-                                ✓ Answer Recorded
+                                {t("mockInterview.answerRecorded")}
                             </Text>
                         </View>
                     )}
@@ -986,7 +988,7 @@ export default MockInterviewScreen = () => {
                 <MyHeader
                     showBack
                     showCenterTitle
-                    title="Interview Results"
+                    title={t("mockInterview.interviewResults")}
                     onBackPress={() => {
                         if (isPlayingAudio) {
                             setIsPlayingAudio(false);
@@ -1007,12 +1009,12 @@ export default MockInterviewScreen = () => {
                                 {isSuccess ? "🎉" : "📝"}
                             </Text>
                             <Text allowFontScaling={false} style={styles.badgeTitle}>
-                                {isSuccess ? "Excellent!" : "Good Effort!"}
+                                {isSuccess ? t("mockInterview.excellentTitle") : t("mockInterview.goodEffort")}
                             </Text>
                             <Text allowFontScaling={false} style={styles.badgeMessage}>
                                 {isSuccess
-                                    ? "You answered all questions. Keep practicing!"
-                                    : "Answer more questions to improve your score."}
+                                    ? t("mockInterview.allAnswered")
+                                    : t("mockInterview.answerMore")}
                             </Text>
                         </View>
                     </View>
@@ -1020,7 +1022,7 @@ export default MockInterviewScreen = () => {
                     {/* Score Section */}
                     <View style={styles.scoreSection}>
                         <Text allowFontScaling={false} style={styles.scoreLabel}>
-                            Completion Score
+                            {t("mockInterview.completionScore")}
                         </Text>
                         <View style={styles.scoreCircle}>
                             <Text allowFontScaling={false} style={styles.scorePercentage}>
@@ -1028,7 +1030,7 @@ export default MockInterviewScreen = () => {
                             </Text>
                         </View>
                         <Text allowFontScaling={false} style={styles.scoreDetails}>
-                            {recordedCount} of {totalQuestions} questions answered
+                            {t("mockInterview.questionsAnswered", { answered: recordedCount, total: totalQuestions })}
                         </Text>
                     </View>
 
@@ -1039,7 +1041,7 @@ export default MockInterviewScreen = () => {
                                 ✓
                             </Text>
                             <Text allowFontScaling={false} style={styles.statLabel}>
-                                Answered
+                                {t("mockInterview.answered")}
                             </Text>
                             <Text allowFontScaling={false} style={styles.statValue}>
                                 {recordedCount}
@@ -1050,7 +1052,7 @@ export default MockInterviewScreen = () => {
                                 ○
                             </Text>
                             <Text allowFontScaling={false} style={styles.statLabel}>
-                                Skipped
+                                {t("mockInterview.skipped")}
                             </Text>
                             <Text allowFontScaling={false} style={styles.statValue}>
                                 {totalQuestions - recordedCount}
@@ -1061,7 +1063,7 @@ export default MockInterviewScreen = () => {
                                 ⏱️
                             </Text>
                             <Text allowFontScaling={false} style={styles.statLabel}>
-                                Total
+                                {t("mockInterview.total")}
                             </Text>
                             <Text allowFontScaling={false} style={styles.statValue}>
                                 {totalQuestions}
@@ -1072,7 +1074,7 @@ export default MockInterviewScreen = () => {
                     {/* Badges Section */}
                     <View style={styles.badgesSection}>
                         <Text allowFontScaling={false} style={styles.badgesSectionTitle}>
-                            Achievements
+                            {t("mockInterview.achievements")}
                         </Text>
                         <View style={styles.badgesGrid}>
                             {successPercentage === 100 ? (
@@ -1081,7 +1083,7 @@ export default MockInterviewScreen = () => {
                                         👑
                                     </Text>
                                     <Text allowFontScaling={false} style={styles.achievementName}>
-                                        Perfect
+                                        {t("mockInterview.perfect")}
                                     </Text>
                                 </View>
                             ) : (
@@ -1090,7 +1092,7 @@ export default MockInterviewScreen = () => {
                                         👑
                                     </Text>
                                     <Text allowFontScaling={false} style={styles.achievementName}>
-                                        Perfect
+                                        {t("mockInterview.perfect")}
                                     </Text>
                                 </View>
                             )}
@@ -1101,7 +1103,7 @@ export default MockInterviewScreen = () => {
                                         ⭐
                                     </Text>
                                     <Text allowFontScaling={false} style={styles.achievementName}>
-                                        Star
+                                        {t("mockInterview.star")}
                                     </Text>
                                 </View>
                             ) : (
@@ -1110,7 +1112,7 @@ export default MockInterviewScreen = () => {
                                         ⭐
                                     </Text>
                                     <Text allowFontScaling={false} style={styles.achievementName}>
-                                        Star
+                                        {t("mockInterview.star")}
                                     </Text>
                                 </View>
                             )}
@@ -1121,7 +1123,7 @@ export default MockInterviewScreen = () => {
                                         🎯
                                     </Text>
                                     <Text allowFontScaling={false} style={styles.achievementName}>
-                                        Starter
+                                        {t("mockInterview.starter")}
                                     </Text>
                                 </View>
                             ) : (
@@ -1130,7 +1132,7 @@ export default MockInterviewScreen = () => {
                                         🎯
                                     </Text>
                                     <Text allowFontScaling={false} style={styles.achievementName}>
-                                        Starter
+                                        {t("mockInterview.starter")}
                                     </Text>
                                 </View>
                             )}
@@ -1141,7 +1143,7 @@ export default MockInterviewScreen = () => {
                                         🚀
                                     </Text>
                                     <Text allowFontScaling={false} style={styles.achievementName}>
-                                        Launched
+                                        {t("mockInterview.launched")}
                                     </Text>
                                 </View>
                             ) : (
@@ -1150,7 +1152,7 @@ export default MockInterviewScreen = () => {
                                         🚀
                                     </Text>
                                     <Text allowFontScaling={false} style={styles.achievementName}>
-                                        Launched
+                                        {t("mockInterview.launched")}
                                     </Text>
                                 </View>
                             )}
@@ -1160,7 +1162,7 @@ export default MockInterviewScreen = () => {
                     {/* Action Buttons */}
                     <View style={styles.resultsButtonsContainer}>
                         <CustomButton
-                            text="Retake Interview"
+                            text={t("mockInterview.retakeInterview")}
                             width="100%"
                             height={50}
                             backgroundColor={BRANDCOLOR}
@@ -1177,7 +1179,7 @@ export default MockInterviewScreen = () => {
                             }}
                         />
                         <CustomButton
-                            text="Back to Home"
+                            text={t("mockInterview.backToHome")}
                             width="100%"
                             height={50}
                             backgroundColor="#E8E8E8"
@@ -1224,10 +1226,10 @@ export default MockInterviewScreen = () => {
     const renderCompletionAlert = () => (
         <MyAlert
             visible={showCompletionAlert}
-            title="Interview Complete"
-            message="You have completed all questions!"
-            textLeft="Back to Home"
-            textRight="View Results"
+            title={t("mockInterview.interviewComplete")}
+            message={t("mockInterview.completedAll")}
+            textLeft={t("mockInterview.backToHome")}
+            textRight={t("mockInterview.viewResults")}
             onPressLeft={async () => {
                 if (isPlayingAudio) {
                     setIsPlayingAudio(false);
@@ -1250,13 +1252,13 @@ export default MockInterviewScreen = () => {
     const renderCameraPermissionAlert = () => (
         <MyAlert
             visible={showCameraPermissionAlert}
-            title="Camera Permission"
+            title={t("mockInterview.cameraPermission")}
             message={
                 cameraPermissionGranted
-                    ? "Camera access enabled successfully!"
-                    : "Camera permission is required to record your answers. Please enable it in settings."
+                    ? t("mockInterview.cameraEnabled")
+                    : t("mockInterview.cameraRequired")
             }
-            textLeft="OK"
+            textLeft={t("mockInterview.ok")}
             textRight=""
             showLeftButton={true}
             showRightButton={false}
@@ -1282,7 +1284,7 @@ export default MockInterviewScreen = () => {
                 <View style={styles.modalOverlayUnanswered}>
                     <View style={styles.unansweredAlertContent}>
                         <Text allowFontScaling={false} style={styles.unansweredAlertTitle}>
-                            Questions Not Answered
+                            {t("mockInterview.questionsNotAnswered")}
                         </Text>
                         <ScrollView style={styles.unansweredList}>
                             {MOCK_QUESTIONS.map((question, index) => (
@@ -1293,11 +1295,11 @@ export default MockInterviewScreen = () => {
                                     <View style={styles.questionContent}>
                                         {recordedAnswers[index] ? (
                                             <Text allowFontScaling={false} style={[styles.answerStatus, { color: '#10B981' }]}>
-                                                ✓ Answer Recorded
+                                                {t("mockInterview.answerRecorded")}
                                             </Text>
                                         ) : (
                                             <Text allowFontScaling={false} style={[styles.answerStatus, { color: '#EF4444' }]}>
-                                                ✗ No Answer Recorded
+                                                {t("mockInterview.noAnswerRecorded")}
                                             </Text>
                                         )}
                                     </View>
@@ -1306,7 +1308,7 @@ export default MockInterviewScreen = () => {
                         </ScrollView>
                         <View style={styles.unansweredAlertButtons}>
                             <CustomButton
-                                text="Continue Answering"
+                                text={t("mockInterview.continueAnswering")}
                                 width="48%"
                                 height={45}
                                 backgroundColor="transparent"
@@ -1320,7 +1322,7 @@ export default MockInterviewScreen = () => {
                                 }}
                             />
                             <CustomButton
-                                text="Finish Interview"
+                                text={t("mockInterview.finishInterview")}
                                 width="48%"
                                 height={45}
                                 backgroundColor={BRANDCOLOR}

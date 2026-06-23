@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -23,8 +23,10 @@ import { MyHeader } from "../../../components/commonComponents/MyHeader";
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK } from "../../../utils/Network";
 import { getObjByKey } from "../../../utils/Storage";
+import { useTranslation } from "../../../hooks/useTranslation";
 
 const RecommendedJobScreen = ({ navigation, route }) => {
+  const { t } = useTranslation();
   const { jobId, jobData } = route?.params || {};
   const [recommendedJobs, setRecommendedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -367,13 +369,24 @@ const RecommendedJobScreen = ({ navigation, route }) => {
       return matchScore >= 3;
     }).length;
   };
-  const companyName = jobData?.companyName || jobData?.company || "Company";
+  const companyName = jobData?.companyName || jobData?.company || t("recommendedJob.company");
+
+  const tabs = useMemo(() => {
+    const profileCount = getProfileJobsCount();
+    const recentCount = getRecentActivityCount();
+    const topCount = getTopCandidateCount();
+    return [
+      { key: "Profile", label: `${t("recommendedJob.profile")} (${profileCount})` },
+      { key: "Recent activity", label: `${t("recommendedJob.recentActivity")} (${recentCount})` },
+      { key: "Top Candidate", label: `${t("recommendedJob.topCandidate")} (${topCount})` },
+    ];
+  }, [t, recommendedJobs, userProfile]);
 
   if (loading && recommendedJobs.length === 0) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={BRANDCOLOR} />
-        <Text style={styles.loadingText}>Loading recommended jobs...</Text>
+        <Text style={styles.loadingText}>{t("recommendedJob.loading")}</Text>
       </View>
     );
   }
@@ -393,7 +406,7 @@ const RecommendedJobScreen = ({ navigation, route }) => {
       <MyHeader
         showBack
         showCenterTitle
-        title="Recommended Jobs"
+        title={t("recommendedJob.title")}
         onBackPress={() => navigation.goBack()}
       />
 
@@ -413,7 +426,7 @@ const RecommendedJobScreen = ({ navigation, route }) => {
         <View style={styles.successSection}>
           <View style={styles.successHeader}>
             <MaterialCommunityIcons name="check-circle" size={WIDTH * 0.08} color="#28a745" />
-            <Text style={styles.successText}>Applied successfully</Text>
+            <Text style={styles.successText}>{t("recommendedJob.appliedSuccess")}</Text>
           </View>
         </View>
 
@@ -421,7 +434,7 @@ const RecommendedJobScreen = ({ navigation, route }) => {
         <View style={styles.nextStepCard}>
           <View style={styles.nextStepHeader}>
             <View style={styles.nextStepTag}>
-              <Text style={styles.nextStepTagText}>Next step</Text>
+              <Text style={styles.nextStepTagText}>{t("recommendedJob.nextStep")}</Text>
             </View>
             <View style={styles.nextStepLogo}>
               <Text style={styles.nextStepLogoText}>
@@ -430,45 +443,34 @@ const RecommendedJobScreen = ({ navigation, route }) => {
             </View>
           </View>
           <Text style={styles.nextStepTitle}>
-            Start your interview preparation for {companyName}
+            {t("recommendedJob.startInterviewPrep", { company: companyName })}
           </Text>
           <TouchableOpacity style={styles.startPreparingButton} activeOpacity={0.8}>
-            <Text style={styles.startPreparingText}>Start preparing</Text>
+            <Text style={styles.startPreparingText}>{t("recommendedJob.startPreparing")}</Text>
           </TouchableOpacity>
           <View style={styles.attemptedBy}>
             <MaterialCommunityIcons name="account-group" size={WIDTH * 0.04} color="#666" />
-            <Text style={styles.attemptedByText}>Attempted by 21K+</Text>
+            <Text style={styles.attemptedByText}>{t("recommendedJob.attemptedBy")}</Text>
           </View>
           <TouchableOpacity style={styles.viewQuestionsLink} activeOpacity={0.7}>
-            <Text style={styles.viewQuestionsText}>All interview questions for this job</Text>
+            <Text style={styles.viewQuestionsText}>{t("recommendedJob.allQuestions")}</Text>
             <MaterialCommunityIcons name="chevron-right" size={WIDTH * 0.05} color={BRANDCOLOR} />
           </TouchableOpacity>
         </View>
 
         {/* Recommended Jobs Section */}
         <View style={styles.recommendedSection}>
-          <Text style={styles.recommendedTitle}>Recommended Jobs</Text>
+          <Text style={styles.recommendedTitle}>{t("recommendedJob.title")}</Text>
           
           {/* Tab Navigation */}
           <View style={styles.tabContainer}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScrollContent}>
-              {[
-                `Profile (${getProfileJobsCount()})`,
-                `Recent activity (${getRecentActivityCount()})`,
-                `Top Candidate (${getTopCandidateCount()})`
-              ].map((tab) => {
-                let tabKey = "";
-                if (tab.includes("Profile")) {
-                  tabKey = "Profile";
-                } else if (tab.includes("Recent activity")) {
-                  tabKey = "Recent activity";
-                } else if (tab.includes("Top Candidate")) {
-                  tabKey = "Top Candidate";
-                }
+              {tabs.map((tab) => {
+                const tabKey = tab.key;
                 const isActive = activeTab === tabKey;
                 return (
                   <TouchableOpacity
-                    key={tab}
+                    key={tab.key}
                     style={[styles.tab, isActive && styles.activeTab]}
                     onPress={() => {
                       setActiveTab(tabKey);
@@ -476,7 +478,7 @@ const RecommendedJobScreen = ({ navigation, route }) => {
                     activeOpacity={0.7}
                   >
                     <Text style={[styles.tabText, isActive && styles.activeTabText]}>
-                      {tab}
+                      {tab.label}
                     </Text>
                     {isActive && <View style={styles.tabIndicator} />}
                   </TouchableOpacity>
@@ -515,7 +517,7 @@ const RecommendedJobScreen = ({ navigation, route }) => {
                       <View style={styles.jobRating}>
                         <MaterialCommunityIcons name="star" size={14} color="#FFB800" />
                         <Text style={styles.jobRatingText}>
-                          {job.rating} ({job.reviewsCount || 0} Reviews)
+                          {t("recommendedJob.reviews", { rating: job.rating, count: job.reviewsCount || 0 })}
                         </Text>
                       </View>
                     )}
@@ -576,7 +578,7 @@ const RecommendedJobScreen = ({ navigation, route }) => {
                     {isApplied ? (
                       <View style={styles.hideButton}>
                         <MaterialCommunityIcons name="check-circle" size={16} color="#28a745" />
-                        <Text style={styles.hideButtonText}>Applied</Text>
+                        <Text style={styles.hideButtonText}>{t("recommendedJob.applied")}</Text>
                       </View>
                     ) : (
                       <TouchableOpacity 
@@ -588,7 +590,7 @@ const RecommendedJobScreen = ({ navigation, route }) => {
                         }}
                       >
                         <MaterialCommunityIcons name="eye-off-outline" size={16} color={BRANDCOLOR} />
-                        <Text style={styles.hideButtonText}>Hide</Text>
+                        <Text style={styles.hideButtonText}>{t("recommendedJob.hide")}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -597,7 +599,7 @@ const RecommendedJobScreen = ({ navigation, route }) => {
             })
           ) : (
             <View style={styles.noJobs}>
-              <Text style={styles.noJobsText}>No recommended jobs found</Text>
+              <Text style={styles.noJobsText}>{t("recommendedJob.noJobsFound")}</Text>
             </View>
           )}
         </View>

@@ -43,6 +43,7 @@ try {
   console.warn('⚠️ Voice module not available:', error.message);
 }
 
+import './src/i18n';
 import { name as appName } from './app.json';
 import Navigation from './src/navigations/Navigation';
 import DisplayCompanyProfileScreen from './src/screens/userScreens/jobSeekerScreens/DisplayCompanyProfileScreen';

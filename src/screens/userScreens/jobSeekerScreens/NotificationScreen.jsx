@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -29,8 +29,61 @@ import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK, PUTNETWORK } from "../../../utils/Network";
 import { getObjByKey } from "../../../utils/Storage";
 import { LOGO } from "../../../constant/imagePath";
+import { useTranslation } from "../../../hooks/useTranslation";
+
+// Helper function to categorize notification type
+const categorizeNotificationType = (item) => {
+  const itemType = item?.type?.toLowerCase?.() || "";
+  const title = item?.title?.toLowerCase?.() || "";
+  const message = item?.message?.toLowerCase?.() || "";
+
+  // Job Available Notifications
+  if (
+    itemType === "job_available" ||
+    itemType === "new_job_posted" ||
+    itemType === "job_posted" ||
+    title.includes("job posted") ||
+    title.includes("new job") ||
+    message.includes("job posted") ||
+    message.includes("new job")
+  ) {
+    return "job_available";
+  }
+
+  // Applied Job Status Notifications
+  if (
+    itemType === "applied_job_status" ||
+    itemType === "application_status" ||
+    itemType === "job_application" ||
+    itemType === "application_update" ||
+    title.includes("applied") ||
+    title.includes("application") ||
+    title.includes("job status") ||
+    message.includes("applied") ||
+    message.includes("application")
+  ) {
+    return "applied_job_status";
+  }
+
+  // Chat Notifications
+  if (
+    itemType === "chat" ||
+    itemType === "message" ||
+    itemType === "chat_message" ||
+    title.includes("chat") ||
+    title.includes("message") ||
+    message.includes("chat") ||
+    message.includes("message")
+  ) {
+    return "chat";
+  }
+
+  // Others/Default
+  return "others";
+};
 
 const NotificationScreen = ({ navigation }) => {
+  const { t, i18n } = useTranslation();
   const [selectedTab, setSelectedTab] = useState("All");
   const [refreshing, setRefreshing] = useState(false);
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false);
@@ -49,10 +102,10 @@ const NotificationScreen = ({ navigation }) => {
   const ITEMS_PER_PAGE = 10;
 
   const getCreatedAtLabel = (createdAt) => {
-    if (!createdAt) return "Older";
+    if (!createdAt) return t("notifications.older");
 
     const createdDate = new Date(createdAt);
-    if (Number.isNaN(createdDate.getTime())) return "Older";
+    if (Number.isNaN(createdDate.getTime())) return t("notifications.older");
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -63,60 +116,9 @@ const NotificationScreen = ({ navigation }) => {
     );
     const dayDiff = Math.floor((startOfToday - startOfCreated) / (1000 * 60 * 60 * 24));
 
-    if (dayDiff === 0) return "Today";
-    if (dayDiff === 1) return "Yesterday";
-    return "Older";
-  };
-
-  // Helper function to categorize notification type
-  const categorizeNotificationType = (item) => {
-    const itemType = item?.type?.toLowerCase?.() || "";
-    const title = item?.title?.toLowerCase?.() || "";
-    const message = item?.message?.toLowerCase?.() || "";
-
-    // Job Available Notifications
-    if (
-      itemType === "job_available" ||
-      itemType === "new_job_posted" ||
-      itemType === "job_posted" ||
-      title.includes("job posted") ||
-      title.includes("new job") ||
-      message.includes("job posted") ||
-      message.includes("new job")
-    ) {
-      return "job_available";
-    }
-
-    // Applied Job Status Notifications
-    if (
-      itemType === "applied_job_status" ||
-      itemType === "application_status" ||
-      itemType === "job_application" ||
-      itemType === "application_update" ||
-      title.includes("applied") ||
-      title.includes("application") ||
-      title.includes("job status") ||
-      message.includes("applied") ||
-      message.includes("application")
-    ) {
-      return "applied_job_status";
-    }
-
-    // Chat Notifications
-    if (
-      itemType === "chat" ||
-      itemType === "message" ||
-      itemType === "chat_message" ||
-      title.includes("chat") ||
-      title.includes("message") ||
-      message.includes("chat") ||
-      message.includes("message")
-    ) {
-      return "chat";
-    }
-
-    // Others/Default
-    return "others";
+    if (dayDiff === 0) return t("notifications.today");
+    if (dayDiff === 1) return t("notifications.yesterday");
+    return t("notifications.older");
   };
 
   const normalizeNotificationItem = (item) => {
@@ -133,13 +135,16 @@ const NotificationScreen = ({ navigation }) => {
     };
   };
 
-  const tabs = [
-    { key: "All", label: "All", icon: "bell" },
-    { key: "applied_job_status", label: "Applied Job Status", icon: "briefcase-check-outline" },
-    { key: "job_available", label: "Job Available", icon: "briefcase-plus-outline" },
-    { key: "chat", label: "Chats", icon: "message-outline" },
-    { key: "others", label: "Others", icon: "dots-horizontal" },
-  ];
+  const tabs = useMemo(
+    () => [
+      { key: "All", label: t("notifications.all"), icon: "bell" },
+      { key: "applied_job_status", label: t("notifications.appliedJobStatus"), icon: "briefcase-check-outline" },
+      { key: "job_available", label: t("notifications.jobAvailable"), icon: "briefcase-plus-outline" },
+      { key: "chat", label: t("notifications.chats"), icon: "message-outline" },
+      { key: "others", label: t("notifications.others"), icon: "dots-horizontal" },
+    ],
+    [t]
+  );
 
   useEffect(() => {
     checkLoginAndLoad();
@@ -375,7 +380,7 @@ const NotificationScreen = ({ navigation }) => {
       <>
         <StatusBar barStyle="dark-content" backgroundColor={WHITE} translucent={false} />
         <View style={styles.container}>
-          <MyHeader showCenterTitle title="Notifications" />
+          <MyHeader showCenterTitle title={t("notifications.title")} />
           <View style={styles.guestContainer}>
             <MaterialCommunityIcons name="bell-off-outline" size={80} color="#4D72DC" />
             <Text style={styles.guestTitle}>Login Required</Text>
@@ -571,7 +576,7 @@ const NotificationScreen = ({ navigation }) => {
         <MyHeader
           showBack
           showCenterTitle
-          title="Notifications"
+          title={t("notifications.title")}
           onBackPress={handleBackPress}
         />
 
@@ -638,10 +643,10 @@ const NotificationScreen = ({ navigation }) => {
         {/* Delete Alert */}
         <MyAlert
           visible={deleteAlertVisible}
-          title="Delete Notification"
-          message="Are you sure you want to delete this notification?"
-          textLeft="Cancel"
-          textRight="Delete"
+          title={t("notifications.deleteTitle")}
+          message={t("notifications.deleteMessage")}
+          textLeft={t("common.cancel")}
+          textRight={t("notifications.delete")}
           showLeftButton
           showRightButton
           onPressLeft={() => {
@@ -746,7 +751,7 @@ const NotificationScreen = ({ navigation }) => {
                           ]}
                         />
                         <Text style={styles.modalDetailsValue}>
-                          {selectedNotification.read ? "Read" : "Unread"}
+                          {selectedNotification.read ? t("notifications.read") : t("notifications.unread")}
                         </Text>
                       </View>
                     </View>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -29,6 +29,7 @@ import { getObjByKey } from "../../../utils/Storage";
 import { BRANDCOLOR, WHITE, BLACK } from "../../../constant/color";
 import { MAIL, LINKEDIN, GITHUB, PORTFOLIO as PORTFOLIO_ICON, MIC } from "../../../constant/imagePath";
 import { BASE_URL } from "../../../constant/url";
+import { useTranslation } from "../../../hooks/useTranslation";
 
 const { width: WIDTH } = Dimensions.get("screen");
 
@@ -124,19 +125,23 @@ const AddMoreBtn = ({ onPress, label }) => (
 );
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
-// Resume Category & Experience Level options (match UI from images)
-const RESUME_CATEGORIES = [
-  { value: "technical", label: "Technical – Software, Engineering, IT" },
-  { value: "non-technical", label: "Non-Technical – Management, Sales, HR, Finance" },
-  { value: "other", label: "Other – Creative, Arts, General" },
-];
-const EXPERIENCE_LEVELS = [
-  { value: "fresher", label: "Fresher – Student or No Work Experience" },
-  { value: "experienced", label: "Experienced – Working Professional" },
-];
-
-// ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 const CreateResumeScreen = ({ navigation }) => {
+  const { t } = useTranslation();
+  const RESUME_CATEGORIES = useMemo(
+    () => [
+      { value: "technical", label: t("createResume.categoryTechnical") },
+      { value: "non-technical", label: t("createResume.categoryNonTechnical") },
+      { value: "other", label: t("createResume.categoryOther") },
+    ],
+    [t]
+  );
+  const EXPERIENCE_LEVELS = useMemo(
+    () => [
+      { value: "fresher", label: t("createResume.levelFresher") },
+      { value: "experienced", label: t("createResume.levelExperienced") },
+    ],
+    [t]
+  );
   const [currentStepKey, setCurrentStepKey] = useState("category");
   const [unlockedSteps, setUnlockedSteps] = useState(new Set(["category"]));
   const [completedSteps, setCompletedSteps] = useState(new Set());
@@ -324,7 +329,7 @@ const CreateResumeScreen = ({ navigation }) => {
         if (!voiceErrorShownRef.current) {
           voiceErrorShownRef.current = true;
           if (wasListening) {
-            toast("No speech detected. Speak clearly, or install/update Google app.", "error");
+            toast(t("createResume.toastNoSpeech"), "error");
           } else {
             // console.log("[Voice] Recognition ended (client error — ignored)");
           }
@@ -337,7 +342,7 @@ const CreateResumeScreen = ({ navigation }) => {
       // console.log("[Voice] onSpeechError:", msg || e);
       const userMsg = msg.includes("/") ? msg.split("/").pop().trim() : msg;
       toast(
-        userMsg || (wasListening ? "Could not hear you. Try speaking louder." : "Voice recognition failed"),
+        userMsg || (wasListening ? t("createResume.toastCouldNotHear") : t("createResume.toastVoiceFailed")),
         "error"
       );
     };
@@ -448,13 +453,13 @@ const CreateResumeScreen = ({ navigation }) => {
 
     if (!voiceOK.current) {
       // console.log("[Voice] Cannot start — module not initialized. Rebuild: npx react-native run-android");
-      toast("Voice not available. Rebuild the app after npm install.", "error");
+      toast(t("createResume.toastVoiceNotAvailable"), "error");
       return;
     }
 
     const permitted = await requestMicPermission();
     if (!permitted) {
-      toast("Microphone permission is required for voice input", "error");
+      toast(t("createResume.toastMicRequired"), "error");
       return;
     }
 
@@ -462,7 +467,7 @@ const CreateResumeScreen = ({ navigation }) => {
       const available = await Voice.isAvailable();
       // console.log("[Voice] isAvailable:", available);
       if (!available) {
-        toast("Speech recognition not available on this device. Install Google app.", "error");
+        toast(t("createResume.toastSpeechNotAvailable"), "error");
         return;
       }
     } catch (e) {
@@ -495,7 +500,7 @@ const CreateResumeScreen = ({ navigation }) => {
       voiceStoppingRef.current = false;
       // console.log("[Voice] Voice.start() failed:", err?.message || err);
       clearVoiceUI();
-      toast("Could not start voice input. Install Google app & allow microphone.", "error");
+      toast(t("createResume.toastVoiceStartFailed"), "error");
     }
   };
 
@@ -513,9 +518,9 @@ const CreateResumeScreen = ({ navigation }) => {
     try {
       setLoading(true);
       const r = await POSTNETWORK(`${BASE_URL}resume/premium/subscribe`, { subscriptionType: planId, paymentMethod: "mock" }, true);
-      if (r?.success) { toast("Premium activated!", "success"); setShowPremium(false); fetchDL(); }
-      else toast("Failed to activate premium", "error");
-    } catch { toast("Subscription error", "error"); } finally { setLoading(false); }
+      if (r?.success) { toast(t("createResume.toastPremiumActivated"), "success"); setShowPremium(false); fetchDL(); }
+      else toast(t("createResume.toastPremiumFailed"), "error");
+    } catch { toast(t("createResume.toastSubscriptionError"), "error"); } finally { setLoading(false); }
   };
 
   // ─── Progress ─────────────────────────────────────────────────────────────
@@ -544,48 +549,48 @@ const CreateResumeScreen = ({ navigation }) => {
 
   const validate = (stepKey) => {
     if (stepKey === "category") {
-      if (!resumeCategory) { toast("Please select a resume category", "error"); return false; }
+      if (!resumeCategory) { toast(t("createResume.toastSelectCategory"), "error"); return false; }
       return true;
     }
     if (stepKey === "experienceLevel") {
-      if (!experienceLevel) { toast("Please select experience level", "error"); return false; }
+      if (!experienceLevel) { toast(t("createResume.toastSelectLevel"), "error"); return false; }
       return true;
     }
     if (stepKey === "personal") {
-      if (!pi.name.trim()) { toast("Name is required", "error"); return false; }
-      if (!pi.email.trim()) { toast("Email is required", "error"); return false; }
-      if (!pi.mobile.trim()) { toast("Mobile number is required", "error"); return false; }
-      if (!pi.address.trim()) { toast("Address is required", "error"); return false; }
+      if (!pi.name.trim()) { toast(t("createResume.toastNameRequired"), "error"); return false; }
+      if (!pi.email.trim()) { toast(t("createResume.toastEmailRequired"), "error"); return false; }
+      if (!pi.mobile.trim()) { toast(t("createResume.toastMobileRequired"), "error"); return false; }
+      if (!pi.address.trim()) { toast(t("createResume.toastAddressRequired"), "error"); return false; }
     }
     if (stepKey === "education") {
-      if (!edus[0].institute.trim()) { toast("Institute name is required", "error"); return false; }
-      if (!edus[0].degree.trim()) { toast("Degree is required", "error"); return false; }
+      if (!edus[0].institute.trim()) { toast(t("createResume.toastInstituteRequired"), "error"); return false; }
+      if (!edus[0].degree.trim()) { toast(t("createResume.toastDegreeRequired"), "error"); return false; }
     }
     return true;
   };
 
   // Build step list: category → experienceLevel → personal → objective → then by flow
-  const STEP_META = (() => {
+  const STEP_META = useMemo(() => {
     const base = [
-      { key: "category", icon: "📋", label: "Category" },
-      { key: "experienceLevel", icon: "📊", label: "Level" },
-      { key: "personal", icon: "👤", label: "Personal" },
-      { key: "objective", icon: "🎯", label: "Summary" },
+      { key: "category", icon: "📋", label: t("createResume.stepCategory") },
+      { key: "experienceLevel", icon: "📊", label: t("createResume.stepLevel") },
+      { key: "personal", icon: "👤", label: t("createResume.stepPersonal") },
+      { key: "objective", icon: "🎯", label: t("createResume.stepSummary") },
     ];
     const rest = [];
     if (isTechnical && isFresher) {
-      rest.push({ key: "projects", icon: "🚀", label: "Projects" }, { key: "skills", icon: "🛠", label: "Skills" }, { key: "certs", icon: "🏆", label: "Certs" }, { key: "education", icon: "🎓", label: "Education" }, { key: "languages", icon: "🌐", label: "Languages" });
+      rest.push({ key: "projects", icon: "🚀", label: t("createResume.stepProjects") }, { key: "skills", icon: "🛠", label: t("createResume.stepSkills") }, { key: "certs", icon: "🏆", label: t("createResume.stepCerts") }, { key: "education", icon: "🎓", label: t("createResume.stepEducation") }, { key: "languages", icon: "🌐", label: t("createResume.stepLanguages") });
     } else if (isTechnical && !isFresher) {
-      rest.push({ key: "experience", icon: "💼", label: "Experience" }, { key: "projects", icon: "🚀", label: "Projects" }, { key: "skills", icon: "🛠", label: "Skills" }, { key: "certs", icon: "🏆", label: "Certs" }, { key: "education", icon: "🎓", label: "Education" }, { key: "languages", icon: "🌐", label: "Languages" });
+      rest.push({ key: "experience", icon: "💼", label: t("createResume.stepExperience") }, { key: "projects", icon: "🚀", label: t("createResume.stepProjects") }, { key: "skills", icon: "🛠", label: t("createResume.stepSkills") }, { key: "certs", icon: "🏆", label: t("createResume.stepCerts") }, { key: "education", icon: "🎓", label: t("createResume.stepEducation") }, { key: "languages", icon: "🌐", label: t("createResume.stepLanguages") });
     } else if ((resumeCategory === "non-technical" || resumeCategory === "other") && isFresher) {
-      rest.push({ key: "education", icon: "🎓", label: "Education" }, { key: "skills", icon: "🛠", label: "Skills" }, { key: "languages", icon: "🌐", label: "Languages" });
+      rest.push({ key: "education", icon: "🎓", label: t("createResume.stepEducation") }, { key: "skills", icon: "🛠", label: t("createResume.stepSkills") }, { key: "languages", icon: "🌐", label: t("createResume.stepLanguages") });
     } else if ((resumeCategory === "non-technical" || resumeCategory === "other") && !isFresher) {
-      rest.push({ key: "experience", icon: "💼", label: "Experience" }, { key: "education", icon: "🎓", label: "Education" }, { key: "skills", icon: "🛠", label: "Skills" }, { key: "languages", icon: "🌐", label: "Languages" });
+      rest.push({ key: "experience", icon: "💼", label: t("createResume.stepExperience") }, { key: "education", icon: "🎓", label: t("createResume.stepEducation") }, { key: "skills", icon: "🛠", label: t("createResume.stepSkills") }, { key: "languages", icon: "🌐", label: t("createResume.stepLanguages") });
     } else {
-      rest.push({ key: "education", icon: "🎓", label: "Education" }, { key: "skills", icon: "🛠", label: "Skills" }, { key: "languages", icon: "🌐", label: "Languages" });
+      rest.push({ key: "education", icon: "🎓", label: t("createResume.stepEducation") }, { key: "skills", icon: "🛠", label: t("createResume.stepSkills") }, { key: "languages", icon: "🌐", label: t("createResume.stepLanguages") });
     }
     return [...base, ...rest];
-  })();
+  }, [isTechnical, isFresher, resumeCategory, t]);
   const STEP_KEYS = STEP_META.map(s => s.key);
 
   useEffect(() => {
@@ -697,7 +702,7 @@ ${objHtml}${expsHtml}${projsHtml}${skillsHtml}${certsHtml}${edusHtml}${langsHtml
       const hasPerm = await requestStoragePermission();
       if (!hasPerm) {
         // console.log("[Resume download] FAILED: Storage permission denied.");
-        toast("Storage permission needed to save", "error");
+        toast(t("createResume.toastStorageNeeded"), "error");
         return;
       }
 
@@ -737,7 +742,7 @@ ${objHtml}${expsHtml}${projsHtml}${skillsHtml}${certsHtml}${edusHtml}${langsHtml
               await Linking.openURL(`file://${filePath}`);
             }
             // console.log("[Resume download] PDF saved and opened successfully.");
-            toast("Resume saved. Open with your preferred app.", "success");
+            toast(t("createResume.savedOpenApp"), "success");
             fetchDL();
             return;
           }
@@ -756,12 +761,12 @@ ${objHtml}${expsHtml}${projsHtml}${skillsHtml}${certsHtml}${edusHtml}${langsHtml
       } else {
         await Linking.openURL(`file://${filePath}`);
       }
-      toast("Resume saved. Open in browser, then Print → Save as PDF.", "success");
+      toast(t("createResume.savedOpenBrowser"), "success");
       fetchDL();
     } catch (e) {
       // console.log("[Resume download] FAILED — reason:", e?.message || e);
       // console.log("[Resume download] Error stack:", e?.stack);
-      toast("Failed to save resume.", "error");
+      toast(t("createResume.saveFailed"), "error");
     } finally { setLoading(false); }
   };
 
@@ -838,7 +843,7 @@ ${langs.join(", ")}`.trim();
   const renderProgress = () => (
     <View style={s.progWrap}>
       <View style={s.progRow}>
-        <Text style={s.progLabel}>Profile Completion</Text>
+        <Text style={s.progLabel}>{t("createResume.profileCompletion")}</Text>
         <Text style={s.progPct}>{progress}%</Text>
       </View>
       <View style={s.progTrack}><View style={[s.progFill, { width: `${progress}%` }]} /></View>
@@ -853,11 +858,11 @@ ${langs.join(", ")}`.trim();
 
   const S_category = () => (
     <SectionCard>
-      <SectionTitle icon="📋" title="RESUME CATEGORY" />
-      <Text style={s.radioSectionHint}>Select your field...</Text>
+      <SectionTitle icon="📋" title={t("createResume.resumeCategory")} />
+      <Text style={s.radioSectionHint}>{t("createResume.selectField")}</Text>
       <TouchableOpacity style={s.selectFieldWrap} activeOpacity={0.85} onPress={() => setCategoryOpen(p => !p)}>
         <Text style={resumeCategory ? s.selectFieldValue : s.selectFieldPlaceholder}>
-          {resumeCategory ? (RESUME_CATEGORIES.find(o => o.value === resumeCategory)?.label || "Selected") : "Select your field..."}
+          {resumeCategory ? (RESUME_CATEGORIES.find(o => o.value === resumeCategory)?.label || t("createResume.selected")) : t("createResume.selectField")}
         </Text>
         <Text style={s.chevron}>{categoryOpen ? "▲" : "▼"}</Text>
       </TouchableOpacity>
@@ -879,17 +884,17 @@ ${langs.join(", ")}`.trim();
           })}
         </View>
       )}
-      <NextBtn onPress={goNext} />
+      <NextBtn onPress={goNext} label={t("createResume.nextStep")} />
     </SectionCard>
   );
 
   const S_experienceLevel = () => (
     <SectionCard>
-      <SectionTitle icon="📊" title="EXPERIENCE LEVEL" />
-      <Text style={s.radioSectionHint}>Select experience level...</Text>
+      <SectionTitle icon="📊" title={t("createResume.experienceLevel")} />
+      <Text style={s.radioSectionHint}>{t("createResume.selectExperienceLevel")}</Text>
       <TouchableOpacity style={s.selectFieldWrap} activeOpacity={0.85} onPress={() => setLevelOpen(p => !p)}>
         <Text style={experienceLevel ? s.selectFieldValue : s.selectFieldPlaceholder}>
-          {experienceLevel ? (EXPERIENCE_LEVELS.find(o => o.value === experienceLevel)?.label || "Selected") : "Select experience level..."}
+          {experienceLevel ? (EXPERIENCE_LEVELS.find(o => o.value === experienceLevel)?.label || t("createResume.selected")) : t("createResume.selectExperienceLevel")}
         </Text>
         <Text style={s.chevron}>{levelOpen ? "▲" : "▼"}</Text>
       </TouchableOpacity>
@@ -911,21 +916,21 @@ ${langs.join(", ")}`.trim();
           })}
         </View>
       )}
-      <NextBtn onPress={goNext} />
+      <NextBtn onPress={goNext} label={t("createResume.nextStep")} />
     </SectionCard>
   );
 
   const S0 = () => (
     <SectionCard>
-      <SectionTitle icon="👤" title="Personal Information" />
+      <SectionTitle icon="👤" title={t("createResume.personalInfo")} />
       {[
-        { key: "name", label: "Full Name", required: true },
-        { key: "email", label: "Email Address", required: true, kb: "email-address", autoCap: "none" },
-        { key: "mobile", label: "Mobile Number", required: true, kb: "phone-pad", maxLen: 10 },
-        { key: "address", label: "Address", required: true, multi: true },
-        { key: "github", label: "GitHub Profile URL", required: false, kb: "url" },
-        { key: "linkedin", label: "LinkedIn Profile URL", required: false, kb: "url" },
-        { key: "portfolio", label: "Portfolio URL", required: false, kb: "url" },
+        { key: "name", label: t("createResume.fullName"), required: true },
+        { key: "email", label: t("createResume.emailAddress"), required: true, kb: "email-address", autoCap: "none" },
+        { key: "mobile", label: t("createResume.mobileNumber"), required: true, kb: "phone-pad", maxLen: 10 },
+        { key: "address", label: t("createResume.address"), required: true, multi: true },
+        { key: "github", label: t("createResume.githubUrl"), required: false, kb: "url" },
+        { key: "linkedin", label: t("createResume.linkedinUrl"), required: false, kb: "url" },
+        { key: "portfolio", label: t("createResume.portfolioUrl"), required: false, kb: "url" },
       ].map(({ key, label, required, kb, multi, autoCap, maxLen }) => {
         const handleChange = (v) => {
           let nextVal = v;
@@ -952,37 +957,37 @@ ${langs.join(", ")}`.trim();
           />
         );
       })}
-      <NextBtn onPress={goNext} />
+      <NextBtn onPress={goNext} label={t("createResume.nextStep")} />
     </SectionCard>
   );
 
   const S1 = () => (
     <SectionCard>
-      <SectionTitle icon="🎯" title="Career Objective" />
-      <Text style={s.hint}>Write a compelling career objective using the text field or your voice.</Text>
-      <VoiceTextInput label="Career Objective" value={obj} onChangeText={setObj} multiline
-        placeholder="Describe your professional goals and background..." {...vProps("obj")} />
-      <NextBtn onPress={goNext} />
+      <SectionTitle icon="🎯" title={t("createResume.careerObjective")} />
+      <Text style={s.hint}>{t("createResume.objectiveHint")}</Text>
+      <VoiceTextInput label={t("createResume.careerObjective")} value={obj} onChangeText={setObj} multiline
+        placeholder={t("createResume.objectivePlaceholder")} {...vProps("obj")} />
+      <NextBtn onPress={goNext} label={t("createResume.nextStep")} />
     </SectionCard>
   );
 
   const S2 = () => (
     <SectionCard>
-      <SectionTitle icon="💼" title="Work Experience" />
+      <SectionTitle icon="💼" title={t("createResume.workExperience")} />
       {exps.map((exp, idx) => (
         <View key={idx} style={s.subCard}>
-          <Text style={s.subTitle}>Experience {idx + 1}</Text>
-          <VoiceTextInput label="Designation" value={exp.designation}
+          <Text style={s.subTitle}>{t("createResume.experienceN", { n: idx + 1 })}</Text>
+          <VoiceTextInput label={t("createResume.designation")} value={exp.designation}
             onChangeText={v => updArr(setExps, idx, "designation", v)} {...vProps(`exp_${idx}_designation`)} />
-          <VoiceTextInput label="Company Name" value={exp.company}
+          <VoiceTextInput label={t("createResume.companyName")} value={exp.company}
             onChangeText={v => updArr(setExps, idx, "company", v)} {...vProps(`exp_${idx}_company`)} />
           <View style={s.dateRow}>
-            <View style={s.dateCol}><FieldLabel label="Start Date" />
-              <DateComponent value={exp.startDate} onChange={d => updArr(setExps, idx, "startDate", d)} format="MMM YYYY" placeholder="Select Month & Year" /></View>
+            <View style={s.dateCol}><FieldLabel label={t("createResume.startDate")} />
+              <DateComponent value={exp.startDate} onChange={d => updArr(setExps, idx, "startDate", d)} format="MMM YYYY" placeholder={t("createResume.selectMonthYear")} /></View>
             {!exp.stillWorking && (
               <View style={s.dateCol}>
-                <FieldLabel label="End Date" />
-                <DateComponent value={exp.endDate} onChange={d => updArr(setExps, idx, "endDate", d)} format="MMM YYYY" placeholder="Select Month & Year" />
+                <FieldLabel label={t("createResume.endDate")} />
+                <DateComponent value={exp.endDate} onChange={d => updArr(setExps, idx, "endDate", d)} format="MMM YYYY" placeholder={t("createResume.selectMonthYear")} />
               </View>
             )}
           </View>
@@ -994,39 +999,39 @@ ${langs.join(", ")}`.trim();
             <View style={[s.checkboxBox, exp.stillWorking && s.checkboxBoxChecked]}>
               {exp.stillWorking && <Text style={s.checkboxTick}>✓</Text>}
             </View>
-            <Text style={s.checkboxLabel}>I am currently working here</Text>
+            <Text style={s.checkboxLabel}>{t("createResume.stillWorking")}</Text>
           </TouchableOpacity>
-          <VoiceTextInput label="Description (Bullet Points)" value={exp.description}
+          <VoiceTextInput label={t("createResume.descriptionBullets")} value={exp.description}
             onChangeText={v => updArr(setExps, idx, "description", v)} multiline
             placeholder={"• Led a team of 5...\n• Increased performance by 30%..."} {...vProps(`exp_${idx}_description`)} />
           {exps.length > 1 && <TouchableOpacity style={s.removeBtn} onPress={() => setExps(p => p.filter((_, i) => i !== idx))}>
-            <Text style={s.removeTxt}>✕ Remove</Text></TouchableOpacity>}
+            <Text style={s.removeTxt}>{t("createResume.remove")}</Text></TouchableOpacity>}
         </View>
       ))}
-      <AddMoreBtn onPress={() => setExps(p => [...p, { designation: "", company: "", startDate: "", endDate: "", description: "", stillWorking: false }])} label="Add Another Experience" />
-      <NextBtn onPress={goNext} />
+      <AddMoreBtn onPress={() => setExps(p => [...p, { designation: "", company: "", startDate: "", endDate: "", description: "", stillWorking: false }])} label={t("createResume.addAnotherExperience")} />
+      <NextBtn onPress={goNext} label={t("createResume.nextStep")} />
     </SectionCard>
   );
 
   const S3 = () => (
       <SectionCard>
-        <SectionTitle icon="🚀" title="Projects" />
+        <SectionTitle icon="🚀" title={t("createResume.projects")} />
         {projs.map((proj, idx) => (
           <View key={idx} style={s.subCard}>
-            <Text style={s.subTitle}>Project {idx + 1}</Text>
-            <VoiceTextInput label="Project Name" value={proj.name}
+            <Text style={s.subTitle}>{t("createResume.projectN", { n: idx + 1 })}</Text>
+            <VoiceTextInput label={t("createResume.projectName")} value={proj.name}
               onChangeText={v => updArr(setProjs, idx, "name", v)} {...vProps(`proj_${idx}_name`)} />
-            <VoiceTextInput label="Company / Client Name" value={proj.company}
+            <VoiceTextInput label={t("createResume.companyClient")} value={proj.company}
               onChangeText={v => updArr(setProjs, idx, "company", v)} {...vProps(`proj_${idx}_company`)} />
-            <VoiceTextInput label="Technologies Used" value={proj.technologies}
+            <VoiceTextInput label={t("createResume.technologiesUsed")} value={proj.technologies}
               onChangeText={v => updArr(setProjs, idx, "technologies", v)} {...vProps(`proj_${idx}_technologies`)} />
             <View style={s.dateRow}>
-              <View style={s.dateCol}><FieldLabel label="Start Date" />
-                <DateComponent value={proj.startDate} onChange={d => updArr(setProjs, idx, "startDate", d)} format="MMM YYYY" placeholder="Select Month & Year" /></View>
+              <View style={s.dateCol}><FieldLabel label={t("createResume.startDate")} />
+                <DateComponent value={proj.startDate} onChange={d => updArr(setProjs, idx, "startDate", d)} format="MMM YYYY" placeholder={t("createResume.selectMonthYear")} /></View>
               {!proj.stillInProgress && (
                 <View style={s.dateCol}>
-                  <FieldLabel label="End Date" />
-                  <DateComponent value={proj.endDate} onChange={d => updArr(setProjs, idx, "endDate", d)} format="MMM YYYY" placeholder="Select Month & Year" />
+                  <FieldLabel label={t("createResume.endDate")} />
+                  <DateComponent value={proj.endDate} onChange={d => updArr(setProjs, idx, "endDate", d)} format="MMM YYYY" placeholder={t("createResume.selectMonthYear")} />
                 </View>
               )}
             </View>
@@ -1038,90 +1043,90 @@ ${langs.join(", ")}`.trim();
               <View style={[s.checkboxBox, proj.stillInProgress && s.checkboxBoxChecked]}>
                 {proj.stillInProgress && <Text style={s.checkboxTick}>✓</Text>}
               </View>
-              <Text style={s.checkboxLabel}>This project is still in progress</Text>
+              <Text style={s.checkboxLabel}>{t("createResume.stillInProgress")}</Text>
             </TouchableOpacity>
-            <VoiceTextInput label="Description" value={proj.description}
+            <VoiceTextInput label={t("createResume.description")} value={proj.description}
               onChangeText={v => updArr(setProjs, idx, "description", v)} multiline
-              placeholder="Describe the project..." {...vProps(`proj_${idx}_description`)} />
+              placeholder={t("createResume.describeProject")} {...vProps(`proj_${idx}_description`)} />
             {projs.length > 1 && <TouchableOpacity style={s.removeBtn} onPress={() => setProjs(p => p.filter((_, i) => i !== idx))}>
-              <Text style={s.removeTxt}>✕ Remove</Text></TouchableOpacity>}
+              <Text style={s.removeTxt}>{t("createResume.remove")}</Text></TouchableOpacity>}
           </View>
         ))}
-        <AddMoreBtn onPress={() => setProjs(p => [...p, { name: "", company: "", technologies: "", startDate: "", endDate: "", description: "", stillInProgress: false }])} label="Add Another Project" />
-        <NextBtn onPress={goNext} />
+        <AddMoreBtn onPress={() => setProjs(p => [...p, { name: "", company: "", technologies: "", startDate: "", endDate: "", description: "", stillInProgress: false }])} label={t("createResume.addAnotherProject")} />
+        <NextBtn onPress={goNext} label={t("createResume.nextStep")} />
       </SectionCard>
   );
 
   const S4 = () => (
     <SectionCard>
-      <SectionTitle icon={isTechnical ? "🛠" : "🎯"} title={isTechnical ? "Technical Skills" : "Skills"} />
-      <Text style={s.hint}>Enter skills separated by commas — they'll appear as bullet points in your resume.</Text>
-      <VoiceTextInput label="Skills" value={skills} onChangeText={setSkills} multiline
-        placeholder="React Native, JavaScript, Node.js, Python, Git..." {...vProps("skills")} />
+      <SectionTitle icon={isTechnical ? "🛠" : "🎯"} title={isTechnical ? t("createResume.technicalSkills") : t("createResume.skills")} />
+      <Text style={s.hint}>{t("createResume.skillsHint")}</Text>
+      <VoiceTextInput label={t("createResume.skills")} value={skills} onChangeText={setSkills} multiline
+        placeholder={t("createResume.skillsPlaceholder")} {...vProps("skills")} />
       {skills.trim() && (
         <View style={s.skillPreview}>
-          <Text style={s.skillPreviewLabel}>Preview:</Text>
+          <Text style={s.skillPreviewLabel}>{t("createResume.preview")}</Text>
           {skills.split(",").filter(t => t.trim()).map((sk, i) => (
             <Text key={i} style={s.skillBullet}>• {sk.trim()}</Text>
           ))}
         </View>
       )}
-      <NextBtn onPress={goNext} />
+      <NextBtn onPress={goNext} label={t("createResume.nextStep")} />
     </SectionCard>
   );
 
   const S5 = () => (
     <SectionCard>
-      <SectionTitle icon="🏆" title="Certifications" />
+      <SectionTitle icon="🏆" title={t("createResume.certifications")} />
       {certs.map((cert, idx) => (
         <View key={idx} style={s.subCard}>
-          <Text style={s.subTitle}>Certification {idx + 1}</Text>
-          <VoiceTextInput label="Certification Name" value={cert.name}
+          <Text style={s.subTitle}>{t("createResume.certificationN", { n: idx + 1 })}</Text>
+          <VoiceTextInput label={t("createResume.certificationName")} value={cert.name}
             onChangeText={v => updArr(setCerts, idx, "name", v)} {...vProps(`cert_${idx}_name`)} />
-          <VoiceTextInput label="Issued Organization" value={cert.organization}
+          <VoiceTextInput label={t("createResume.issuedOrganization")} value={cert.organization}
             onChangeText={v => updArr(setCerts, idx, "organization", v)} {...vProps(`cert_${idx}_organization`)} />
-          <FieldLabel label="Date Obtained" />
-          <DateComponent value={cert.date} onChange={d => updArr(setCerts, idx, "date", d)} format="MMM YYYY" placeholder="Select Date" />
+          <FieldLabel label={t("createResume.dateObtained")} />
+          <DateComponent value={cert.date} onChange={d => updArr(setCerts, idx, "date", d)} format="MMM YYYY" placeholder={t("createResume.selectDate")} />
           {certs.length > 1 && <TouchableOpacity style={[s.removeBtn, { marginTop: 10 }]} onPress={() => setCerts(p => p.filter((_, i) => i !== idx))}>
-            <Text style={s.removeTxt}>✕ Remove</Text></TouchableOpacity>}
+            <Text style={s.removeTxt}>{t("createResume.remove")}</Text></TouchableOpacity>}
         </View>
       ))}
-      <AddMoreBtn onPress={() => setCerts(p => [...p, { name: "", organization: "", date: "" }])} label="Add Another Certification" />
-      <NextBtn onPress={goNext} />
+      <AddMoreBtn onPress={() => setCerts(p => [...p, { name: "", organization: "", date: "" }])} label={t("createResume.addAnotherCertification")} />
+      <NextBtn onPress={goNext} label={t("createResume.nextStep")} />
     </SectionCard>
   );
 
   const S6 = () => (
     <SectionCard>
-      <SectionTitle icon="🎓" title="Education" />
+      <SectionTitle icon="🎓" title={t("createResume.education")} />
       {edus.map((edu, idx) => (
         <View key={idx} style={s.subCard}>
-          <Text style={s.subTitle}>Education {idx + 1}</Text>
-          <VoiceTextInput label="Institute Name" required={idx === 0} value={edu.institute}
+          <Text style={s.subTitle}>{t("createResume.educationN", { n: idx + 1 })}</Text>
+          <VoiceTextInput label={t("createResume.instituteName")} required={idx === 0} value={edu.institute}
             onChangeText={v => updArr(setEdus, idx, "institute", v)} {...vProps(`edu_${idx}_institute`)} />
-          <VoiceTextInput label="Degree" required={idx === 0} value={edu.degree}
+          <VoiceTextInput label={t("createResume.degree")} required={idx === 0} value={edu.degree}
             onChangeText={v => updArr(setEdus, idx, "degree", v)} {...vProps(`edu_${idx}_degree`)} />
-          <VoiceTextInput label="Field of Study" value={edu.fieldOfStudy}
+          <VoiceTextInput label={t("createResume.fieldOfStudy")} value={edu.fieldOfStudy}
             onChangeText={v => updArr(setEdus, idx, "fieldOfStudy", v)} {...vProps(`edu_${idx}_fieldOfStudy`)} />
           <View style={s.dateRow}>
-            <View style={s.dateCol}><FieldLabel label="Start Year" />
-              <DateComponent value={edu.startDate} onChange={d => updArr(setEdus, idx, "startDate", d)} format="MMM YYYY" placeholder="Select Start" /></View>
-            <View style={s.dateCol}><FieldLabel label="End / Passing Year" />
-              <DateComponent value={edu.endDate} onChange={d => updArr(setEdus, idx, "endDate", d)} format="MMM YYYY" placeholder="Select End" /></View>
+            <View style={s.dateCol}><FieldLabel label={t("createResume.startYear")} />
+              <DateComponent value={edu.startDate} onChange={d => updArr(setEdus, idx, "startDate", d)} format="MMM YYYY" placeholder={t("createResume.selectStart")} /></View>
+            <View style={s.dateCol}><FieldLabel label={t("createResume.endPassingYear")} />
+              <DateComponent value={edu.endDate} onChange={d => updArr(setEdus, idx, "endDate", d)} format="MMM YYYY" placeholder={t("createResume.selectEnd")} /></View>
           </View>
           {edus.length > 1 && <TouchableOpacity style={s.removeBtn} onPress={() => setEdus(p => p.filter((_, i) => i !== idx))}>
-            <Text style={s.removeTxt}>✕ Remove</Text></TouchableOpacity>}
+            <Text style={s.removeTxt}>{t("createResume.remove")}</Text></TouchableOpacity>}
         </View>
       ))}
-      <AddMoreBtn onPress={() => setEdus(p => [...p, { institute: "", degree: "", fieldOfStudy: "", startDate: "", endDate: "" }])} label="Add Another Education" />
-      <NextBtn onPress={goNext} />
+      <AddMoreBtn onPress={() => setEdus(p => [...p, { institute: "", degree: "", fieldOfStudy: "", startDate: "", endDate: "" }])} label={t("createResume.addAnotherEducation")} />
+      <NextBtn onPress={goNext} label={t("createResume.nextStep")} />
     </SectionCard>
   );
 
   const S7 = () => (
     <SectionCard>
-      <SectionTitle icon="🌐" title="Languages" />
-      <Text style={s.hint}>Select all languages you know:</Text>
+      <SectionTitle icon="🌐" title={t("createResume.languages")} />
+      <Text style={s.hint}>{t("createResume.languagesHint")}</Text>
       <View style={s.langGrid}>
         {WORLD_LANGUAGES.map(lang => {
           const sel = langs.includes(lang);
@@ -1137,7 +1142,7 @@ ${langs.join(", ")}`.trim();
       <View style={s.finalSection}>
         <View style={s.progWrap}>
           <View style={s.progRow}>
-            <Text style={s.progLabel}>Resume Completion</Text>
+            <Text style={s.progLabel}>{t("createResume.resumeCompletion")}</Text>
             <Text style={[s.progPct, progress === 100 && { color: SUCCESS }]}>{progress}%</Text>
           </View>
           <View style={s.progTrack}><View style={[s.progFill, { width: `${progress}%` }]} /></View>
@@ -1145,16 +1150,16 @@ ${langs.join(", ")}`.trim();
         <View style={s.statusRow}>
           <View style={[s.statusBadge, downloadInfo.isPremium ? s.badgePremium : s.badgeBasic]}>
             <Text style={s.statusBadgeTxt}>
-              {downloadInfo.isPremium ? "⭐ Premium — Unlimited Downloads" : `📥 ${downloadInfo.basicDownloads}/${downloadInfo.maxBasicDownloads} downloads used`}
+              {downloadInfo.isPremium ? t("createResume.premiumUnlimited") : t("createResume.downloadsUsed", { used: downloadInfo.basicDownloads, max: downloadInfo.maxBasicDownloads })}
             </Text>
           </View>
         </View>
         <TouchableOpacity style={[s.createBtn, loading && { opacity: 0.7 }]} onPress={() => setShowPreview(true)} disabled={loading}>
-          {loading ? <ActivityIndicator color={WHITE} /> : <Text style={s.createBtnTxt}>✅ Submit & Preview Resume</Text>}
+          {loading ? <ActivityIndicator color={WHITE} /> : <Text style={s.createBtnTxt}>{t("createResume.submitPreview")}</Text>}
         </TouchableOpacity>
         {!downloadInfo.isPremium && (
           <TouchableOpacity style={s.upgradeBtn} onPress={() => setShowPremium(true)}>
-            <Text style={s.upgradeBtnTxt}>⭐ Upgrade to Premium</Text>
+            <Text style={s.upgradeBtnTxt}>{t("createResume.upgradePremium")}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -1179,14 +1184,14 @@ ${langs.join(", ")}`.trim();
     <Modal visible={showPreview} animationType="slide" onRequestClose={() => setShowPreview(false)}>
       <View style={s.previewModal}>
         <View style={s.previewHdr}>
-          <Text style={s.previewHdrTxt}>Resume Preview</Text>
-          <TouchableOpacity onPress={() => setShowPreview(false)}><Text style={s.closeBtn}>✕ Close</Text></TouchableOpacity>
+          <Text style={s.previewHdrTxt}>{t("createResume.resumePreview")}</Text>
+          <TouchableOpacity onPress={() => setShowPreview(false)}><Text style={s.closeBtn}>{t("createResume.close")}</Text></TouchableOpacity>
         </View>
         <ScrollView style={s.previewScroll} showsVerticalScrollIndicator={false}>
           <View style={s.paper}>
             {/* Name & Contact */}
             <View style={s.paperHdr}>
-              <Text style={s.paperName}>{pi.name || "Your Name"}</Text>
+              <Text style={s.paperName}>{pi.name || t("createResume.yourName")}</Text>
               <View style={s.paperContactRow}>
                 {pi.email && (
                   <View style={s.contactChip}>
@@ -1282,7 +1287,7 @@ ${langs.join(", ")}`.trim();
           </View>
         </ScrollView>
         <TouchableOpacity style={s.createBtn} onPress={handleDownload} disabled={loading}>
-          {loading ? <ActivityIndicator color={WHITE} /> : <Text style={s.createBtnTxt}>📄 Download as PDF</Text>}
+          {loading ? <ActivityIndicator color={WHITE} /> : <Text style={s.createBtnTxt}>{t("createResume.downloadPdf")}</Text>}
         </TouchableOpacity>
       </View>
     </Modal>
@@ -1293,9 +1298,9 @@ ${langs.join(", ")}`.trim();
     <Modal visible={showPremium} transparent animationType="fade" onRequestClose={() => setShowPremium(false)}>
       <View style={s.modalOverlay}>
         <View style={s.modalBox}>
-          <Text style={s.modalTitle}>⭐ Upgrade to Premium</Text>
+          <Text style={s.modalTitle}>{t("createResume.upgradeTitle")}</Text>
           <View style={s.benefitsList}>
-            {["Unlimited resume downloads", "Premium PDF templates", "Priority support", "Advanced formatting"].map((b, i) => (
+            {[t("createResume.benefitUnlimited"), t("createResume.benefitTemplates"), t("createResume.benefitSupport"), t("createResume.benefitFormatting")].map((b, i) => (
               <Text key={i} style={s.benefitItem}>✅ {b}</Text>
             ))}
           </View>
@@ -1305,13 +1310,13 @@ ${langs.join(", ")}`.trim();
                 <Text style={s.planName}>{plan.name}</Text>
                 <Text style={s.planPrice}>${plan.price} / {plan.duration}</Text>
                 <TouchableOpacity style={s.createBtn} onPress={() => subscribePremium(plan.id)} disabled={loading}>
-                  {loading ? <ActivityIndicator color={WHITE} /> : <Text style={s.createBtnTxt}>Choose {plan.name}</Text>}
+                  {loading ? <ActivityIndicator color={WHITE} /> : <Text style={s.createBtnTxt}>{t("createResume.choosePlan", { name: plan.name })}</Text>}
                 </TouchableOpacity>
               </View>
             ))
-            : <Text style={s.hint}>No plans available at the moment.</Text>}
+            : <Text style={s.hint}>{t("createResume.noPlans")}</Text>}
           <TouchableOpacity style={s.cancelBtn} onPress={() => setShowPremium(false)}>
-            <Text style={s.cancelBtnTxt}>Cancel</Text>
+            <Text style={s.cancelBtnTxt}>{t("createResume.cancel")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1323,11 +1328,11 @@ ${langs.join(", ")}`.trim();
     return (
       <View style={s.container}>
         <MyStatusBar barStyle="dark-content" backgroundColor={WHITE} />
-        <MyHeader navigation={navigation} showBack showCenterTitle title="Create Resume" onBackPress={() => navigation.goBack()} showLogo={false} />
+        <MyHeader navigation={navigation} showBack showCenterTitle title={t("createResume.title")} onBackPress={() => navigation.goBack()} showLogo={false} />
         <View style={s.centerView}>
-          <Text style={s.errorTxt}>Please login to create your resume</Text>
+          <Text style={s.errorTxt}>{t("createResume.loginRequired")}</Text>
           <TouchableOpacity style={s.createBtn} onPress={() => navigation.navigate("LoginScreen")}>
-            <Text style={s.createBtnTxt}>Go to Login</Text>
+            <Text style={s.createBtnTxt}>{t("createResume.goToLogin")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1337,7 +1342,7 @@ ${langs.join(", ")}`.trim();
   return (
     <KeyboardAvoidingView style={s.container} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}>
       <MyStatusBar barStyle="dark-content" backgroundColor={WHITE} />
-      <MyHeader navigation={navigation} showBack showCenterTitle title="Create Resume" onBackPress={() => navigation.goBack()} showLogo={false} />
+      <MyHeader navigation={navigation} showBack showCenterTitle title={t("createResume.title")} onBackPress={() => navigation.goBack()} showLogo={false} />
       {msg.text && (
         <View style={[s.toast, msg.type === "error" ? s.toastErr : msg.type === "success" ? s.toastOk : s.toastInfo]}>
           <Text style={s.toastTxt}>{msg.text}</Text>

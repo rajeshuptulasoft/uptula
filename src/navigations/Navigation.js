@@ -7,6 +7,7 @@ import { store } from "../redux/store";
 import LoginNavigation from "./LoginNavigation";
 import AuthNavigation from "./AuthNavigation";
 import { navigationRef } from "./NavigationService";
+import { LanguageProvider } from "../i18n/LanguageProvider";
 
 const Stack = createStackNavigator();
 
@@ -24,9 +25,11 @@ const AppNavigator = () => {
 const Navigation = () => {
   return (
     <Provider store={store}>
-      <NavigationContainer ref={navigationRef}>
-        <AppNavigator />
-      </NavigationContainer>
+      <LanguageProvider>
+        <NavigationContainer ref={navigationRef}>
+          <AppNavigator />
+        </NavigationContainer>
+      </LanguageProvider>
     </Provider>
   );
 };

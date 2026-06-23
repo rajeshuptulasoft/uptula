@@ -42,8 +42,10 @@ import { DELETE, LOGO, FILTER, VIEW } from "../../../constant/imagePath";
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK, POSTNETWORK, DELETENETWORK } from "../../../utils/Network";
 import { getObjByKey } from "../../../utils/Storage";
+import { useTranslation } from "../../../hooks/useTranslation";
 
 const ViewCandidate = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedJob, setSelectedJob] = useState("");
@@ -107,14 +109,14 @@ const ViewCandidate = () => {
       setCandidates([]);
       setToastMessage({
         type: "error",
-        msg: "Failed to load applications. Please try again.",
+        msg: t('viewCandidate.failedLoad'),
         visible: true,
       });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   const normalizeDecision = (decisionValue) => {
     const decision = (decisionValue || "").toString().trim().toLowerCase();
@@ -351,19 +353,19 @@ const ViewCandidate = () => {
   };
 
   const handleApproveCandidate = (candidate) => {
-    const candidateName = candidate?.name || "Candidate";
+    const candidateName = candidate?.name || t('viewCandidate.candidateFallback');
     setToastMessage({
       type: "success",
-      msg: `${candidateName} approved`,
+      msg: t('viewCandidate.approved', { name: candidateName }),
       visible: true,
     });
   };
 
   const handleRejectCandidate = (candidate) => {
-    const candidateName = candidate?.name || "Candidate";
+    const candidateName = candidate?.name || t('viewCandidate.candidateFallback');
     setToastMessage({
       type: "error",
-      msg: `${candidateName} rejected`,
+      msg: t('viewCandidate.rejected', { name: candidateName }),
       visible: true,
     });
   };
@@ -378,7 +380,7 @@ const ViewCandidate = () => {
       if (!applicantId) {
         setToastMessage({
           type: "error",
-          msg: "Applicant ID not found",
+          msg: t('viewCandidate.applicantIdNotFound'),
           visible: true,
         });
         setDeleteAlertVisible(false);
@@ -390,7 +392,7 @@ const ViewCandidate = () => {
       if (!loginResponse || !loginResponse.token) {
         setToastMessage({
           type: "error",
-          msg: "Authentication required. Please login again.",
+          msg: t('viewCandidate.authRequired'),
           visible: true,
         });
         setDeleteAlertVisible(false);
@@ -402,7 +404,7 @@ const ViewCandidate = () => {
 
       setToastMessage({
         type: "success",
-        msg: "Deleting candidate...",
+        msg: t('viewCandidate.deletingCandidate'),
         visible: true,
       });
 
@@ -421,14 +423,14 @@ const ViewCandidate = () => {
         // Show success toast
         setToastMessage({
           type: "success",
-          msg: result?.message || "Candidate deleted successfully!",
+          msg: result?.message || t('viewCandidate.deleteSuccess'),
           visible: true,
         });
       } else {
         // Show error toast
         setToastMessage({
           type: "error",
-          msg: result?.message || "Failed to delete candidate",
+          msg: result?.message || t('viewCandidate.deleteFailed'),
           visible: true,
         });
         setDeleteAlertVisible(false);
@@ -438,7 +440,7 @@ const ViewCandidate = () => {
       console.error('Error deleting candidate:', error);
       setToastMessage({
         type: "error",
-        msg: "Failed to delete candidate. Please try again.",
+        msg: t('viewCandidate.deleteFailedRetry'),
         visible: true,
       });
       setDeleteAlertVisible(false);
@@ -504,7 +506,7 @@ const ViewCandidate = () => {
       if (!applicantId) {
         setToastMessage({
           type: "error",
-          msg: "Applicant ID not found",
+          msg: t('viewCandidate.applicantIdNotFound'),
           visible: true,
         });
         return;
@@ -514,7 +516,7 @@ const ViewCandidate = () => {
       if (!hasPermission) {
         setToastMessage({
           type: "error",
-          msg: "Storage permission is required to download resume",
+          msg: t('viewCandidate.storagePermissionRequired'),
           visible: true,
         });
         return;
@@ -524,7 +526,7 @@ const ViewCandidate = () => {
       if (!loginResponse || !loginResponse.token) {
         setToastMessage({
           type: "error",
-          msg: "Authentication required. Please login again.",
+          msg: t('viewCandidate.authRequired'),
           visible: true,
         });
         return;
@@ -534,7 +536,7 @@ const ViewCandidate = () => {
 
       setToastMessage({
         type: "success",
-        msg: "Downloading resume...",
+        msg: t('viewCandidate.downloadingResume'),
         visible: true,
       });
 
@@ -583,20 +585,22 @@ const ViewCandidate = () => {
 
         setToastMessage({
           type: "success",
-          msg: `Resume downloaded to ${Platform.OS === 'android' ? 'Downloads' : 'Documents'} folder`,
+          msg: t('viewCandidate.downloadSuccess', {
+            folder: Platform.OS === 'android' ? t('viewCandidate.downloadsFolder') : t('viewCandidate.documentsFolder'),
+          }),
           visible: true,
         });
       } else {
         setToastMessage({
           type: "error",
-          msg: result?.message || "Failed to download resume",
+          msg: result?.message || t('viewCandidate.downloadFailed'),
           visible: true,
         });
       }
     } catch (error) {
       setToastMessage({
         type: "error",
-        msg: "Failed to download resume",
+        msg: t('viewCandidate.downloadFailed'),
         visible: true,
       });
     }
@@ -664,8 +668,8 @@ const ViewCandidate = () => {
 
   const renderCandidate = ({ item, index }) => {
     // Extract data from API response
-    const candidateName = item?.name || "Candidate";
-    const jobTitle = item?.job_title || "Job Title";
+    const candidateName = item?.name || t('viewCandidate.candidateFallback');
+    const jobTitle = item?.job_title || t('viewCandidate.jobTitleFallback');
     const companyName = item?.company_name || "";
     const actionVisibility = getActionVisibility(item);
 
@@ -734,7 +738,7 @@ const ViewCandidate = () => {
   // Render empty state
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>There is no Application applied by applicant</Text>
+      <Text style={styles.emptyText}>{t('viewCandidate.emptyApplications')}</Text>
     </View>
   );
 
@@ -761,14 +765,14 @@ const ViewCandidate = () => {
         <MyHeader
           showNotification={false}
           showCenterTitle
-          title="Candidate List"
+          title={t('viewCandidate.title')}
         />
       </View>
 
       {/* FILTER ICON */}
       <View style={styles.filterWrapper}>
         <View style={styles.filterHeader}>
-          <Text style={styles.filterTitle}>Candidate List</Text>
+          <Text style={styles.filterTitle}>{t('viewCandidate.title')}</Text>
           <TouchableOpacity
             style={styles.filterIconButton}
             onPress={handleFilterPress}
@@ -788,7 +792,7 @@ const ViewCandidate = () => {
               {loadingCategories ? (
                 <View style={styles.filterLoadingContainer}>
                   <ActivityIndicator size="small" color={BRANDCOLOR} />
-                  <Text style={styles.filterLoadingText}>Loading categories...</Text>
+                  <Text style={styles.filterLoadingText}>{t('viewCandidate.loadingCategories')}</Text>
                 </View>
               ) : categories.length > 0 ? (
                 <ScrollView
@@ -808,7 +812,7 @@ const ViewCandidate = () => {
                       styles.filterDropdownItemText,
                       selectedCategory === "" && styles.filterDropdownItemTextSelected
                     ]}>
-                      All Categories
+                      {t('viewCandidate.allCategories')}
                     </Text>
                   </TouchableOpacity>
 
@@ -836,7 +840,7 @@ const ViewCandidate = () => {
                           styles.filterDropdownItemCount,
                           isSelected && styles.filterDropdownItemCountSelected
                         ]}>
-                          {item.job_count || 0} Jobs
+                          {t('viewCandidate.jobsCount', { count: item.job_count || 0 })}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -844,7 +848,7 @@ const ViewCandidate = () => {
                 </ScrollView>
               ) : (
                 <View style={styles.filterEmptyContainer}>
-                  <Text style={styles.filterEmptyText}>No categories available</Text>
+                  <Text style={styles.filterEmptyText}>{t('viewCandidate.noCategories')}</Text>
                 </View>
               )}
             </View>
@@ -865,10 +869,10 @@ const ViewCandidate = () => {
         <View style={styles.filterIndicator}>
           <View style={styles.filterIndicatorContent}>
             <Text style={styles.filterIndicatorText}>
-              Filtered by: <Text style={styles.filterIndicatorCategory}>{formatCategoryName(selectedCategory)}</Text>
+              {t('viewCandidate.filteredBy')} <Text style={styles.filterIndicatorCategory}>{formatCategoryName(selectedCategory)}</Text>
             </Text>
             <Text style={styles.filterIndicatorCount}>
-              {filteredCandidates.length} {filteredCandidates.length === 1 ? 'candidate' : 'candidates'}
+              {filteredCandidates.length} {filteredCandidates.length === 1 ? t('viewCandidate.candidate') : t('viewCandidate.candidates')}
             </Text>
           </View>
           <TouchableOpacity
@@ -876,7 +880,7 @@ const ViewCandidate = () => {
             onPress={() => handleCategorySelect("")}
           >
             <MaterialCommunityIcons name="close-circle" size={HEIGHT * 0.02} color={BRANDCOLOR} />
-            <Text style={styles.filterClearText}>Clear</Text>
+            <Text style={styles.filterClearText}>{t('viewCandidate.clear')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -884,7 +888,7 @@ const ViewCandidate = () => {
       {/* LIST */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading applications...</Text>
+          <Text style={styles.loadingText}>{t('viewCandidate.loadingApplications')}</Text>
         </View>
       ) : (
         <FlatList
@@ -939,7 +943,7 @@ const ViewCandidate = () => {
               <MaterialCommunityIcons name="arrow-left" size={HEIGHT * 0.028} color={BLACK} />
             </TouchableOpacity>
             <View style={styles.professionalHeaderTitleContainer}>
-              <Text style={styles.professionalHeaderTitle}>Candidate Details</Text>
+              <Text style={styles.professionalHeaderTitle}>{t('viewCandidate.candidateDetails')}</Text>
             </View>
             <View style={styles.professionalBackButton} />
           </View>
@@ -955,7 +959,7 @@ const ViewCandidate = () => {
                 <View style={styles.modernSectionContainer}>
                   <View style={styles.modernSectionHeader}>
                     <MaterialCommunityIcons name="briefcase-outline" size={HEIGHT * 0.022} color={BRANDCOLOR} />
-                    <Text style={styles.modernSectionTitle}>Application Details</Text>
+                    <Text style={styles.modernSectionTitle}>{t('viewCandidate.applicationDetails')}</Text>
                   </View>
 
                   <View style={styles.modernDetailCard}>
@@ -964,8 +968,8 @@ const ViewCandidate = () => {
                         <MaterialCommunityIcons name="briefcase" size={HEIGHT * 0.022} color={BRANDCOLOR} />
                       </View>
                       <View style={styles.modernDetailContent}>
-                        <Text style={styles.modernDetailLabel}>Position</Text>
-                        <Text style={styles.modernDetailValue}>{selectedCandidate.job_title || "N/A"}</Text>
+                        <Text style={styles.modernDetailLabel}>{t('viewCandidate.position')}</Text>
+                        <Text style={styles.modernDetailValue}>{selectedCandidate.job_title || t('common.na')}</Text>
                       </View>
                     </View>
 
@@ -975,7 +979,7 @@ const ViewCandidate = () => {
                           <MaterialCommunityIcons name="office-building" size={HEIGHT * 0.022} color={BRANDCOLOR} />
                         </View>
                         <View style={styles.modernDetailContent}>
-                          <Text style={styles.modernDetailLabel}>Company</Text>
+                          <Text style={styles.modernDetailLabel}>{t('viewCandidate.company')}</Text>
                           <Text style={styles.modernDetailValue}>{selectedCandidate.company_name}</Text>
                         </View>
                       </View>
@@ -987,7 +991,7 @@ const ViewCandidate = () => {
                 <View style={styles.modernSectionContainer}>
                   <View style={styles.modernSectionHeader}>
                     <MaterialCommunityIcons name="card-account-details-outline" size={HEIGHT * 0.022} color={BRANDCOLOR} />
-                    <Text style={styles.modernSectionTitle}>Contact Information</Text>
+                    <Text style={styles.modernSectionTitle}>{t('viewCandidate.contactInformation')}</Text>
                   </View>
 
                   <View style={styles.modernDetailCard}>
@@ -996,8 +1000,8 @@ const ViewCandidate = () => {
                         <MaterialCommunityIcons name="account" size={HEIGHT * 0.022} color={BRANDCOLOR} />
                       </View>
                       <View style={styles.modernDetailContent}>
-                        <Text style={styles.modernDetailLabel}>Full Name</Text>
-                        <Text style={styles.modernDetailValue}>{selectedCandidate.name || "N/A"}</Text>
+                        <Text style={styles.modernDetailLabel}>{t('viewCandidate.fullName')}</Text>
+                        <Text style={styles.modernDetailValue}>{selectedCandidate.name || t('common.na')}</Text>
                       </View>
                     </View>
 
@@ -1007,7 +1011,7 @@ const ViewCandidate = () => {
                           <MaterialCommunityIcons name="email-outline" size={HEIGHT * 0.022} color={BRANDCOLOR} />
                         </View>
                         <View style={styles.modernDetailContent}>
-                          <Text style={styles.modernDetailLabel}>Email Address</Text>
+                          <Text style={styles.modernDetailLabel}>{t('viewCandidate.emailAddress')}</Text>
                           <Text style={styles.modernDetailValue}>{selectedCandidate.email}</Text>
                         </View>
                       </View>
@@ -1019,7 +1023,7 @@ const ViewCandidate = () => {
                           <MaterialCommunityIcons name="phone-outline" size={HEIGHT * 0.022} color={BRANDCOLOR} />
                         </View>
                         <View style={styles.modernDetailContent}>
-                          <Text style={styles.modernDetailLabel}>Phone Number</Text>
+                          <Text style={styles.modernDetailLabel}>{t('viewCandidate.phoneNumber')}</Text>
                           <Text style={styles.modernDetailValue}>{selectedCandidate.phone}</Text>
                         </View>
                       </View>
@@ -1032,7 +1036,7 @@ const ViewCandidate = () => {
                   <View style={styles.modernSectionContainer}>
                     <View style={styles.modernSectionHeader}>
                       <MaterialCommunityIcons name="file-document-edit-outline" size={HEIGHT * 0.022} color={BRANDCOLOR} />
-                      <Text style={styles.modernSectionTitle}>CV Summary</Text>
+                      <Text style={styles.modernSectionTitle}>{t('viewCandidate.cvSummary')}</Text>
                     </View>
                     <View style={styles.modernCvCard}>
                       <Text style={styles.modernCvText}>{selectedCandidate.pasted_cv}</Text>
@@ -1055,7 +1059,7 @@ const ViewCandidate = () => {
               }}
             >
               <MaterialCommunityIcons name="file-document" size={HEIGHT * 0.025} color={WHITE} />
-              <Text style={styles.fullScreenActionText}>View Resume</Text>
+              <Text style={styles.fullScreenActionText}>{t('viewCandidate.viewResume')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1066,7 +1070,7 @@ const ViewCandidate = () => {
               }}
             >
               <MaterialCommunityIcons name="delete" size={HEIGHT * 0.025} color={WHITE} />
-              <Text style={styles.fullScreenActionText}>Delete</Text>
+              <Text style={styles.fullScreenActionText}>{t('viewCandidate.delete')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1102,7 +1106,7 @@ const ViewCandidate = () => {
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <Text style={styles.fullScreenTitle} numberOfLines={1}>
-                {resumeCandidate?.name || 'Candidate'}'s Resume
+                {t('viewCandidate.resumeOf', { name: resumeCandidate?.name || t('viewCandidate.candidateFallback') })}
               </Text>
             </View>
             <View style={styles.backButton} />
@@ -1139,7 +1143,7 @@ const ViewCandidate = () => {
                   {resumeLoading && (
                     <View style={styles.loadingResumeOverlay}>
                       <ActivityIndicator size="large" color={BRANDCOLOR} />
-                      <Text style={styles.loadingText}>Loading resume...</Text>
+                      <Text style={styles.loadingText}>{t('viewCandidate.loadingResume')}</Text>
                     </View>
                   )}
                   {(() => {
@@ -1169,7 +1173,7 @@ const ViewCandidate = () => {
                             renderLoading={() => (
                               <View style={styles.webViewLoading}>
                                 <ActivityIndicator size="large" color={BRANDCOLOR} />
-                                <Text style={styles.webViewLoadingText}>Loading PDF Resume...</Text>
+                                <Text style={styles.webViewLoadingText}>{t('viewCandidate.loadingPdfResume')}</Text>
                               </View>
                             )}
                             onLoadStart={() => {
@@ -1182,7 +1186,7 @@ const ViewCandidate = () => {
                               setResumeLoading(false);
                               setToastMessage({
                                 type: "error",
-                                msg: "Failed to load PDF resume",
+                                msg: t('viewCandidate.failedLoadPdf'),
                                 visible: true,
                               });
                             }}
@@ -1190,7 +1194,7 @@ const ViewCandidate = () => {
                               setResumeLoading(false);
                               setToastMessage({
                                 type: "error",
-                                msg: "Failed to load PDF resume",
+                                msg: t('viewCandidate.failedLoadPdf'),
                                 visible: true,
                               });
                             }}
@@ -1201,9 +1205,9 @@ const ViewCandidate = () => {
                         return (
                           <View style={styles.pdfFallbackContainer}>
                             <MaterialCommunityIcons name="file-document" size={64} color={BRANDCOLOR} />
-                            <Text style={styles.pdfFallbackText}>PDF Resume</Text>
+                            <Text style={styles.pdfFallbackText}>{t('viewCandidate.pdfResume')}</Text>
                             <Text style={styles.pdfFallbackNote}>
-                              Please install react-native-webview package to view PDF resumes.
+                              {t('viewCandidate.installWebview')}
                             </Text>
                             <Text style={styles.pdfUrlText} selectable>{resumeUrl}</Text>
                           </View>
@@ -1214,9 +1218,9 @@ const ViewCandidate = () => {
                       return (
                         <View style={styles.pdfFallbackContainer}>
                           <MaterialCommunityIcons name="file-document" size={64} color={BRANDCOLOR} />
-                          <Text style={styles.pdfFallbackText}>PDF Resume</Text>
+                          <Text style={styles.pdfFallbackText}>{t('viewCandidate.pdfResume')}</Text>
                           <Text style={styles.pdfFallbackNote}>
-                            To view PDF resumes, please install react-native-webview package.
+                            {t('viewCandidate.installWebviewAlt')}
                           </Text>
                           <Text style={styles.pdfUrlText} selectable>{resumeUrl}</Text>
                         </View>
@@ -1238,7 +1242,7 @@ const ViewCandidate = () => {
                             setResumeLoading(false);
                             setToastMessage({
                               type: "error",
-                              msg: "Failed to load resume image",
+                              msg: t('viewCandidate.failedLoadImage'),
                               visible: true,
                             });
                           }}
@@ -1251,7 +1255,7 @@ const ViewCandidate = () => {
             ) : (
               <View style={styles.noResumeContainer}>
                 <MaterialCommunityIcons name="file-document-outline" size={HEIGHT * 0.08} color="#CCC" />
-                <Text style={styles.noResumeText}>No resume available</Text>
+                <Text style={styles.noResumeText}>{t('viewCandidate.noResume')}</Text>
                 <Text style={styles.debugText}>Resume URL: {resumeCandidate?.resume_url || 'null'}</Text>
                 <Text style={styles.debugText}>Candidate: {resumeCandidate?.name || 'null'}</Text>
               </View>
@@ -1266,7 +1270,7 @@ const ViewCandidate = () => {
                 onPress={() => handleDownloadResume(resumeCandidate)}
               >
                 <MaterialCommunityIcons name="download" size={HEIGHT * 0.025} color={WHITE} />
-                <Text style={styles.downloadButtonText}>Download Resume</Text>
+                <Text style={styles.downloadButtonText}>{t('viewCandidate.downloadResume')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1276,10 +1280,10 @@ const ViewCandidate = () => {
       {/* Delete Confirmation Alert */}
       <MyAlert
         visible={deleteAlertVisible}
-        title="Delete Candidate"
-        message="Do you want to Delete this candidate?"
-        textLeft="Cancel"
-        textRight="Delete"
+        title={t('viewCandidate.deleteTitle')}
+        message={t('viewCandidate.deleteMessage')}
+        textLeft={t('viewCandidate.cancel')}
+        textRight={t('viewCandidate.delete')}
         onPressLeft={() => {
           setDeleteAlertVisible(false);
           setSelectedCandidate(null);

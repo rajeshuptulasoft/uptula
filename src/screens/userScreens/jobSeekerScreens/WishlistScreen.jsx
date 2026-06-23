@@ -17,6 +17,7 @@ import {
   TextInput,
   BackHandler,
 } from "react-native";
+import { useTranslation } from "../../../hooks/useTranslation";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { pick, isCancel } from '@react-native-documents/picker';
@@ -74,6 +75,7 @@ const formatDate = (dateString) => {
 };
  
 const WishlistScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const [wishlist, setWishlist] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   const [modalWishState, setModalWishState] = useState(true); // modal-local heart state
@@ -1072,7 +1074,7 @@ const WishlistScreen = ({ navigation }) => {
     <View style={styles.container}>
       <MyHeader
         showCenterTitle={true}
-        title="Wishlist"
+        title={t('wishlist.title')}
       />
       <FlatList
         data={wishlist}
@@ -1088,7 +1090,7 @@ const WishlistScreen = ({ navigation }) => {
           />
         }
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No jobs in wishlist</Text>
+          <Text style={styles.emptyText}>{t('wishlist.empty')}</Text>
         }
       />
  

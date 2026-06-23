@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -30,6 +30,7 @@ import { DROPDOWN } from "../../constant/imagePath";
 import { POSTNETWORK, POSTNETWORKFORM } from "../../utils/Network";
 import { getObjByKey } from "../../utils/Storage";
 import { BASE_URL } from "../../constant/url";
+import { useTranslation } from "../../hooks/useTranslation";
 
 const DARK_GREEN = "#1A6B42";
 const TEXT_MUTED = "#5F6B7A";
@@ -38,49 +39,65 @@ const PAGE_BG = "#F4FAF7";
 const MAX_DESC = 1000;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
-const ISSUE_CATEGORIES = [
-  { label: "Select a category", value: "" },
-  { label: "Apply — Job application issues", value: "apply" },
-  { label: "Login — Sign in & account access", value: "login" },
-  { label: "Info — Wrong job or company details", value: "info" },
-  { label: "Tech — Page errors or slow loading", value: "technical" },
-  { label: "Pay — Payment or billing concern", value: "payment" },
-  { label: "Other — Any other concern", value: "other" },
-];
-
-const PRIORITIES = [
-  { value: "low", label: "Low", color: "#22C55E" },
-  { value: "medium", label: "Medium", color: "#F59E0B" },
-  { value: "high", label: "High", color: "#EF4444" },
-];
-
-const ISSUE_TYPES = [
-  { tag: "Apply", text: "Job application not submitting or status stuck." },
-  { tag: "Login", text: "Can't sign in, account locked or reset issues." },
-  { tag: "Info", text: "Wrong job details, salary or company information." },
-  { tag: "Tech", text: "Page errors, broken UI, or slow loading." },
-  { tag: "Pay", text: "Payment failed or billing concern." },
-  { tag: "Other", text: "Any other concern not listed above." },
-];
-
-const RESOLUTION_TIPS = [
-  "Include the exact error message if any.",
-  "Mention your browser and device model.",
-  "Attach a screenshot of the issue.",
-  "Provide the job or employer name if relevant.",
-  "Check your spam folder for our reply.",
-];
-
-const getCategoryLabel = (value) =>
-  ISSUE_CATEGORIES.find((c) => c.value === value)?.label || "Select a category";
-
 const TwoColumnGrid = ({ children, style }) => (
   <View style={[styles.twoColGrid, style]}>{children}</View>
 );
 
 const ReportIssueScreen = ({ userType = "seeker" }) => {
   const navigation = useNavigation();
+  const { t, i18n } = useTranslation();
   const isProvider = userType === "provider";
+
+  const ISSUE_CATEGORIES = useMemo(
+    () => [
+      { label: t("reportIssue.selectCategory"), value: "" },
+      { label: t("reportIssue.catApply"), value: "apply" },
+      { label: t("reportIssue.catLogin"), value: "login" },
+      { label: t("reportIssue.catInfo"), value: "info" },
+      { label: t("reportIssue.catTech"), value: "technical" },
+      { label: t("reportIssue.catPay"), value: "payment" },
+      { label: t("reportIssue.catOther"), value: "other" },
+    ],
+    [t]
+  );
+
+  const PRIORITIES = useMemo(
+    () => [
+      { value: "low", label: t("reportIssue.low"), color: "#22C55E" },
+      { value: "medium", label: t("reportIssue.medium"), color: "#F59E0B" },
+      { value: "high", label: t("reportIssue.high"), color: "#EF4444" },
+    ],
+    [t]
+  );
+
+  const ISSUE_TYPES = useMemo(
+    () => [
+      { tag: t("reportIssue.tagApply"), text: t("reportIssue.typeApply") },
+      { tag: t("reportIssue.tagLogin"), text: t("reportIssue.typeLogin") },
+      { tag: t("reportIssue.tagInfo"), text: t("reportIssue.typeInfo") },
+      { tag: t("reportIssue.tagTech"), text: t("reportIssue.typeTech") },
+      { tag: t("reportIssue.tagPay"), text: t("reportIssue.typePay") },
+      { tag: t("reportIssue.tagOther"), text: t("reportIssue.typeOther") },
+    ],
+    [t]
+  );
+
+  const RESOLUTION_TIPS = useMemo(
+    () => [
+      t("reportIssue.tip1"),
+      t("reportIssue.tip2"),
+      t("reportIssue.tip3"),
+      t("reportIssue.tip4"),
+      t("reportIssue.tip5"),
+    ],
+    [t]
+  );
+
+  const getCategoryLabel = useCallback(
+    (value) =>
+      ISSUE_CATEGORIES.find((c) => c.value === value)?.label || t("reportIssue.selectCategory"),
+    [ISSUE_CATEGORIES, t]
+  );
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -121,7 +138,7 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
       });
       if (!result) return;
       if (result.size && result.size > MAX_FILE_BYTES) {
-        Alert.alert("File too large", "Maximum file size is 5 MB.");
+        Alert.alert(t("reportIssue.fileTooLarge"), t("reportIssue.maxFileSize"));
         return;
       }
       setAttachment({
@@ -132,30 +149,30 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
       });
     } catch (err) {
       if (!isCancel(err)) {
-        Alert.alert("File picker", "Could not select file. Please try again.");
+        Alert.alert(t("reportIssue.filePickerTitle"), t("reportIssue.filePickerError"));
       }
     }
   };
 
   const handleSubmit = async () => {
     if (!fullName.trim()) {
-      showToast("error", "Please enter your full name.");
+      showToast("error", t("reportIssue.enterFullName"));
       return;
     }
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email.trim())) {
-      showToast("error", "Please enter a valid email address.");
+      showToast("error", t("reportIssue.enterValidEmail"));
       return;
     }
     if (!category) {
-      showToast("error", "Please select an issue category.");
+      showToast("error", t("reportIssue.selectIssueCategory"));
       return;
     }
     if (!subject.trim()) {
-      showToast("error", "Please enter a subject.");
+      showToast("error", t("reportIssue.enterSubject"));
       return;
     }
     if (!description.trim()) {
-      showToast("error", "Please describe the issue.");
+      showToast("error", t("reportIssue.describeRequired"));
       return;
     }
 
@@ -190,7 +207,7 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
         });
         const result = await POSTNETWORKFORM(url, form, true);
         if (result?.ticket || result?.success || result?.id) {
-          showToast("success", result?.message || "Report submitted successfully.");
+          showToast("success", result?.message || t("reportIssue.reportSuccess"));
           resetForm();
           return;
         }
@@ -206,7 +223,7 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
       if (loginData?.token) {
         const result = await POSTNETWORK(url, payload, true);
         if (result?.ticket || result?.success || result?.id || result?.ticket_id) {
-          showToast("success", result?.message || "Report submitted successfully.");
+          showToast("success", result?.message || t("reportIssue.reportSuccess"));
           resetForm();
           return;
         }
@@ -214,11 +231,11 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
 
       showToast(
         "success",
-        "Your report has been recorded. Our team will respond within 24–48 hours."
+        t("reportIssue.reportRecorded")
       );
       resetForm();
     } catch {
-      showToast("error", "Failed to submit. Please try again later.");
+      showToast("error", t("reportIssue.failedSubmit"));
     } finally {
       setSubmitting(false);
     }
@@ -239,7 +256,7 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
     <MyHeader
       showBack
       showCenterTitle
-      title="Report Issue"
+      title={t("reportIssue.title")}
       onBackPress={goBack}
       showNotification={false}
       backgroundColor={WHITE}
@@ -272,22 +289,21 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
           <View style={styles.card}>
             <View style={styles.formTitleRow}>
               <MaterialCommunityIcons name="rhombus-split" size={22} color={BRANDCOLOR} />
-              <Text style={styles.formTitle}>Submit Your Issue</Text>
+              <Text style={styles.formTitle}>{t("reportIssue.submitYourIssue")}</Text>
             </View>
             <Text style={styles.formSubtitle}>
-              Fill in the details below. Our team will review your request and get back to you
-              within 24–48 hours.
+              {t("reportIssue.formSubtitle")}
             </Text>
 
             <TextInputComponent
-              placeholder="Full Name *"
+              placeholder={t("reportIssue.fullNameRequired")}
               inputdata={fullName}
               setInputdata={setFullName}
               width="100%"
               maxLength={80}
             />
             <TextInputComponent
-              placeholder="Email Address *"
+              placeholder={t("reportIssue.emailRequired")}
               inputdata={email}
               setInputdata={setEmail}
               type="email"
@@ -297,7 +313,7 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
               maxLength={120}
             />
             <TextInputComponent
-              placeholder="Phone Number (optional)"
+              placeholder={t("reportIssue.phoneOptional")}
               inputdata={phone}
               setInputdata={setPhone}
               keyboardType="phone-pad"
@@ -305,7 +321,7 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
               maxLength={15}
             />
 
-            <Text style={styles.inputLabel}>Issue Category *</Text>
+            <Text style={styles.inputLabel}>{t("reportIssue.issueCategoryRequired")}</Text>
             <View style={styles.pickerWrapper}>
               <View style={styles.pickerContainer}>
                 <View style={styles.pickerTextContainer}>
@@ -322,7 +338,7 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
                   style={styles.picker}
                   itemStyle={styles.pickerItem}
                   mode="dropdown"
-                  prompt="Select a category"
+                  prompt={t("reportIssue.selectCategory")}
                 >
                   {ISSUE_CATEGORIES.map((c) => (
                     <Picker.Item key={c.value || "empty"} label={c.label} value={c.value} />
@@ -332,7 +348,7 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
               </View>
             </View>
 
-            <Text style={styles.inputLabel}>Priority Level *</Text>
+            <Text style={styles.inputLabel}>{t("reportIssue.priorityLevel")}</Text>
             <View style={styles.priorityRow}>
               {PRIORITIES.map((p) => {
                 const selected = priority === p.value;
@@ -353,20 +369,20 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
             </View>
 
             <TextInputComponent
-              placeholder="Subject *"
+              placeholder={t("reportIssue.subjectRequired")}
               inputdata={subject}
               setInputdata={setSubject}
               width="100%"
               maxLength={150}
             />
 
-            <Text style={styles.inputLabel}>Issue Description *</Text>
+            <Text style={styles.inputLabel}>{t("reportIssue.issueDescription")}</Text>
             <View style={styles.textAreaWrap}>
               <TextInput
                 style={styles.textArea}
                 value={description}
-                onChangeText={(t) => setDescription(t.slice(0, MAX_DESC))}
-                placeholder="Describe the issue in detail — what happened, when it occurred, steps to reproduce, and any error messages you saw..."
+                onChangeText={(text) => setDescription(text.slice(0, MAX_DESC))}
+                placeholder={t("reportIssue.descriptionPlaceholder")}
                 placeholderTextColor="#9CA3AF"
                 multiline
                 numberOfLines={6}
@@ -377,22 +393,22 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
               </Text>
             </View>
 
-            <Text style={styles.inputLabel}>Attach Screenshot / File (optional)</Text>
+            <Text style={styles.inputLabel}>{t("reportIssue.attachScreenshot")}</Text>
             <TouchableOpacity style={styles.uploadBox} onPress={pickFile} activeOpacity={0.85}>
               <MaterialCommunityIcons name="paperclip" size={28} color={BRANDCOLOR} />
               <Text style={styles.uploadText}>
-                {attachment ? attachment.name : "Tap to browse file"}
+                {attachment ? attachment.name : t("reportIssue.tapToBrowse")}
               </Text>
-              <Text style={styles.uploadHint}>PNG, JPG, PDF, DOC — Max 5 MB</Text>
+              <Text style={styles.uploadHint}>{t("reportIssue.uploadHint")}</Text>
               {attachment && (
                 <TouchableOpacity onPress={() => setAttachment(null)} style={styles.removeFileBtn}>
-                  <Text style={styles.removeFileText}>Remove file</Text>
+                  <Text style={styles.removeFileText}>{t("reportIssue.removeFile")}</Text>
                 </TouchableOpacity>
               )}
             </TouchableOpacity>
 
             <CustomButton
-              text={submitting ? "SUBMITTING..." : "Submit Report"}
+              text={submitting ? t("reportIssue.submitting") : t("reportIssue.submitReport")}
               backgroundColor={DARK_GREEN}
               color={WHITE}
               width="100%"
@@ -407,7 +423,7 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
             <View style={styles.sideCard}>
               <View style={styles.sideCardHeader}>
                 <MaterialCommunityIcons name="file-document-outline" size={20} color={DARK_GREEN} />
-                <Text style={styles.sideCardTitle}>Issue Types We Handle</Text>
+                <Text style={styles.sideCardTitle}>{t("reportIssue.issueTypesTitle")}</Text>
               </View>
               {ISSUE_TYPES.map((item) => (
                 <View key={item.tag} style={styles.issueTypeRow}>
@@ -422,7 +438,7 @@ const ReportIssueScreen = ({ userType = "seeker" }) => {
             <View style={styles.sideCard}>
               <View style={styles.sideCardHeader}>
                 <MaterialCommunityIcons name="lightbulb-on-outline" size={20} color="#F59E0B" />
-                <Text style={styles.sideCardTitle}>Tips for Faster Resolution</Text>
+                <Text style={styles.sideCardTitle}>{t("reportIssue.tipsTitle")}</Text>
               </View>
               {RESOLUTION_TIPS.map((tip, i) => (
                 <View key={i} style={styles.tipRow}>

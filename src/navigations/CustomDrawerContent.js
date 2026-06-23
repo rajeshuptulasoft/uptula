@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from '../hooks/useTranslation';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { PROFILE, LOGOUT } from '../constant/imagePath';
@@ -21,6 +22,8 @@ import { WHITE } from '../constant/color';
 import { BASE_URL } from '../constant/url';
 import { GETNETWORK } from '../utils/Network';
 import { MyAlert } from '../components/commonComponents/MyAlert';
+import { ChangeLanguageModal } from '../components/commonComponents/ChangeLanguageModal';
+import { useLanguageRefresh } from '../hooks/useLanguageRefresh';
 import { UBUNTU, UBUNTUBOLD, FIRASANSSEMIBOLD } from '../constant/fontPath';
 import DeviceInfo from 'react-native-device-info';
 // import DeviceInfo from 'react-native-device-info';
@@ -73,10 +76,12 @@ export const handleProfilePress = async (navigation, openDrawerCallback = null) 
 
 const CustomDrawerContent = (props) => {
   const { navigation, refreshKey, onRefresh } = props;
+  const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
   const [loginData, setLoginData] = useState(null);
   const [role, setRole] = useState('guest'); // 'guest' | 'seeker' | 'provider'
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [contactPersonName, setContactPersonName] = useState('');
   const [providerLogoUrl, setProviderLogoUrl] = useState(null);
@@ -693,6 +698,8 @@ const CustomDrawerContent = (props) => {
     }, [refetchProfileData])
   );
 
+  useLanguageRefresh(refetchProfileData);
+
   const confirmLogout = () => {
     // Remove auth-related entries but keep onboarding flag so users are not shown onboarding again
     deleteByKeys(['loginResponse', 'fcmtoken']).then(async () => {
@@ -702,33 +709,35 @@ const CustomDrawerContent = (props) => {
     setLogoutModalVisible(false);
   };
 
-  const providerItems = [
-    { key: 'editProfile', label: 'Edit Company Profile', icon: 'account-edit-outline' },
-    { key: 'booleanSearch', label: 'Boolean Search', icon: 'magnify' },
-    { key: 'manageJob', label: 'Manage Job', icon: 'briefcase-edit-outline' },
-    { key: 'resumeScore', label: 'Resume Scoring', icon: 'file-account-outline' },
-    { key: 'analytics', label: 'Analytics Report', icon: 'chart-box-outline' },
-    { key: 'referrals', label: 'Referrals', icon: 'account-multiple-plus-outline' },
-    { key: 'premium', label: 'Premium Manager', icon: 'star-circle-outline' },
-    { key: 'changePassword', label: 'Change Password', icon: 'key-outline' },
-    { key: 'privacy', label: 'Privacy & Policies', icon: 'shield-lock-outline' },
-    { key: 'terms', label: 'Terms & Conditions', icon: 'file-document-outline' },
-    { key: 'aboutUs', label: 'About US', icon: 'information-outline' },
-    { key: 'helpCenter', label: 'Help Center', icon: 'help-circle-outline' },
-    { key: 'reportIssue', label: 'Report Issue', icon: 'alert-circle-outline' },
-  ];
+  const providerItems = useMemo(() => [
+    { key: 'editProfile', labelKey: 'drawer.editCompanyProfile', icon: 'account-edit-outline' },
+    { key: 'booleanSearch', labelKey: 'drawer.booleanSearch', icon: 'magnify' },
+    { key: 'manageJob', labelKey: 'drawer.manageJob', icon: 'briefcase-edit-outline' },
+    { key: 'resumeScore', labelKey: 'drawer.resumeScore', icon: 'file-account-outline' },
+    { key: 'analytics', labelKey: 'drawer.analytics', icon: 'chart-box-outline' },
+    { key: 'referrals', labelKey: 'drawer.referrals', icon: 'account-multiple-plus-outline' },
+    { key: 'premium', labelKey: 'drawer.premium', icon: 'star-circle-outline' },
+    { key: 'changePassword', labelKey: 'drawer.changePassword', icon: 'key-outline' },
+    { key: 'privacy', labelKey: 'drawer.privacy', icon: 'shield-lock-outline' },
+    { key: 'terms', labelKey: 'drawer.terms', icon: 'file-document-outline' },
+    { key: 'aboutUs', labelKey: 'drawer.aboutUs', icon: 'information-outline' },
+    { key: 'helpCenter', labelKey: 'drawer.helpCenter', icon: 'help-circle-outline' },
+    { key: 'reportIssue', labelKey: 'drawer.reportIssue', icon: 'alert-circle-outline' },
+    { key: 'changeLanguage', labelKey: 'drawer.changeLanguage', icon: 'translate' },
+  ], [i18n.language]);
 
-  const seekerItems = [
-    { key: 'editProfile', label: 'Edit Profile', icon: 'account-edit-outline' },
-    { key: 'mockInterview', label: 'AI Mock Interview', icon: 'video-outline' },
-    { key: 'changePassword', label: 'Change Password', icon: 'key-outline' },
-    { key: 'createResume', label: 'Create Resume', icon: 'file-document-edit-outline' },
-    { key: 'privacy', label: 'Privacy & Policies', icon: 'shield-lock-outline' },
-    { key: 'terms', label: 'Terms & Conditions', icon: 'file-document-outline' },
-    { key: 'aboutUs', label: 'About US', icon: 'information-outline' },
-    { key: 'helpCenter', label: 'Help Center', icon: 'help-circle-outline' },
-    { key: 'reportIssue', label: 'Report Issue', icon: 'alert-circle-outline' },
-  ];
+  const seekerItems = useMemo(() => [
+    { key: 'editProfile', labelKey: 'drawer.editProfile', icon: 'account-edit-outline' },
+    { key: 'mockInterview', labelKey: 'drawer.mockInterview', icon: 'video-outline' },
+    { key: 'changePassword', labelKey: 'drawer.changePassword', icon: 'key-outline' },
+    { key: 'createResume', labelKey: 'drawer.createResume', icon: 'file-document-edit-outline' },
+    { key: 'privacy', labelKey: 'drawer.privacy', icon: 'shield-lock-outline' },
+    { key: 'terms', labelKey: 'drawer.terms', icon: 'file-document-outline' },
+    { key: 'aboutUs', labelKey: 'drawer.aboutUs', icon: 'information-outline' },
+    { key: 'helpCenter', labelKey: 'drawer.helpCenter', icon: 'help-circle-outline' },
+    { key: 'reportIssue', labelKey: 'drawer.reportIssue', icon: 'alert-circle-outline' },
+    { key: 'changeLanguage', labelKey: 'drawer.changeLanguage', icon: 'translate' },
+  ], [i18n.language]);
 
   const renderProviderItem = (item) => {
     const handleNavigation = () => {
@@ -775,6 +784,10 @@ const CustomDrawerContent = (props) => {
         case 'reportIssue':
           navigation.navigate('ReportIssueProvider');
           break;
+        case 'changeLanguage':
+          navigation.closeDrawer();
+          setLanguageModalVisible(true);
+          break;
         default:
           break;
       }
@@ -789,7 +802,7 @@ const CustomDrawerContent = (props) => {
         <View style={styles.iconCircle}>
           <MaterialCommunityIcons name={item.icon} size={22} color="#00A073" />
         </View>
-        <Text style={styles.menuLabel}>{item.label}</Text>
+        <Text style={styles.menuLabel}>{t(item.labelKey)}</Text>
       </TouchableOpacity>
     );
   };
@@ -824,6 +837,10 @@ const CustomDrawerContent = (props) => {
         case 'reportIssue':
           navigation.navigate('ReportIssueSeeker');
           break;
+        case 'changeLanguage':
+          navigation.closeDrawer();
+          setLanguageModalVisible(true);
+          break;
         default:
           break;
       }
@@ -838,10 +855,25 @@ const CustomDrawerContent = (props) => {
         <View style={styles.iconCircle}>
           <MaterialCommunityIcons name={item.icon} size={22} color="#00A073" />
         </View>
-        <Text style={styles.menuLabel}>{item.label}</Text>
+        <Text style={styles.menuLabel}>{t(item.labelKey)}</Text>
       </TouchableOpacity>
     );
   };
+
+  const renderGuestLanguageItem = () => (
+    <TouchableOpacity
+      style={styles.menuItem}
+      onPress={() => {
+        navigation.closeDrawer();
+        setLanguageModalVisible(true);
+      }}
+    >
+      <View style={styles.iconCircle}>
+        <MaterialCommunityIcons name="translate" size={22} color="#00A073" />
+      </View>
+      <Text style={styles.menuLabel}>{t('drawer.changeLanguage')}</Text>
+    </TouchableOpacity>
+  );
 
   // Company name is now fetched from API and stored in state
   // Fallback to stored data if API hasn't loaded yet
@@ -900,7 +932,7 @@ const CustomDrawerContent = (props) => {
     loginData?.data?.position ||
     loginData?.designation ||
     loginData?.user?.designation ||
-    'Designation';
+    t('drawer.designation');
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -910,13 +942,18 @@ const CustomDrawerContent = (props) => {
       >
         <MyAlert
           visible={logoutModalVisible}
-          title="Logout"
-          message="Are you sure you want to logout?"
-          textLeft="No"
-          textRight="Yes"
+          title={t('drawer.logoutConfirmTitle')}
+          message={t('drawer.logoutConfirmMessage')}
+          textLeft={t('common.cancel')}
+          textRight={t('common.yes')}
           onPressLeft={() => setLogoutModalVisible(false)}
           onPressRight={confirmLogout}
           onRequestClose={() => setLogoutModalVisible(false)}
+        />
+
+        <ChangeLanguageModal
+          visible={languageModalVisible}
+          onClose={() => setLanguageModalVisible(false)}
         />
 
         {/* PROFILE Image at top - Clickable */}
@@ -1010,6 +1047,15 @@ const CustomDrawerContent = (props) => {
           </>
         )}
 
+        {role === 'guest' && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.menuContainer}>
+              {renderGuestLanguageItem()}
+            </View>
+          </>
+        )}
+
         {/* LOGOUT: Icon centered at bottom, Text below icon */}
         <View style={styles.logoutContainer}>
           <TouchableOpacity
@@ -1017,12 +1063,12 @@ const CustomDrawerContent = (props) => {
             onPress={() => setLogoutModalVisible(true)}
           >
             <Image source={LOGOUT} style={styles.logoutImage} />
-            <Text style={styles.logoutText}>Logout</Text>
+            <Text style={styles.logoutText}>{t('common.logout')}</Text>
           </TouchableOpacity>
 
           {/* Version below logout */}
           <Text style={styles.versionText}>
-            Version: {appVersion}
+            {t('common.version')}: {appVersion}
           </Text>
         </View>
       </DrawerContentScrollView>

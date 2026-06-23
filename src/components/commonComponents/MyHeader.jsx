@@ -9,12 +9,15 @@ import {
     Platform,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from "../../hooks/useTranslation";
 import { BLACK, WHITE } from "../../constant/color";
 import { PROFILE, SEARCH, NOTIFICATION, BACK, LOGO } from "../../constant/imagePath";
 import { CANTARELLBOLD, CANTARELL, FIRASANSBOLD, FIRASANS, FIRASANSSEMIBOLD, OXYGENBOLD, OXYGEN, ROBOTOBOLD, ROBOTOSEMIBOLD, ROBOTO, UBUNTUBOLD, UBUNTU, COMICSBOLD } from "../../constant/fontPath";
 import { getObjByKey } from "../../utils/Storage";
 import { BASE_URL } from "../../constant/url";
 import { GETNETWORK } from "../../utils/Network";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { BRANDCOLOR } from "../../constant/color";
 
 export const MyHeader = ({
     backgroundColor = "transparent",
@@ -23,7 +26,7 @@ export const MyHeader = ({
     onNotificationPress = () => { },
     onSearchPress = () => { },
     profileImgSource = PROFILE,
-    searchPlaceholder = "Search",
+    searchPlaceholder,
     // New props for back button layout
     showBack = false,
     showCenterTitle = false,
@@ -31,9 +34,13 @@ export const MyHeader = ({
     onBackPress = () => { },
     showLogo = false,
     showNotification = true,
+    onLanguagePress = () => { },
 }) => {
+    const { t } = useTranslation();
+    const resolvedSearchPlaceholder = searchPlaceholder ?? t('header.search');
     const [dynamicProfileImage, setDynamicProfileImage] = useState(null);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const safeUnreadCount = Number(unreadCount) > 0 ? Number(unreadCount) : 0;
 
@@ -92,10 +99,13 @@ export const MyHeader = ({
             const loginData = await getObjByKey("loginResponse");
 
             if (!loginData || !loginData.token) {
+                setIsAuthenticated(false);
                 setIsLoadingProfile(false);
                 setUnreadCount(0);
                 return;
             }
+
+            setIsAuthenticated(true);
 
             await fetchUnreadCount(loginData);
 
@@ -271,23 +281,13 @@ export const MyHeader = ({
                 <Pressable style={styles.searchPill} onPress={onSearchPress}>
                     <Image style={styles.searchIcon} source={SEARCH} />
                     <Text allowFontScaling={false} style={styles.searchText}>
-                        {searchPlaceholder}
+                        {resolvedSearchPlaceholder}
                     </Text>
                 </Pressable>
             )}
 
-            {/* Right: Notification
-                <Pressable onPress={onNotificationPress} style={styles.notificationContainer}>
-                    <Image style={styles.notificationIcon} source={NOTIFICATION} />
-                    {safeUnreadCount > 0 && (
-                        <View style={styles.notificationBadge}>
-                            <Text style={styles.notificationBadgeText}>{safeUnreadCount}</Text>
-                        </View>
-                    )}
-                </Pressable> */}
-
-            {/* Right: Notification */}
-            {showNotification && (
+            {/* Right: Notification (logged in) or Language (guest) */}
+            {isAuthenticated && showNotification ? (
                 <Pressable onPress={onNotificationPress} style={styles.notificationContainer}>
                     <Image style={styles.notificationIcon} source={NOTIFICATION} />
                     {safeUnreadCount > 0 && (
@@ -296,7 +296,15 @@ export const MyHeader = ({
                         </View>
                     )}
                 </Pressable>
-            )}
+            ) : !isAuthenticated ? (
+                <Pressable
+                    onPress={onLanguagePress}
+                    style={styles.languageContainer}
+                    accessibilityLabel={t('drawer.changeLanguage')}
+                >
+                    <MaterialCommunityIcons name="translate" size={26} color={BRANDCOLOR} />
+                </Pressable>
+            ) : null}
 
             <View style={styles.hiddenFontsContainer} pointerEvents="none" accessibilityElementsHidden={true} importantForAccessibility="no-hide-descendants">
                 <Text style={[styles.hiddenFontText, styles.cantarellBold]}>.</Text>
@@ -339,6 +347,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginLeft: 8,
         position: "relative",
+    },
+    languageContainer: {
+        justifyContent: "center",
+        alignItems: "center",
+        marginLeft: 8,
+        width: 36,
+        height: 36,
     },
     notificationIcon: {
         height: 26,

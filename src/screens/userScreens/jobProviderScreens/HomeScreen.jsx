@@ -24,6 +24,11 @@ import {
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { DrawerActions } from "@react-navigation/native";
+import { useTranslation } from "../../../hooks/useTranslation";
+import i18n from "../../../i18n";
+import { useLanguageRefresh } from "../../../hooks/useLanguageRefresh";
+import { translateCategoryName } from "../../../i18n/translateApiLabel";
+import { ChangeLanguageModal } from "../../../components/commonComponents/ChangeLanguageModal";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Picker } from "@react-native-picker/picker";
 import { launchImageLibrary } from "react-native-image-picker";
@@ -232,7 +237,7 @@ const PostedJobCard = ({ item, onPress, onEdit, onDelete }) => {
                 ]} 
               />
               <Text style={styles.statusText}>
-                {item.status === "active" ? "Active" : "Inactive"}
+                {item.status === "active" ? t('home.active') : t('home.inactive')}
               </Text>
     </View>
           )}
@@ -305,6 +310,7 @@ const PostedJobCard = ({ item, onPress, onEdit, onDelete }) => {
 };
 
 const SearchOverlay = ({ onClose, navigation, onExitRequest }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -398,7 +404,7 @@ const SearchOverlay = ({ onClose, navigation, onExitRequest }) => {
         <TouchableOpacity onPress={onClose}>
           <MaterialCommunityIcons name="arrow-left" size={26} color={BLACK} />
         </TouchableOpacity>
-        <Text style={styles.overlayTitle}>Search</Text>
+        <Text style={styles.overlayTitle}>{t('home.search')}</Text>
       </View>
 
       <View style={styles.inputGroup}>
@@ -494,7 +500,7 @@ const SearchOverlay = ({ onClose, navigation, onExitRequest }) => {
 
         {!loading && searchResults.length === 0 && (query.trim() !== '' || location.trim() !== '') && (
           <View style={styles.emptySearchContainer}>
-            <Text style={styles.emptySearchText}>No jobs found matching your search</Text>
+            <Text style={styles.emptySearchText}>{t('home.noJobsFound')}</Text>
           </View>
         )}
       </View>
@@ -1420,34 +1426,7 @@ const SponsorshipCard = ({ item }) => {
 
 // Category Card
 const CategoryCard = ({ item, onPress }) => {
-  const formatCategoryName = (category) => {
-    if (!category) return 'N/A';
-    
-    // Check if category is one of the "Other" sub-categories
-    const categoryLower = category.toLowerCase().replace(/_/g, ' ');
-    if (categoryLower.includes('cook') || categoryLower.includes('security guard') || categoryLower.includes('security_guard') || categoryLower.includes('supervisor') || categoryLower.includes('plumber')) {
-      return 'Other';
-    }
-    
-    // If it's already "other", return "Other"
-    if (categoryLower === 'other' || categoryLower.trim() === 'other') {
-      return 'Other';
-    }
-    
-    let formatted = category.replace(/_/g, ' ');
-    const words = formatted.split(' ');
-    const capitalizedWords = words.map(word => {
-      const trimmedWord = word.trim();
-      if (trimmedWord.length <= 3 && trimmedWord.toUpperCase() === trimmedWord) {
-        return trimmedWord.toUpperCase();
-      } else if (trimmedWord.length <= 3) {
-        return trimmedWord.toUpperCase();
-      } else {
-        return trimmedWord.charAt(0).toUpperCase() + trimmedWord.slice(1).toLowerCase();
-      }
-    });
-    return capitalizedWords.join(' ');
-  };
+  const { t } = useTranslation();
 
   const getCategoryIcon = (category) => {
     const categoryLower = (category || '').toLowerCase().replace(/_/g, ' ');
@@ -1483,10 +1462,10 @@ const CategoryCard = ({ item, onPress }) => {
         />
       </View>
       <Text style={styles.categoryName} numberOfLines={2}>
-        {formatCategoryName(item.category)}
+        {translateCategoryName(item.category)}
       </Text>
       <Text style={styles.categoryJobCount}>
-        {item.job_count || 0} Jobs
+        {t('home.jobCount', { count: item.job_count || 0 })}
       </Text>
     </TouchableOpacity>
   );
@@ -1494,38 +1473,10 @@ const CategoryCard = ({ item, onPress }) => {
 
 // All Categories Slider
 const AllCategoriesSlider = ({ categories, onCategoryPress }) => {
+  const { t } = useTranslation();
   const scrollViewRef = React.useRef(null);
   const scrollPositionRef = React.useRef(0);
   const animationRef = React.useRef(null);
-
-  const formatCategoryName = (category) => {
-    if (!category) return 'N/A';
-    
-    // Check if category is one of the "Other" sub-categories
-    const categoryLower = category.toLowerCase().replace(/_/g, ' ');
-    if (categoryLower.includes('cook') || categoryLower.includes('security guard') || categoryLower.includes('security_guard') || categoryLower.includes('supervisor') || categoryLower.includes('plumber')) {
-      return 'Other';
-    }
-    
-    // If it's already "other", return "Other"
-    if (categoryLower === 'other' || categoryLower.trim() === 'other') {
-      return 'Other';
-    }
-    
-    let formatted = category.replace(/_/g, ' ');
-    const words = formatted.split(' ');
-    const capitalizedWords = words.map(word => {
-      const trimmedWord = word.trim();
-      if (trimmedWord.length <= 3 && trimmedWord.toUpperCase() === trimmedWord) {
-        return trimmedWord.toUpperCase();
-      } else if (trimmedWord.length <= 3) {
-        return trimmedWord.toUpperCase();
-      } else {
-        return trimmedWord.charAt(0).toUpperCase() + trimmedWord.slice(1).toLowerCase();
-      }
-    });
-    return capitalizedWords.join(' ');
-  };
 
   const getCategoryIcon = (category) => {
     const categoryLower = (category || '').toLowerCase().replace(/_/g, ' ');
@@ -1607,10 +1558,10 @@ const AllCategoriesSlider = ({ categories, onCategoryPress }) => {
                 />
               </View>
               <Text style={styles.allCategoryName} numberOfLines={2}>
-                {formatCategoryName(item.category)}
+                {translateCategoryName(item.category)}
               </Text>
               <Text style={styles.allCategoryJobCount}>
-                {item.job_count || 0} Jobs
+                {t('home.jobCount', { count: item.job_count || 0 })}
               </Text>
             </TouchableOpacity>
           ))}
@@ -1622,6 +1573,7 @@ const AllCategoriesSlider = ({ categories, onCategoryPress }) => {
 
 // Cities Section Component
 const CitiesSection = ({ navigation }) => {
+  const { t } = useTranslation();
   const [cityJobCounts, setCityJobCounts] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -1688,7 +1640,7 @@ const CitiesSection = ({ navigation }) => {
 
   return (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionTitle}>Get your jobs through the City</Text>
+      <Text style={styles.sectionTitle}>{t('home.getJobsThroughCity')}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -1732,19 +1684,20 @@ const CitiesSection = ({ navigation }) => {
 
 // Poster Section Component
 const PosterSection = () => {
+  const { t, i18n } = useTranslation();
   return (
-    <View style={styles.posterContainer}>
+    <View style={styles.posterContainer} key={i18n.language}>
       <View style={styles.posterGradient}>
         <View style={styles.posterContent}>
           <View style={styles.posterIconContainer}>
             <MaterialCommunityIcons name="chart-line" size={WIDTH * 0.12} color={WHITE} />
           </View>
-          <Text style={styles.posterTitle}>70% hiring happen any Job post</Text>
-          <Text style={styles.posterSlogan}>Find your dream job today!</Text>
-          <Text style={styles.posterSlogan}>Join thousands of successful candidates</Text>
+          <Text style={styles.posterTitle}>{t('home.posterTitle')}</Text>
+          <Text style={styles.posterSlogan}>{t('home.posterSlogan1')}</Text>
+          <Text style={styles.posterSlogan}>{t('home.posterSlogan2')}</Text>
           <View style={styles.posterBadge}>
             <MaterialCommunityIcons name="star" size={WIDTH * 0.04} color={WHITE} />
-            <Text style={styles.posterBadgeText}>Trusted by 10,000+ Job Seekers</Text>
+            <Text style={styles.posterBadgeText}>{t('home.trustedBy', { count: '10,000+' })}</Text>
           </View>
         </View>
       </View>
@@ -1753,6 +1706,7 @@ const PosterSection = () => {
 };
 
 const HomeScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const nav = useNavigation();
   const [searchOpen, setSearchOpen] = useState(false);
   const [loginPromptVisible, setLoginPromptVisible] = useState(false);
@@ -2244,6 +2198,8 @@ const HomeScreen = ({ navigation }) => {
     setRefreshing(false);
   }, [fetchJobs, fetchRecommendedJobs, fetchLatestJobs, fetchSponsorships, fetchCategories]);
 
+  useLanguageRefresh(onRefresh);
+
   const requireAuth = async () => {
     const token = await getObjByKey("loginResponse");
     if (!token) {
@@ -2538,14 +2494,14 @@ const HomeScreen = ({ navigation }) => {
             />
           }
         >
-          <Text style={styles.sectionTitle}>Posted Jobs</Text>
+          <Text style={styles.sectionTitle}>{t('home.postedJobs')}</Text>
           {loading ? (
             <View style={styles.loadingContainer}>
               <Text style={styles.loadingText}>Loading jobs...</Text>
             </View>
           ) : jobs.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No jobs posted yet</Text>
+              <Text style={styles.emptyText}>{t('home.noJobsPosted')}</Text>
             </View>
           ) : (
             <FlatList
@@ -2566,7 +2522,7 @@ const HomeScreen = ({ navigation }) => {
 
           {/* Recommended Jobs Section */}
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Recommended Jobs</Text>
+            <Text style={styles.sectionTitle}>{t('home.recommendedJobsTitle')}</Text>
             {loadingRecommended ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={BRANDCOLOR} />
@@ -2596,7 +2552,7 @@ const HomeScreen = ({ navigation }) => {
 
           {/* Latest Jobs Section */}
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Latest Jobs</Text>
+            <Text style={styles.sectionTitle}>{t('home.latestJobsTitle')}</Text>
             {loadingLatest ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={BRANDCOLOR} />
@@ -2665,7 +2621,7 @@ const HomeScreen = ({ navigation }) => {
           {/* Sponsorships Section */}
           {sponsorships.length > 0 && (
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Sponsorships</Text>
+              <Text style={styles.sectionTitle}>{t('home.sponsorships')}</Text>
               {loadingSponsorships ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="small" color={BRANDCOLOR} />
@@ -2690,7 +2646,7 @@ const HomeScreen = ({ navigation }) => {
           {/* All Categories Sliding Banner */}
           {allCategories.length > 0 && (
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>All Categories</Text>
+              <Text style={styles.sectionTitle}>{t('home.allCategories')}</Text>
               <AllCategoriesSlider 
                 categories={allCategories} 
                 onCategoryPress={handleCategoryPress}

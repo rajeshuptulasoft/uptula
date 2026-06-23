@@ -13,6 +13,7 @@ import {
   Linking,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from "../../../hooks/useTranslation";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import ReactNativeBlobUtil from 'react-native-blob-util';
@@ -60,6 +61,7 @@ const formatDate = (dateString) => {
 };
  
 const AppliedJobsScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   const [alertVisible, setAlertVisible] = useState(false);
@@ -384,12 +386,12 @@ const AppliedJobsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <MyHeader
         showCenterTitle={true}
-        title="Applied Job"
+        title={t('appliedJobs.title')}
       />
       {loading && jobs.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={BRANDCOLOR} />
-          <Text style={styles.loadingText}>Loading applied jobs...</Text>
+          <Text style={styles.loadingText}>{t('appliedJobs.loading')}</Text>
         </View>
       ) : (
       <FlatList
@@ -406,7 +408,7 @@ const AppliedJobsScreen = ({ navigation }) => {
           />
         }
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No applied jobs yet</Text>
+          <Text style={styles.emptyText}>{t('appliedJobs.empty')}</Text>
         }
       />
       )}

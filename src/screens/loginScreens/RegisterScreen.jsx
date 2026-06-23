@@ -2,6 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { StatusBar, StyleSheet, Text, TouchableOpacity, View, Image, BackHandler, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView, Modal, FlatList } from "react-native";
 import { useDispatch } from "react-redux";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from "../../hooks/useTranslation";
+import { useLanguageRefresh } from "../../hooks/useLanguageRefresh";
+import { translateRecordLabel } from "../../i18n/translateApiLabel";
+import { translateText } from "../../i18n/googleTranslate";
+import i18n, { getCurrentLanguage } from "../../i18n";
 import { BLACK, BRANDCOLOR, WHITE } from "../../constant/color";
 import { TextInputComponent } from "../../components/commonComponents/TextInputComponent";
 import { OtpInput } from "../../components/otpComponets/OtpInput";
@@ -21,6 +26,8 @@ import { checkuserToken } from "../../redux/actions/auth";
 const extractCategories = (result) => {
     if (Array.isArray(result?.categories)) return result.categories;
     if (Array.isArray(result?.data?.categories)) return result.data.categories;
+    if (Array.isArray(result?.data?.data)) return result.data.data;
+    if (Array.isArray(result?.data)) return result.data;
     if (result?.success && Array.isArray(result?.data)) return result.data;
     if (Array.isArray(result)) return result;
     return [];
@@ -29,22 +36,62 @@ const extractCategories = (result) => {
 const extractSubcategories = (result) => {
     if (Array.isArray(result?.subcategories)) return result.subcategories;
     if (Array.isArray(result?.data?.subcategories)) return result.data.subcategories;
+    if (Array.isArray(result?.data?.data)) return result.data.data;
+    if (Array.isArray(result?.data)) return result.data;
     if (result?.success && Array.isArray(result?.data)) return result.data;
     if (Array.isArray(result)) return result;
     return [];
 };
 
-const getRecordId = (item) => {
+const getCategoryId = (item) => {
     if (!item) return null;
-    const raw = item.id ?? item._id ?? item.category_id ?? item.categoryId ?? item.subcategory_id ?? item.subcategoryId;
+    const raw = item.id ?? item._id ?? item.categoryId ?? item.category_id;
     if (raw == null || raw === "") return null;
     const num = Number(raw);
     return Number.isNaN(num) ? raw : num;
 };
 
+const getSubcategoryId = (item) => {
+    if (!item) return null;
+    const raw = item.id ?? item._id ?? item.subcategoryId ?? item.subcategory_id;
+    if (raw == null || raw === "") return null;
+    const num = Number(raw);
+    return Number.isNaN(num) ? raw : num;
+};
+
+const getRecordId = (item) => getCategoryId(item) ?? getSubcategoryId(item);
+
+const normalizeCategoryItem = (item) => {
+    if (item == null) return null;
+
+    if (typeof item === "string" || typeof item === "number") {
+        const id = getRecordId({ id: item });
+        return id != null ? { id, name: String(item) } : null;
+    }
+
+    const id = getRecordId(item);
+    if (id == null) return null;
+    const name =
+        item.name ??
+        item.label ??
+        item.title ??
+        item.category_name ??
+        item.categoryName ??
+        item.subcategory_name ??
+        item.subcategoryName ??
+        "";
+    return { ...item, id, name: name || `Item ${id}` };
+};
+
+const isNotFoundResponse = (result) =>
+    result?.httpStatus === 404 ||
+    result?.status === 404 ||
+    result?.statusCode === 404 ||
+    /not\s*found/i.test(String(result?.message || ""));
+
 const buildCategoryPayload = (category, subcategory) => {
-    const categoryId = getRecordId(category);
-    const subcategoryId = getRecordId(subcategory);
+    const categoryId = getCategoryId(category);
+    const subcategoryId = getSubcategoryId(subcategory);
     if (!categoryId || !subcategoryId) return null;
     return {
         categoryId,
@@ -56,6 +103,7 @@ const buildCategoryPayload = (category, subcategory) => {
 
 export default function RegisterScreen({ navigation }) {
     const dispatch = useDispatch();
+    const { t, i18n } = useTranslation();
 
     // State variables
     const [name, setName] = useState("");
@@ -69,7 +117,8 @@ export default function RegisterScreen({ navigation }) {
     const [isOtpStep, setIsOtpStep] = useState(false);
     // const [generatedOtp, setGeneratedOtp] = useState("");
     const [enteredOtp, setEnteredOtp] = useState("");
-    const [otpStatus, setOtpStatus] = useState("");
+    const [otpStatusKind, setOtpStatusKind] = useState(null);
+    const [otpStatusCustom, setOtpStatusCustom] = useState("");
     // const [otpExpiresAt, setOtpExpiresAt] = useState(null);
     const [otpTimer, setOtpTimer] = useState(0);
     const [resendCount, setResendCount] = useState(0);
@@ -87,6 +136,7 @@ export default function RegisterScreen({ navigation }) {
     const [loadingSubcategories, setLoadingSubcategories] = useState(false);
     const selectedCategoryRef = useRef(null);
     const selectedSubcategoryRef = useRef(null);
+    const categoriesLoadedRef = useRef(false);
 
     // const sendOtp = (isResend = false) => {
     //     if (!name || !email || !contactNumber || !password || !confirmPassword) {
@@ -125,19 +175,54 @@ export default function RegisterScreen({ navigation }) {
     //     setToastMessage({ type: "success", msg: "OTP has been sent to your contact", visible: true });
     // };
 
+    const localizeMessage = async (message, fallbackKey) => {
+        if (!message) return t(fallbackKey);
+        const lang = getCurrentLanguage();
+        if (lang === 'en') return message;
+        try {
+            return await translateText(message, lang);
+        } catch {
+            return message;
+        }
+    };
+
+    const setOtpStatusMessage = async (kind, customMsg = "") => {
+        setOtpStatusKind(kind);
+        if (kind === "custom" && customMsg) {
+            setOtpStatusCustom(await localizeMessage(customMsg, "register.somethingWentWrong"));
+        } else {
+            setOtpStatusCustom("");
+        }
+    };
+
+    const shownOtpStatus = (() => {
+        switch (otpStatusKind) {
+            case "sent":
+                return t("register.otpSent");
+            case "verified":
+                return t("register.otpVerified");
+            case "expired":
+                return t("register.otpExpired");
+            case "custom":
+                return otpStatusCustom;
+            default:
+                return "";
+        }
+    })();
+
     const sendOtp = async (isResend = false) => {
         if (!name || !email || !contactNumber || !password || !confirmPassword) {
-            setToastMessage({ type: "error", msg: "Please fill all fields", visible: true });
+            setToastMessage({ type: "error", msg: t('register.fillAllFields'), visible: true });
             return;
         }
 
         if (password !== confirmPassword) {
-            setToastMessage({ type: "error", msg: "Passwords do not match", visible: true });
+            setToastMessage({ type: "error", msg: t('register.passwordMismatch'), visible: true });
             return;
         }
 
         if (isResend && resendCount >= 5) {
-            setToastMessage({ type: "error", msg: "Max 5 resend attempts reached", visible: true });
+            setToastMessage({ type: "error", msg: t('register.maxResend'), visible: true });
             return;
         }
 
@@ -156,7 +241,7 @@ export default function RegisterScreen({ navigation }) {
                 console.log("[Register] Send OTP blocked — category or subcategory missing");
                 setToastMessage({
                     type: "error",
-                    msg: "Please select category and subcategory",
+                    msg: t('register.selectCategorySub'),
                     visible: true,
                 });
                 return;
@@ -208,7 +293,7 @@ export default function RegisterScreen({ navigation }) {
                 setIsOtpStep(true);
                 setEnteredOtp("");
                 setOtpTimer(60); // 1 minute timer
-                setOtpStatus("OTP sent. Please enter the OTP.");
+                await setOtpStatusMessage("sent");
 
                 if (isResend) {
                     setResendCount(prev => prev + 1);
@@ -216,7 +301,7 @@ export default function RegisterScreen({ navigation }) {
 
                 setToastMessage({
                     type: "success",
-                    msg: result?.message || "OTP sent successfully",
+                    msg: await localizeMessage(result?.message, 'register.otpSentSuccess'),
                     visible: true
                 });
 
@@ -226,10 +311,11 @@ export default function RegisterScreen({ navigation }) {
                     message: message || "Failed to send OTP",
                     raw: result,
                 });
-                setOtpStatus(message || "Failed to send OTP.");
+                const failMsg = await localizeMessage(message, 'register.failedSendOtp');
+                await setOtpStatusMessage("custom", failMsg);
                 setToastMessage({
                     type: "error",
-                    msg: result?.message || "Failed to send OTP",
+                    msg: failMsg,
                     visible: true
                 });
             }
@@ -242,7 +328,7 @@ export default function RegisterScreen({ navigation }) {
             });
             setToastMessage({
                 type: "error",
-                msg: "Network error",
+                msg: t('register.networkError'),
                 visible: true
             });
         }
@@ -282,7 +368,8 @@ export default function RegisterScreen({ navigation }) {
 
     const onOtpChange = (value) => {
         setEnteredOtp(value);
-        setOtpStatus("");
+        setOtpStatusKind(null);
+        setOtpStatusCustom("");
     };
 
 
@@ -306,8 +393,9 @@ export default function RegisterScreen({ navigation }) {
                         clearInterval(timerRef.current);
                         timerRef.current = null;
                     }
-                    setOtpStatus("OTP expired. Please resend OTP.");
-                    setToastMessage({ type: "error", msg: "OTP expired. Please resend OTP.", visible: true });
+                    setOtpStatusKind("expired");
+                    setOtpStatusCustom("");
+                    setToastMessage({ type: "error", msg: t('register.otpExpired'), visible: true });
                     return 0;
                 }
                 return prev - 1;
@@ -320,7 +408,7 @@ export default function RegisterScreen({ navigation }) {
                 timerRef.current = null;
             }
         };
-    }, [isOtpStep, otpTimer]);
+    }, [isOtpStep, otpTimer, t]);
 
     const [userType, setUserType] = useState("JobSeeker"); // Default selection
     const [toastMessage, setToastMessage] = useState({ type: "", msg: "", visible: false });
@@ -357,38 +445,50 @@ export default function RegisterScreen({ navigation }) {
     }, [navigation]);
 
     // Fetch categories on component mount
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                setLoadingCategories(true);
-                const url = `${BASE_URL}categories/categories`;
-                const result = await GETNETWORK(url, false);
-                const list = extractCategories(result);
+    const fetchCategories = useCallback(async ({ silent = false } = {}) => {
+        const showLoader = !silent && !categoriesLoadedRef.current;
 
-                if (list.length > 0) {
-                    setCategories(list);
-                } else {
-                    setCategories([]);
-                    setToastMessage({
-                        type: "error",
-                        msg: result?.message || "No categories available",
-                        visible: true,
-                    });
-                }
-            } catch (error) {
+        try {
+            if (showLoader) setLoadingCategories(true);
+            const url = `${BASE_URL}categories/categories`;
+            const result = await GETNETWORK(url, false);
+            const list = extractCategories(result)
+                .map(normalizeCategoryItem)
+                .filter(Boolean);
+
+            if (list.length > 0) {
+                categoriesLoadedRef.current = true;
+                setCategories(list);
+            } else if (isNotFoundResponse(result)) {
                 setCategories([]);
                 setToastMessage({
                     type: "error",
-                    msg: "Failed to load categories",
+                    msg: i18n.t('register.failedLoadCategories'),
                     visible: true,
                 });
-            } finally {
-                setLoadingCategories(false);
+            } else {
+                setCategories([]);
+                setToastMessage({
+                    type: "error",
+                    msg: result?.message || i18n.t('register.noCategories'),
+                    visible: true,
+                });
             }
-        };
-
-        fetchCategories();
+        } catch (error) {
+            setCategories([]);
+            setToastMessage({
+                type: "error",
+                msg: i18n.t('register.failedLoadCategories'),
+                visible: true,
+            });
+        } finally {
+            if (showLoader) setLoadingCategories(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchCategories();
+    }, [fetchCategories]);
 
     // Reset state when the screen is focused
     useFocusEffect(
@@ -405,7 +505,8 @@ export default function RegisterScreen({ navigation }) {
             setIsOtpStep(false);
             // setGeneratedOtp("");
             setEnteredOtp("");
-            setOtpStatus("");
+            setOtpStatusKind(null);
+            setOtpStatusCustom("");
             // setOtpExpiresAt(null);
             setOtpTimer(0);
             setResendCount(0);
@@ -415,6 +516,7 @@ export default function RegisterScreen({ navigation }) {
             setSelectedSubcategory(null);
             selectedCategoryRef.current = null;
             selectedSubcategoryRef.current = null;
+            setSubcategories([]);
             setCategoriesDropdownOpen(false);
             setSubcategoriesDropdownOpen(false);
             setLoadingCategories(false);
@@ -653,7 +755,7 @@ export default function RegisterScreen({ navigation }) {
                 console.log("[Register] Verify OTP blocked — category or subcategory missing");
                 setToastMessage({
                     type: "error",
-                    msg: "Please select category and subcategory",
+                    msg: t('register.selectCategorySub'),
                     visible: true,
                 });
                 return;
@@ -663,7 +765,7 @@ export default function RegisterScreen({ navigation }) {
         if (enteredOtp.length !== 6) {
             setToastMessage({
                 type: "error",
-                msg: "Enter valid 6-digit OTP",
+                msg: t('register.enterValidOtp'),
                 visible: true
             });
             return;
@@ -715,7 +817,7 @@ export default function RegisterScreen({ navigation }) {
                     role: result?.user?.role,
                     categoryPayload,
                 });
-                setOtpStatus("OTP Verified Successfully");
+                await setOtpStatusMessage("verified");
 
                 const loginDataToStore = {
                     token: result?.token,
@@ -732,7 +834,7 @@ export default function RegisterScreen({ navigation }) {
 
                 setToastMessage({
                     type: "success",
-                    msg: result?.message || "Registration successful",
+                    msg: await localizeMessage(result?.message, 'register.registrationSuccess'),
                     visible: true
                 });
 
@@ -742,10 +844,11 @@ export default function RegisterScreen({ navigation }) {
 
             } else {
                 console.log("[Register] Verify OTP — failed", result);
-                setOtpStatus(result?.message || "Invalid OTP");
+                const failMsg = result?.message || t('register.invalidOtp');
+                await setOtpStatusMessage("custom", failMsg);
                 setToastMessage({
                     type: "error",
-                    msg: result?.message || "Invalid OTP",
+                    msg: await localizeMessage(failMsg, 'register.invalidOtp'),
                     visible: true
                 });
             }
@@ -755,10 +858,10 @@ export default function RegisterScreen({ navigation }) {
                 message: error?.message,
                 raw: error,
             });
-            setOtpStatus("Something went wrong");
+            await setOtpStatusMessage("custom", t('register.somethingWentWrong'));
             setToastMessage({
                 type: "error",
-                msg: "Something went wrong",
+                msg: t('register.somethingWentWrong'),
                 visible: true
             });
         }
@@ -1015,13 +1118,91 @@ export default function RegisterScreen({ navigation }) {
 
     const Container = Platform.OS === "ios" ? SafeAreaView : View;
 
+    const loadSubcategories = useCallback(async (categoryId) => {
+        if (categoryId == null || categoryId === "") return;
+
+        try {
+            setLoadingSubcategories(true);
+            const url = `${BASE_URL}categories/categories/${categoryId}/subcategories`;
+            const result = await GETNETWORK(url, false);
+            const list = extractSubcategories(result)
+                .map(normalizeCategoryItem)
+                .filter(Boolean);
+
+            const activeCategoryId = getCategoryId(selectedCategoryRef.current);
+            if (activeCategoryId != null && String(activeCategoryId) !== String(categoryId)) {
+                return;
+            }
+
+            setSubcategories(list);
+
+            if (list.length === 0 && isNotFoundResponse(result)) {
+                setToastMessage({
+                    type: "error",
+                    msg: i18n.t("register.failedLoadSubcategories"),
+                    visible: true,
+                });
+            }
+        } catch (error) {
+            const activeCategoryId = getCategoryId(selectedCategoryRef.current);
+            if (activeCategoryId != null && String(activeCategoryId) !== String(categoryId)) {
+                return;
+            }
+            setSubcategories([]);
+            setToastMessage({
+                type: "error",
+                msg: i18n.t("register.failedLoadSubcategories"),
+                visible: true,
+            });
+        } finally {
+            const activeCategoryId = getCategoryId(selectedCategoryRef.current);
+            if (activeCategoryId == null || String(activeCategoryId) === String(categoryId)) {
+                setLoadingSubcategories(false);
+            }
+        }
+    }, []);
+
+    const openSubcategoryPicker = useCallback(async () => {
+        setCategoriesDropdownOpen(false);
+
+        const category = selectedCategoryRef.current ?? selectedCategory;
+        const categoryId = getCategoryId(category);
+        if (!categoryId) {
+            setToastMessage({
+                type: "error",
+                msg: i18n.t("register.selectCategorySub"),
+                visible: true,
+            });
+            return;
+        }
+
+        setSubcategoriesDropdownOpen(true);
+
+        if (!subcategories.length) {
+            await loadSubcategories(categoryId);
+        }
+    }, [loadSubcategories, selectedCategory, subcategories.length]);
+
+    const refreshRegisterApiData = useCallback(async () => {
+        await fetchCategories({ silent: true });
+        const category = selectedCategoryRef.current;
+        const categoryId = getCategoryId(selectedCategoryRef.current);
+        if (categoryId) {
+            await loadSubcategories(categoryId);
+        }
+    }, [fetchCategories, loadSubcategories]);
+
+    useLanguageRefresh(refreshRegisterApiData);
+
     // Fetch subcategories when category is selected
     const handleCategorySelect = async (category) => {
+        const categoryId = getCategoryId(category);
         console.log("[Register] Category selected", {
-            id: getRecordId(category),
+            id: categoryId,
             name: category?.name,
             raw: category,
         });
+
         setSelectedCategory(category);
         selectedCategoryRef.current = category;
         setCategoriesDropdownOpen(false);
@@ -1029,31 +1210,16 @@ export default function RegisterScreen({ navigation }) {
         selectedSubcategoryRef.current = null;
         setSubcategories([]);
 
-        if (!category?.id) {
+        if (!categoryId) {
+            setToastMessage({
+                type: "error",
+                msg: i18n.t("register.selectCategorySub"),
+                visible: true,
+            });
             return;
         }
 
-        try {
-            setLoadingSubcategories(true);
-            const url = `${BASE_URL}categories/categories/${category.id}/subcategories`;
-            const result = await GETNETWORK(url, false);
-            const list = extractSubcategories(result);
-            console.log("[Register] Subcategories loaded", {
-                categoryId: getRecordId(category),
-                count: list.length,
-                items: list.map((s) => ({ id: getRecordId(s), name: s?.name })),
-            });
-            setSubcategories(list);
-        } catch (error) {
-            setSubcategories([]);
-            setToastMessage({
-                type: "error",
-                msg: "Failed to load subcategories",
-                visible: true,
-            });
-        } finally {
-            setLoadingSubcategories(false);
-        }
+        await loadSubcategories(categoryId);
     };
 
     const renderPickerModal = ({
@@ -1065,10 +1231,11 @@ export default function RegisterScreen({ navigation }) {
         onClose,
         onSelect,
         centered = false,
+        getItemLabel,
     }) => {
-        const listContent = loading ? (
+        const listContent = loading && !items?.length ? (
             <View style={styles.pickerModalBody}>
-                <Text style={styles.pickerModalEmpty}>Loading...</Text>
+                <Text style={styles.pickerModalEmpty}>{t('common.loading')}</Text>
             </View>
         ) : !items?.length ? (
             <View style={styles.pickerModalBody}>
@@ -1078,13 +1245,15 @@ export default function RegisterScreen({ navigation }) {
             <FlatList
                 style={styles.pickerModalList}
                 data={items}
-                keyExtractor={(item, index) => `${item?.id ?? item?.slug ?? index}`}
+                keyExtractor={(item, index) => `${getCategoryId(item) ?? getSubcategoryId(item) ?? item?.slug ?? index}`}
                 renderItem={({ item }) => (
                     <TouchableOpacity
                         style={styles.pickerModalItem}
                         onPress={() => onSelect(item)}
                     >
-                        <Text style={styles.pickerModalItemText}>{item?.name || item?.label || "—"}</Text>
+                        <Text style={styles.pickerModalItemText}>
+                            {getItemLabel ? getItemLabel(item) : (item?.name || item?.label || "—")}
+                        </Text>
                     </TouchableOpacity>
                 )}
                 showsVerticalScrollIndicator
@@ -1094,15 +1263,17 @@ export default function RegisterScreen({ navigation }) {
         );
 
         const sheetContent = (
-            <>
+            <View style={styles.pickerModalSheet}>
                 <View style={[styles.pickerModalHeader, centered && styles.pickerModalHeaderCenter]}>
                     <Text style={styles.pickerModalTitle}>{title}</Text>
                     <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                         <Text style={styles.pickerModalClose}>✕</Text>
                     </TouchableOpacity>
                 </View>
-                {listContent}
-            </>
+                <View style={styles.pickerModalSheetBody}>
+                    {listContent}
+                </View>
+            </View>
         );
 
         return (
@@ -1203,7 +1374,7 @@ export default function RegisterScreen({ navigation }) {
                                             Platform.OS === "android" && styles.userTypeTextAndroid,
                                             userType === "JobSeeker" && styles.userTypeTextActive
                                         ]}>
-                                            Job Seeker
+                                            {t('register.jobSeeker')}
                                         </Text>
                                     </TouchableOpacity>
 
@@ -1228,7 +1399,7 @@ export default function RegisterScreen({ navigation }) {
                                             Platform.OS === "android" && styles.userTypeTextAndroid,
                                             userType === "JobProvider" && styles.userTypeTextActive
                                         ]}>
-                                            Job Provider
+                                            {t('register.jobProvider')}
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
@@ -1240,7 +1411,7 @@ export default function RegisterScreen({ navigation }) {
                                     Platform.OS === "android" && styles.txtInputContainerAndroid
                                 ]}>
                                     <TextInputComponent
-                                        placeholder=" Enter Your Full Name"
+                                        placeholder={t('register.fullName')}
                                         type="name"
                                         inputdata={name}
                                         setInputdata={setName}
@@ -1257,7 +1428,7 @@ export default function RegisterScreen({ navigation }) {
                                     Platform.OS === "android" && styles.txtInputContainerAndroid
                                 ]}>
                                     <TextInputComponent
-                                        placeholder="Enter Your Email"
+                                        placeholder={t('register.email')}
                                         type="email"
                                         inputdata={email}
                                         setInputdata={setEmail}
@@ -1276,7 +1447,7 @@ export default function RegisterScreen({ navigation }) {
                                     Platform.OS === "android" && styles.txtInputContainerAndroid
                                 ]}>
                                     <TextInputComponent
-                                        placeholder="Enter Your Phone Number"
+                                        placeholder={t('register.phone')}
                                         type="number"
                                         inputdata={contactNumber}
                                         setInputdata={setContactNumber}
@@ -1295,7 +1466,7 @@ export default function RegisterScreen({ navigation }) {
                                     Platform.OS === "android" && styles.txtInputContainerAndroid
                                 ]}>
                                     <TextInputComponent
-                                        placeholder="Enter Your Password"
+                                        placeholder={t('register.password')}
                                         type="password"
                                         inputdata={password}
                                         setInputdata={setPassword}
@@ -1315,7 +1486,7 @@ export default function RegisterScreen({ navigation }) {
                                     Platform.OS === "android" && styles.txtInputContainerAndroid
                                 ]}>
                                     <TextInputComponent
-                                        placeholder="Enter Your Confirm Password"
+                                        placeholder={t('register.confirmPassword')}
                                         type="password"
                                         inputdata={confirmPassword}
                                         setInputdata={setConfirmPassword}
@@ -1352,7 +1523,7 @@ export default function RegisterScreen({ navigation }) {
                                                 Platform.OS === "android" && styles.categoryDropdownTextAndroid,
                                                 !selectedCategory && { color: "#999" }
                                             ]}>
-                                                {loadingCategories ? "Loading..." : (selectedCategory?.name || "Select Category")}
+                                                {loadingCategories && !categories.length ? t('common.loading') : (selectedCategory ? translateRecordLabel(selectedCategory) : t('register.selectCategory'))}
                                             </Text>
                                             <Image source={require("../../assets/images/downarrow.png")} style={styles.dropdownIcon} />
                                         </TouchableOpacity>
@@ -1372,10 +1543,7 @@ export default function RegisterScreen({ navigation }) {
                                                 Platform.OS === "ios" && styles.categoryDropdownIOS,
                                                 Platform.OS === "android" && styles.categoryDropdownAndroid
                                             ]}
-                                            onPress={() => {
-                                                setCategoriesDropdownOpen(false);
-                                                setSubcategoriesDropdownOpen(true);
-                                            }}
+                                            onPress={openSubcategoryPicker}
                                         >
                                             <Text style={[
                                                 styles.categoryDropdownText,
@@ -1383,7 +1551,7 @@ export default function RegisterScreen({ navigation }) {
                                                 Platform.OS === "android" && styles.categoryDropdownTextAndroid,
                                                 !selectedSubcategory && { color: "#999" }
                                             ]}>
-                                                {loadingSubcategories ? "Loading..." : (selectedSubcategory?.name || "Select SubCategory")}
+                                                {loadingSubcategories && !subcategories.length ? t('common.loading') : (selectedSubcategory ? translateRecordLabel(selectedSubcategory) : t('register.selectSubCategory'))}
                                             </Text>
                                             <Image source={require("../../assets/images/downarrow.png")} style={styles.dropdownIcon} />
                                         </TouchableOpacity>
@@ -1397,46 +1565,63 @@ export default function RegisterScreen({ navigation }) {
                         {!isOtpStep ? (
                             <CustomButton
                                 color={WHITE}
-                                text="Send OTP"
+                                text={t('register.sendOtp')}
                                 onPress={() => sendOtp(false)}
                                 fontFamily={FIRASANSSEMIBOLD}
                             />
                         ) : (
-                            <>
-                                <Text allowFontScaling={false} style={[styles.otpStatus, otpStatus === 'OTP Verified Successfully' ? styles.otpValid : styles.otpError]}>
-                                    {otpStatus}
+                            <View key={i18n.language}>
+                                <Text allowFontScaling={false} style={styles.otpStepTitle}>
+                                    {t('register.enterOtp')}
                                 </Text>
+                                <Text allowFontScaling={false} style={styles.otpStepHint}>
+                                    {t('register.otpInstruction')}
+                                </Text>
+
+                                {!!shownOtpStatus && (
+                                    <Text
+                                        allowFontScaling={false}
+                                        style={[
+                                            styles.otpStatus,
+                                            otpStatusKind === "verified" ? styles.otpValid : styles.otpError,
+                                        ]}
+                                    >
+                                        {shownOtpStatus}
+                                    </Text>
+                                )}
 
                                 <OtpInput onOtpChange={onOtpChange} />
 
                                 {isOtpStep && otpTimer > 0 && (
                                     <Text allowFontScaling={false} style={styles.otpTimer}>
-                                        OTP expires in {Math.floor(otpTimer / 60)}:{String(otpTimer % 60).padStart(2, '0')}
+                                        {t('register.otpExpires', {
+                                            time: `${Math.floor(otpTimer / 60)}:${String(otpTimer % 60).padStart(2, '0')}`,
+                                        })}
                                     </Text>
                                 )}
 
                                 {resendCount > 0 && (
                                     <Text allowFontScaling={false} style={styles.resendInfo}>
-                                        {Math.max(0, 5 - resendCount)} attempt(s) left for resend
+                                        {t('register.resendAttempts', { count: Math.max(0, 5 - resendCount) })}
                                     </Text>
                                 )}
 
                                 <CustomButton
                                     color={WHITE}
-                                    text="Register"
+                                    text={t('register.registerBtn')}
                                     onPress={handleRegister}
                                     fontFamily={FIRASANSSEMIBOLD}
                                 />
 
-                                {otpStatus !== "OTP Verified Successfully" && (
+                                {otpStatusKind !== "verified" && (
                                     <>
                                         <View style={{ height: HEIGHT * 0.02 }} />
                                         <CustomButton
                                             color={resendCount >= 5 ? "#cccccc" : WHITE}
-                                            text={resendCount >= 5 ? "Resend OTP (limit reached)" : "Resend OTP"}
+                                            text={resendCount >= 5 ? t('register.resendLimit') : t('register.resendOtp')}
                                             onPress={() => {
                                                 if (resendCount >= 5) {
-                                                    setToastMessage({ type: "error", msg: "Maximum 5 resend attempts reached.", visible: true });
+                                                    setToastMessage({ type: "error", msg: t('register.maxResendToast'), visible: true });
                                                 } else {
                                                     sendOtp(true);
                                                 }
@@ -1445,7 +1630,7 @@ export default function RegisterScreen({ navigation }) {
                                         />
                                     </>
                                 )}
-                            </>
+                            </View>
                         )}
 
                         <View style={{ height: HEIGHT * 0.02 }} />
@@ -1453,7 +1638,7 @@ export default function RegisterScreen({ navigation }) {
                         {/* OR SEPARATOR */}
                         <View style={styles.orContainer}>
                             <View style={styles.orLine} />
-                            <Text style={styles.orText}>OR</Text>
+                            <Text style={styles.orText}>{t('register.or')}</Text>
                             <View style={styles.orLine} />
                         </View>
 
@@ -1468,7 +1653,7 @@ export default function RegisterScreen({ navigation }) {
                             activeOpacity={0.85}
                         >
                             <Image source={GOOGLE} style={styles.googleIcon} />
-                            <Text style={styles.googleButtonText}>Continue with Google Account</Text>
+                            <Text style={styles.googleButtonText}>{t('register.continueGoogle')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -1491,7 +1676,7 @@ export default function RegisterScreen({ navigation }) {
                                 }
                             ]}
                         >
-                            Have an account?
+                            {t('register.haveAccount')}
                             <Text
                                 allowFontScaling={false}
                                 style={[
@@ -1504,7 +1689,7 @@ export default function RegisterScreen({ navigation }) {
                                     }
                                 ]}
                             >
-                                {" Login Here"}
+                                {` ${t('register.loginHere')}`}
                             </Text>
                         </Text>
                     </View>
@@ -1516,25 +1701,26 @@ export default function RegisterScreen({ navigation }) {
                 {/* Category picker popup */}
                 {renderPickerModal({
                     visible: categoriesDropdownOpen,
-                    title: "Select Category",
+                    title: t('register.selectCategory'),
                     items: categories,
-                    loading: loadingCategories,
-                    emptyText: "No categories available",
+                    loading: loadingCategories && !categories.length,
+                    emptyText: t('register.noCategories'),
                     onClose: () => setCategoriesDropdownOpen(false),
                     onSelect: handleCategorySelect,
+                    getItemLabel: (item) => translateRecordLabel(item),
                 })}
 
                 {/* Subcategory picker popup */}
                 {renderPickerModal({
                     visible: subcategoriesDropdownOpen,
-                    title: "Select SubCategory",
+                    title: t('register.selectSubCategory'),
                     items: subcategories,
-                    loading: loadingSubcategories,
-                    emptyText: "No subcategories available",
+                    loading: loadingSubcategories && !subcategories.length,
+                    emptyText: t('register.noSubcategories'),
                     onClose: () => setSubcategoriesDropdownOpen(false),
                     onSelect: (subcategory) => {
                         console.log("[Register] Subcategory selected", {
-                            id: getRecordId(subcategory),
+                            id: getSubcategoryId(subcategory),
                             name: subcategory?.name,
                             raw: subcategory,
                         });
@@ -1543,6 +1729,7 @@ export default function RegisterScreen({ navigation }) {
                         setSubcategoriesDropdownOpen(false);
                     },
                     centered: true,
+                    getItemLabel: (item) => translateRecordLabel(item),
                 })}
 
                 {/* Toast Message */}
@@ -1916,6 +2103,20 @@ const styles = StyleSheet.create({
         color: "#666666",
         fontFamily: FIRASANS,
     },
+    otpStepTitle: {
+        fontFamily: FIRASANSSEMIBOLD,
+        fontSize: HEIGHT * 0.02,
+        color: BLACK,
+        textAlign: "center",
+        marginBottom: HEIGHT * 0.008,
+    },
+    otpStepHint: {
+        fontFamily: FIRASANS,
+        fontSize: HEIGHT * 0.014,
+        color: "#666666",
+        textAlign: "center",
+        marginBottom: HEIGHT * 0.012,
+    },
     otpTimer: {
         fontSize: HEIGHT * 0.013,
         color: BRANDCOLOR,
@@ -2016,6 +2217,14 @@ const styles = StyleSheet.create({
             },
             android: { elevation: 10 },
         }),
+    },
+    pickerModalSheet: {
+        flex: 1,
+        backgroundColor: WHITE,
+    },
+    pickerModalSheetBody: {
+        flex: 1,
+        backgroundColor: WHITE,
     },
     pickerModalBody: {
         flex: 1,

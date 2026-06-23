@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, BackHandler } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from "../hooks/useTranslation";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { BRANDCOLOR, BLACK, WHITE } from "../constant/color";
 import { getObjByKey } from "../utils/Storage";
@@ -18,53 +19,16 @@ import EmployerChatScreen from "../screens/userScreens/jobProviderScreens/Employ
 
 const Tab = createBottomTabNavigator();
 
-// Guest screens
 const GuestHomeScreen = HomeScreen;
-const GuestChatScreen = () => {
-  const navigation = useNavigation();
-  
-  useEffect(() => {
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-      navigation.navigate("Home");
-      return true;
-    });
-    return () => backHandler.remove();
-  }, [navigation]);
-  
-  return (
-  <View style={styles.screenContainer}>
-    <Text style={styles.screenText}>Chat</Text>
-  </View>
-);
-};
-
-// Seeker screens
 const SeekerHomeScreen = SeekerHome;
-const SeekerAppliedScreen = () => (
-  <View style={styles.screenContainer}>
-    <Text style={styles.screenText}>Applied Jobs</Text>
-  </View>
-);
-const SeekerWishlistScreen = () => (
-  <View style={styles.screenContainer}>
-    <Text style={styles.screenText}>Wishlist</Text>
-  </View>
-);
-const SeekerChatScreen = UserChatScreen;
-
-// Provider screens
 const ProviderHomeScreen = ProviderHome;
-const ProviderAddJobScreen = () => (
-  <View style={styles.screenContainer}>
-    <Text style={styles.screenText}>Add Job</Text>
-  </View>
-);
+const SeekerChatScreen = UserChatScreen;
 const ProviderChatScreen = EmployerChatScreen;
 
 const BottomTabNavigation = ({ route }) => {
+  const { t, i18n } = useTranslation();
   const [role, setRole] = useState("guest");
 
-  // Function to resolve role from login data
   const resolveRoleFromLogin = (storedData) => {
     if (!storedData) {
       setRole("guest");
@@ -106,56 +70,26 @@ const BottomTabNavigation = ({ route }) => {
   };
 
   useEffect(() => {
-    // Function to retrieve and set role
     const retrieveRole = async () => {
-      // First check route params (for navigation from LoginNavigation)
       if (route?.params?.role === "seeker") {
         setRole("seeker");
         return;
-      } else if (route?.params?.role === "provider") {
+      }
+      if (route?.params?.role === "provider") {
         setRole("provider");
         return;
       }
 
-      // If no route params, check storage (for navigation from AuthNavigation after login)
       try {
         const storedData = await getObjByKey("loginResponse");
         resolveRoleFromLogin(storedData);
       } catch (error) {
-        console.error("Error retrieving role:", error);
-      setRole("guest");
-    }
+        setRole("guest");
+      }
     };
 
     retrieveRole();
   }, [route?.params?.role]);
-
-  // Refresh role when screen comes into focus (e.g., after login)
-  // useFocusEffect(
-  //   React.useCallback(() => {
-  //     const retrieveRole = async () => {
-  //       // First check route params (for navigation from LoginNavigation)
-  //       if (route?.params?.role === "seeker") {
-  //         setRole("seeker");
-  //         return;
-  //       } else if (route?.params?.role === "provider") {
-  //         setRole("provider");
-  //         return;
-  //       }
-
-  //       // If no route params, check storage (for navigation from AuthNavigation after login)
-  //       try {
-  //         const storedData = await getObjByKey("loginResponse");
-  //         resolveRoleFromLogin(storedData);
-  //       } catch (error) {
-  //         console.error("Error retrieving role:", error);
-  //         setRole("guest");
-  //       }
-  //     };
-
-  //     retrieveRole();
-  //   }, [route?.params?.role])
-  // );
 
   const renderIcon = (name) => ({ focused, size }) => (
     <MaterialCommunityIcons
@@ -167,21 +101,22 @@ const BottomTabNavigation = ({ route }) => {
 
   return (
     <Tab.Navigator
+      key={i18n.language}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: BRANDCOLOR,
         tabBarInactiveTintColor: "#777",
         tabBarStyle: { backgroundColor: WHITE },
         tabBarBadgeStyle: {
-          position: 'absolute',
+          position: "absolute",
           top: -2,
           right: -2,
           minWidth: 18,
           height: 18,
           borderRadius: 9,
-          backgroundColor: '#EF4444',
-          justifyContent: 'center',
-          alignItems: 'center',
+          backgroundColor: "#EF4444",
+          justifyContent: "center",
+          alignItems: "center",
         },
       }}
     >
@@ -191,7 +126,7 @@ const BottomTabNavigation = ({ route }) => {
             name="Home"
             component={GuestHomeScreen}
             options={{
-              tabBarLabel: "Home",
+              tabBarLabel: t("tabs.home"),
               tabBarIcon: renderIcon("home-variant-outline"),
             }}
           />
@@ -199,7 +134,7 @@ const BottomTabNavigation = ({ route }) => {
             name="GuestChat"
             component={SeekerChatScreen}
             options={{
-              tabBarLabel: "Chat",
+              tabBarLabel: t("tabs.chat"),
               tabBarIcon: renderIcon("message-text-outline"),
             }}
           />
@@ -212,7 +147,7 @@ const BottomTabNavigation = ({ route }) => {
             name="Home"
             component={SeekerHomeScreen}
             options={{
-              tabBarLabel: "Home",
+              tabBarLabel: t("tabs.home"),
               tabBarIcon: renderIcon("home-variant-outline"),
             }}
           />
@@ -220,7 +155,7 @@ const BottomTabNavigation = ({ route }) => {
             name="AppliedJob"
             component={AppliedJobsScreen}
             options={{
-              tabBarLabel: "Applied Job",
+              tabBarLabel: t("tabs.appliedJob"),
               tabBarIcon: renderIcon("briefcase-check-outline"),
             }}
           />
@@ -228,7 +163,7 @@ const BottomTabNavigation = ({ route }) => {
             name="Wishlist"
             component={WishlistScreen}
             options={{
-              tabBarLabel: "Wishlist",
+              tabBarLabel: t("tabs.wishlist"),
               tabBarIcon: renderIcon("heart-outline"),
             }}
           />
@@ -236,7 +171,7 @@ const BottomTabNavigation = ({ route }) => {
             name="SeekerChat"
             component={SeekerChatScreen}
             options={{
-              tabBarLabel: "Chat",
+              tabBarLabel: t("tabs.chat"),
               tabBarIcon: renderIcon("message-text-outline"),
             }}
           />
@@ -249,7 +184,7 @@ const BottomTabNavigation = ({ route }) => {
             name="ProviderHome"
             component={ProviderHomeScreen}
             options={{
-              tabBarLabel: "Home",
+              tabBarLabel: t("tabs.home"),
               tabBarIcon: renderIcon("home-variant-outline"),
             }}
           />
@@ -257,7 +192,7 @@ const BottomTabNavigation = ({ route }) => {
             name="AddJob"
             component={AddJobScreen}
             options={{
-              tabBarLabel: "Add Job",
+              tabBarLabel: t("tabs.addJob"),
               tabBarIcon: renderIcon("plus-box-outline"),
             }}
           />
@@ -265,7 +200,7 @@ const BottomTabNavigation = ({ route }) => {
             name="ViewCandidate"
             component={ViewCandidate}
             options={{
-              tabBarLabel: "View Candidate",
+              tabBarLabel: t("tabs.viewCandidate"),
               tabBarIcon: renderIcon("account-eye-outline"),
             }}
           />
@@ -273,7 +208,7 @@ const BottomTabNavigation = ({ route }) => {
             name="ProviderChat"
             component={EmployerChatScreen}
             options={{
-              tabBarLabel: "Chat",
+              tabBarLabel: t("tabs.chat"),
               tabBarIcon: renderIcon("message-text-outline"),
             }}
           />

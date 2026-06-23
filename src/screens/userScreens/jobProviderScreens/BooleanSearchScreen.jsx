@@ -40,8 +40,10 @@ import {
 import { BASE_URL } from '../../../constant/url';
 import { POSTNETWORK, GETNETWORK } from '../../../utils/Network';
 import { getObjByKey } from '../../../utils/Storage';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const BooleanSearchScreen = ({ navigation }) => {
+    const { t } = useTranslation();
     const [searchKeywords, setSearchKeywords] = useState('');
     const [useProFeatures, setUseProFeatures] = useState(false);
     const [experience, setExperience] = useState('');
@@ -377,8 +379,8 @@ const BooleanSearchScreen = ({ navigation }) => {
 
     const renderCandidate = ({ item, index }) => {
         // Extract data from API response
-        const candidateName = item?.full_name || `${item?.first_name || ''} ${item?.last_name || ''}`.trim() || "Candidate";
-        const jobTitle = item?.job_title || "Job Title";
+        const candidateName = item?.full_name || `${item?.first_name || ''} ${item?.last_name || ''}`.trim() || t('booleanSearch.candidateFallback');
+        const jobTitle = item?.job_title || t('booleanSearch.jobTitleFallback');
 
         return (
             <Pressable
@@ -409,7 +411,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                         }}
                     >
                         <MaterialCommunityIcons name="eye" size={HEIGHT * 0.018} color={WHITE} />
-                        <Text style={styles.viewText}>View</Text>
+                        <Text style={styles.viewText}>{t('booleanSearch.view')}</Text>
                     </Pressable>
                 </View>
             </Pressable>
@@ -424,7 +426,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                     showNotification={false}
                     showBack
                     showCenterTitle
-                    title="Boolean Search"
+                    title={t('booleanSearch.title')}
                     onBackPress={() => navigation.goBack()}
                 />
 
@@ -442,7 +444,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                         >
                             <View style={styles.premiumCardContent}>
                                 <Text style={styles.premiumCardText}>
-                                    Unlimited{'\n'}Boolean Search
+                                    {t('booleanSearch.premiumTitle')}
                                 </Text>
                             </View>
                         </ImageBackground>
@@ -450,15 +452,15 @@ const BooleanSearchScreen = ({ navigation }) => {
 
                     {/* Search Candidates Section */}
                     <View style={styles.searchSection}>
-                        <Text style={styles.sectionTitle}>Search Candidates</Text>
+                        <Text style={styles.sectionTitle}>{t('booleanSearch.searchCandidates')}</Text>
 
                         {/* Search Keywords */}
                         <View style={styles.inputWrapper}>
                             <Text style={styles.label}>
-                                Search Keywords <Text style={styles.required}>*</Text>
+                                {t('booleanSearch.searchKeywords')} <Text style={styles.required}>{t('booleanSearch.required')}</Text>
                             </Text>
                             <TextInputComponent
-                                placeholder="Enter keywords"
+                                placeholder={t('booleanSearch.enterKeywords')}
                                 inputdata={searchKeywords}
                                 setInputdata={setSearchKeywords}
                                 image={KEYWORD}
@@ -466,7 +468,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                                 width="100%"
                             />
                             <Text style={styles.hintText}>
-                                Basic: Simple keyword search (unlimited)
+                                {t('booleanSearch.basicHint')}
                             </Text>
                         </View>
 
@@ -485,24 +487,24 @@ const BooleanSearchScreen = ({ navigation }) => {
                                 )}
                             </View>
                             <Text style={styles.checkboxLabel}>
-                                Use Pro Features (Boolean Operators, Advanced Filters)
+                                {t('booleanSearch.useProFeatures')}
                             </Text>
                         </TouchableOpacity>
 
                         {/* Pro Features - Must Have (AND) */}
                         {useProFeatures && (
                             <View style={styles.proFeatureSection}>
-                                <Text style={styles.proFeatureTitle}>Must have (AND)</Text>
+                                <Text style={styles.proFeatureTitle}>{t('booleanSearch.mustHave')}</Text>
                                 <View style={styles.proFeatureInputRow}>
                                     <TextInputComponent
-                                        placeholder="Enter Item"
+                                        placeholder={t('booleanSearch.enterItem')}
                                         inputdata={mustHaveInput}
                                         setInputdata={setMustHaveInput}
                                         borderColor={BRANDCOLOR}
                                         width="75%"
                                     />
                                     <CustomButton
-                                        text="Add"
+                                        text={t('booleanSearch.add')}
                                         width="20%"
                                         height={50}
                                         backgroundColor={BRANDCOLOR}
@@ -529,17 +531,17 @@ const BooleanSearchScreen = ({ navigation }) => {
                         {/* Pro Features - Must Not Have (NOT) */}
                         {useProFeatures && (
                             <View style={styles.proFeatureSection}>
-                                <Text style={styles.proFeatureTitle}>Must not have (NOT)</Text>
+                                <Text style={styles.proFeatureTitle}>{t('booleanSearch.mustNotHave')}</Text>
                                 <View style={styles.proFeatureInputRow}>
                                     <TextInputComponent
-                                        placeholder="Enter Item"
+                                        placeholder={t('booleanSearch.enterItem')}
                                         inputdata={mustNotHaveInput}
                                         setInputdata={setMustNotHaveInput}
                                         borderColor={BRANDCOLOR}
                                         width="75%"
                                     />
                                     <CustomButton
-                                        text="Add"
+                                        text={t('booleanSearch.add')}
                                         width="20%"
                                         height={50}
                                         backgroundColor={BRANDCOLOR}
@@ -565,12 +567,12 @@ const BooleanSearchScreen = ({ navigation }) => {
 
                         {/* Experience Dropdown */}
                         <View style={styles.inputWrapper}>
-                            <Text style={styles.label}>Experience</Text>
+                            <Text style={styles.label}>{t('booleanSearch.experience')}</Text>
                             <View style={styles.pickerWrapper}>
                                 <View style={styles.pickerContainer}>
                                     <View style={styles.pickerTextContainer}>
                                         <Text style={styles.pickerSelectedText} numberOfLines={1}>
-                                            {experience === "" ? "All" : experience}
+                                            {experience === "" ? t('booleanSearch.all') : experience}
                                         </Text>
                                     </View>
                                     <Picker
@@ -579,12 +581,12 @@ const BooleanSearchScreen = ({ navigation }) => {
                                         style={styles.picker}
                                         itemStyle={styles.pickerItem}
                                     >
-                                        <Picker.Item label="All" value="" />
-                                        <Picker.Item label="0-1 Years" value="0-1 Years" />
-                                        <Picker.Item label="1-3 Years" value="1-3 Years" />
-                                        <Picker.Item label="3-5 Years" value="3-5 Years" />
-                                        <Picker.Item label="5-10 Years" value="5-10 Years" />
-                                        <Picker.Item label="10+ Years" value="10+ Years" />
+                                        <Picker.Item label={t('booleanSearch.all')} value="" />
+                                        <Picker.Item label={t('booleanSearch.exp0to1')} value="0-1 Years" />
+                                        <Picker.Item label={t('booleanSearch.exp1to3')} value="1-3 Years" />
+                                        <Picker.Item label={t('booleanSearch.exp3to5')} value="3-5 Years" />
+                                        <Picker.Item label={t('booleanSearch.exp5to10')} value="5-10 Years" />
+                                        <Picker.Item label={t('booleanSearch.exp10plus')} value="10+ Years" />
                                     </Picker>
                                     <Image source={DROPDOWN} style={styles.dropdownIcon} />
                                 </View>
@@ -593,12 +595,12 @@ const BooleanSearchScreen = ({ navigation }) => {
 
                         {/* Gender Dropdown */}
                         <View style={styles.inputWrapper}>
-                            <Text style={styles.label}>Gender</Text>
+                            <Text style={styles.label}>{t('booleanSearch.gender')}</Text>
                             <View style={styles.pickerWrapper}>
                                 <View style={styles.pickerContainer}>
                                     <View style={styles.pickerTextContainer}>
                                         <Text style={styles.pickerSelectedText} numberOfLines={1}>
-                                            {gender === "" ? "All" : gender}
+                                            {gender === "" ? t('booleanSearch.all') : gender === "Male" ? t('booleanSearch.male') : gender === "Female" ? t('booleanSearch.female') : gender === "Other" ? t('booleanSearch.other') : gender}
                                         </Text>
                                     </View>
                                     <Picker
@@ -607,10 +609,10 @@ const BooleanSearchScreen = ({ navigation }) => {
                                         style={styles.picker}
                                         itemStyle={styles.pickerItem}
                                     >
-                                        <Picker.Item label="All" value="" />
-                                        <Picker.Item label="Male" value="Male" />
-                                        <Picker.Item label="Female" value="Female" />
-                                        <Picker.Item label="Other" value="Other" />
+                                        <Picker.Item label={t('booleanSearch.all')} value="" />
+                                        <Picker.Item label={t('booleanSearch.male')} value="Male" />
+                                        <Picker.Item label={t('booleanSearch.female')} value="Female" />
+                                        <Picker.Item label={t('booleanSearch.other')} value="Other" />
                                     </Picker>
                                     <Image source={DROPDOWN} style={styles.dropdownIcon} />
                                 </View>
@@ -619,9 +621,9 @@ const BooleanSearchScreen = ({ navigation }) => {
 
                         {/* Location */}
                         <View style={styles.inputWrapper}>
-                            <Text style={styles.label}>Location</Text>
+                            <Text style={styles.label}>{t('booleanSearch.location')}</Text>
                             <TextInputComponent
-                                placeholder="Enter location"
+                                placeholder={t('booleanSearch.enterLocation')}
                                 inputdata={location}
                                 setInputdata={setLocation}
                                 borderColor={BRANDCOLOR}
@@ -632,7 +634,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                         {/* Action Buttons */}
                         <View style={styles.buttonContainer}>
                             <CustomButton
-                                text="Search Candidates"
+                                text={t('booleanSearch.searchCandidates')}
                                 width="100%"
                                 height={55}
                                 backgroundColor={BRANDCOLOR}
@@ -643,7 +645,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                                 disabled={loading}
                             />
                             <CustomButton
-                                text="Save Search"
+                                text={t('booleanSearch.saveSearch')}
                                 width="100%"
                                 height={55}
                                 backgroundColor="#E5E5E5"
@@ -659,13 +661,13 @@ const BooleanSearchScreen = ({ navigation }) => {
                     {searchPerformed && (
                         <View style={styles.resultsSection}>
                             <Text style={styles.sectionTitle}>
-                                Search Results {candidates.length > 0 && `(${candidates.length})`}
+                                {t('booleanSearch.searchResults')} {candidates.length > 0 && `(${candidates.length})`}
                             </Text>
 
                             {loading ? (
                                 <View style={styles.loadingContainer}>
                                     <ActivityIndicator size="large" color={BRANDCOLOR} />
-                                    <Text style={styles.loadingText}>Searching candidates...</Text>
+                                    <Text style={styles.loadingText}>{t('booleanSearch.searchingCandidates')}</Text>
                                 </View>
                             ) : candidates.length > 0 ? (
                                 <View style={styles.candidatesGrid}>
@@ -677,7 +679,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                                 </View>
                             ) : (
                                 <View style={styles.emptyContainer}>
-                                    <Text style={styles.emptyText}>No candidates found</Text>
+                                    <Text style={styles.emptyText}>{t('booleanSearch.noCandidates')}</Text>
                                 </View>
                             )}
                         </View>
@@ -685,18 +687,18 @@ const BooleanSearchScreen = ({ navigation }) => {
 
                     {/* Saved Searches Section */}
                     <View style={styles.savedSearchesSection}>
-                        <Text style={styles.sectionTitle}>Saved Searches</Text>
+                        <Text style={styles.sectionTitle}>{t('booleanSearch.savedSearches')}</Text>
 
                         {loadingSavedSearches ? (
                             <View style={styles.loadingContainer}>
                                 <ActivityIndicator size="small" color={BRANDCOLOR} />
-                                <Text style={styles.loadingText}>Loading saved searches...</Text>
+                                <Text style={styles.loadingText}>{t('booleanSearch.loadingSavedSearches')}</Text>
                             </View>
                         ) : savedSearches.length > 0 ? (
                             <View style={styles.savedSearchesGrid}>
                                 {savedSearches.map((savedSearch, index) => {
                                     // Handle both snake_case and camelCase field names
-                                    const searchName = savedSearch?.search_name || savedSearch?.searchName || 'Untitled Search';
+                                    const searchName = savedSearch?.search_name || savedSearch?.searchName || t('booleanSearch.untitledSearch');
                                     const searchQuery = savedSearch?.search_query || savedSearch?.searchQuery || '';
                                     const searchFilters = savedSearch?.search_filters || savedSearch?.searchFilters || {};
 
@@ -742,7 +744,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                                                 </View>
 
                                                 {/* Search Query */}
-                                                <Text style={styles.savedSearchCardQuery} numberOfLines={1}>{searchQuery || 'No query'}</Text>
+                                                <Text style={styles.savedSearchCardQuery} numberOfLines={1}>{searchQuery || t('booleanSearch.noQuery')}</Text>
 
                                                 {/* Filter Info */}
                                                 {filterCount > 0 && (
@@ -783,7 +785,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                                                     }}
                                                 >
                                                     <MaterialCommunityIcons name="play-circle" size={HEIGHT * 0.02} color={WHITE} />
-                                                    <Text style={styles.savedSearchCardActionText}>Use</Text>
+                                                    <Text style={styles.savedSearchCardActionText}>{t('booleanSearch.use')}</Text>
                                                 </Pressable>
                                             </View>
                                         </Pressable>
@@ -792,7 +794,7 @@ const BooleanSearchScreen = ({ navigation }) => {
                             </View>
                         ) : (
                             <View style={styles.emptyContainer}>
-                                <Text style={styles.emptyText}>No saved searches</Text>
+                                <Text style={styles.emptyText}>{t('booleanSearch.noSavedSearches')}</Text>
                             </View>
                         )}
                     </View>

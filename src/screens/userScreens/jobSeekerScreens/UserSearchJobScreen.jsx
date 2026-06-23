@@ -38,6 +38,7 @@ import {
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK } from "../../../utils/Network";
 import { ToastMessage } from "../../../components/commonComponents/ToastMessage";
+import { useTranslation } from "../../../hooks/useTranslation";
 
 // Format jobType: full_time -> Full Time
 const formatJobType = (jobType) => {
@@ -77,13 +78,13 @@ const formatLocation = (state, city) => {
 };
 
 // Format salary
-const formatSalary = (salaryRange) => {
-  if (!salaryRange) return "Salary not specified";
+const formatSalary = (salaryRange, t) => {
+  if (!salaryRange) return t("userSearchJob.salaryNotSpecified");
   return salaryRange.trim().replace(/^INR\s*/i, "");
 };
 
 // Job Card Component
-const JobCard = ({ item, onPress }) => {
+const JobCard = ({ item, onPress, t }) => {
   const logoUrl = item.companyLogoUrl || item.logo
     ? ((item.companyLogoUrl || item.logo).startsWith("http://") ||
       (item.companyLogoUrl || item.logo).startsWith("https://")
@@ -120,10 +121,10 @@ const JobCard = ({ item, onPress }) => {
         {/* Job Details */}
         <View style={styles.detailsContainer}>
           <Text style={styles.jobTitle} numberOfLines={2}>
-            {item.jobTitle || "Job Title"}
+            {item.jobTitle || t("userSearchJob.jobTitle")}
           </Text>
           <Text style={styles.companyName} numberOfLines={1}>
-            {item.companyName || "Company"}
+            {item.companyName || t("userSearchJob.company")}
           </Text>
           <Text style={styles.location} numberOfLines={1}>
             {formatLocation(item.state, item.city)}
@@ -134,7 +135,7 @@ const JobCard = ({ item, onPress }) => {
         <View style={styles.salaryContainer}>
           <MaterialCommunityIcons name="currency-inr" size={14} color={BRANDCOLOR} />
           <Text style={styles.salary} numberOfLines={1}>
-            {formatSalary(item.salaryRange)}
+            {formatSalary(item.salaryRange, t)}
           </Text>
         </View>
 
@@ -163,6 +164,7 @@ const FilterChip = ({ label, isActive, onPress }) => (
 );
 
 const UserSearchJobScreen = ({ navigation, route }) => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState(route?.params?.keyword || "");
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -179,34 +181,59 @@ const UserSearchJobScreen = ({ navigation, route }) => {
   const [activeFilterCategory, setActiveFilterCategory] = useState("work_mode");
   const [appliedFilters, setAppliedFilters] = useState({});
   const [pendingFilters, setPendingFilters] = useState({});
-  const filterOptions = [
-    { id: "work_mode", label: "Work mode" },
-    { id: "department", label: "Department" },
-    { id: "location", label: "Location" },
-    { id: "experience", label: "Experience" },
-    { id: "salary", label: "Salary" },
-    { id: "companies", label: "Companies" },
-    { id: "industries", label: "Industries" },
-    { id: "role", label: "Role" },
-    { id: "educations", label: "Educations" },
-    { id: "posted_by", label: "Posted By" },
-    { id: "freshness", label: "Freshness" },
-    { id: "sort", label: "Sort" },
-  ];
-  const filterChoices = {
-    work_mode: ["Work from office", "Remote", "Hybrid", "Temp. WFH due to covid"],
-    department: ["IT", "Sales", "Marketing", "Operations", "HR", "Finance"],
-    location: ["Bengaluru", "Chennai", "Mumbai", "Delhi", "Hyderabad", "Remote"],
-    experience: ["0-1 Years", "1-3 Years", "3-5 Years", "5+ Years"],
-    salary: ["0-3 LPA", "3-6 LPA", "6-10 LPA", "10+ LPA"],
-    companies: ["Trukky", "Amsoft Services", "The Space Element", "UptulaSoft"],
-    industries: ["Technology", "Education", "Healthcare", "Finance", "Manufacturing"],
-    role: ["Developer", "Designer", "Manager", "Coordinator", "Analyst"],
-    educations: ["Any Graduate", "B.Tech", "MBA", "Diploma", "12th Pass"],
-    posted_by: ["Direct company", "Consultant", "Staffing agency"],
-    freshness: ["Last 24 hours", "Last 3 days", "Last 7 days", "Last 30 days"],
-    sort: ["Relevance", "Latest", "Salary: High to Low", "Salary: Low to High"],
-  };
+  const filterOptions = useMemo(
+    () => [
+      { id: "work_mode", label: t("userSearchJob.workMode") },
+      { id: "department", label: t("userSearchJob.department") },
+      { id: "location", label: t("userSearchJob.location") },
+      { id: "experience", label: t("userSearchJob.experience") },
+      { id: "salary", label: t("userSearchJob.salary") },
+      { id: "companies", label: t("userSearchJob.companies") },
+      { id: "industries", label: t("userSearchJob.industries") },
+      { id: "role", label: t("userSearchJob.role") },
+      { id: "educations", label: t("userSearchJob.educations") },
+      { id: "posted_by", label: t("userSearchJob.postedBy") },
+      { id: "freshness", label: t("userSearchJob.freshness") },
+      { id: "sort", label: t("userSearchJob.sort") },
+    ],
+    [t]
+  );
+  const filterChoices = useMemo(
+    () => ({
+      work_mode: [
+        { value: "Work from office", label: t("userSearchJob.workFromOffice") },
+        { value: "Remote", label: t("userSearchJob.remote") },
+        { value: "Hybrid", label: t("userSearchJob.hybrid") },
+        { value: "Temp. WFH due to covid", label: t("userSearchJob.tempWfh") },
+      ],
+      department: ["IT", "Sales", "Marketing", "Operations", "HR", "Finance"],
+      location: ["Bengaluru", "Chennai", "Mumbai", "Delhi", "Hyderabad", "Remote"],
+      experience: ["0-1 Years", "1-3 Years", "3-5 Years", "5+ Years"],
+      salary: ["0-3 LPA", "3-6 LPA", "6-10 LPA", "10+ LPA"],
+      companies: ["Trukky", "Amsoft Services", "The Space Element", "UptulaSoft"],
+      industries: ["Technology", "Education", "Healthcare", "Finance", "Manufacturing"],
+      role: ["Developer", "Designer", "Manager", "Coordinator", "Analyst"],
+      educations: ["Any Graduate", "B.Tech", "MBA", "Diploma", "12th Pass"],
+      posted_by: [
+        { value: "Direct company", label: t("userSearchJob.directCompany") },
+        { value: "Consultant", label: t("userSearchJob.consultant") },
+        { value: "Staffing agency", label: t("userSearchJob.staffingAgency") },
+      ],
+      freshness: [
+        { value: "Last 24 hours", label: t("userSearchJob.last24Hours") },
+        { value: "Last 3 days", label: t("userSearchJob.last3Days") },
+        { value: "Last 7 days", label: t("userSearchJob.last7Days") },
+        { value: "Last 30 days", label: t("userSearchJob.last30Days") },
+      ],
+      sort: [
+        { value: "Relevance", label: t("userSearchJob.relevance") },
+        { value: "Latest", label: t("userSearchJob.latest") },
+        { value: "Salary: High to Low", label: t("userSearchJob.salaryHighToLow") },
+        { value: "Salary: Low to High", label: t("userSearchJob.salaryLowToHigh") },
+      ],
+    }),
+    [t]
+  );
 
   const filterScrollRef = useRef(null);
   const searchDebounceRef = useRef(null);
@@ -272,7 +299,7 @@ const UserSearchJobScreen = ({ navigation, route }) => {
         setSearchResults([]);
         setToastMessage({
           type: "error",
-          msg: "Error fetching search results",
+          msg: t("userSearchJob.errorFetching"),
           visible: true,
         });
       } finally {
@@ -290,7 +317,7 @@ const UserSearchJobScreen = ({ navigation, route }) => {
       setSearchResults([]);
       setToastMessage({
         type: "warning",
-        msg: "Please enter a job role to search",
+        msg: t("userSearchJob.enterRoleToSearch"),
         visible: true,
       });
     }
@@ -477,7 +504,7 @@ const UserSearchJobScreen = ({ navigation, route }) => {
 
   // Render job card
   const renderJobCard = ({ item }) => (
-    <JobCard item={item} onPress={handleJobCardPress} />
+    <JobCard item={item} onPress={handleJobCardPress} t={t} />
   );
 
   // Render empty state
@@ -485,12 +512,12 @@ const UserSearchJobScreen = ({ navigation, route }) => {
     <View style={styles.emptyContainer}>
       <MaterialCommunityIcons name="briefcase-off-outline" size={64} color="#CCC" />
       <Text style={styles.emptyText}>
-        {searchQuery ? "No jobs found" : "Search for a job role"}
+        {searchQuery ? t("userSearchJob.noJobsFound") : t("userSearchJob.searchPrompt")}
       </Text>
       <Text style={styles.emptySubtext}>
         {searchQuery
-          ? "Try searching with different keywords"
-          : "Enter a job role and press search"}
+          ? t("userSearchJob.tryDifferentKeywords")
+          : t("userSearchJob.enterRoleAndSearch")}
       </Text>
     </View>
   );
@@ -524,7 +551,7 @@ const UserSearchJobScreen = ({ navigation, route }) => {
           <View style={styles.searchContainer}>
             <TextInput
               style={styles.searchInput}
-              placeholder="Search job role..."
+              placeholder={t("userSearchJob.searchPlaceholder")}
               placeholderTextColor="#999"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -562,7 +589,9 @@ const UserSearchJobScreen = ({ navigation, route }) => {
           ListFooterComponent={
             filteredResults.length > 0 && (
               <Text style={styles.footerText}>
-                Showing {filteredResults.length} job{filteredResults.length !== 1 ? "s" : ""}
+                {filteredResults.length === 1
+                  ? t("userSearchJob.showingJob", { count: filteredResults.length })
+                  : t("userSearchJob.showingJobs", { count: filteredResults.length })}
               </Text>
             )
           }
@@ -607,7 +636,7 @@ const UserSearchJobScreen = ({ navigation, route }) => {
         >
           <Pressable style={styles.modalBackdrop} onPress={() => setIsFilterModalVisible(false)} />
           <View style={styles.filterModalContainer}>
-            <Text style={styles.filterModalTitle}>Filter results</Text>
+            <Text style={styles.filterModalTitle}>{t("userSearchJob.filterResults")}</Text>
             <View style={styles.filterModalContent}>
               <ScrollView style={styles.filterCategoryColumn} showsVerticalScrollIndicator={false}>
                 {filterOptions.map((option) => (
@@ -633,12 +662,14 @@ const UserSearchJobScreen = ({ navigation, route }) => {
               </ScrollView>
               <ScrollView style={styles.filterValuesColumn} showsVerticalScrollIndicator={false}>
                 {(filterChoices[activeFilterCategory] || []).map((choice) => {
-                  const checked = (pendingFilters[activeFilterCategory] || []).includes(choice);
+                  const value = typeof choice === "object" ? choice.value : choice;
+                  const label = typeof choice === "object" ? choice.label : choice;
+                  const checked = (pendingFilters[activeFilterCategory] || []).includes(value);
                   return (
                     <TouchableOpacity
-                      key={choice}
+                      key={value}
                       style={styles.filterValueItem}
-                      onPress={() => togglePendingFilter(activeFilterCategory, choice)}
+                      onPress={() => togglePendingFilter(activeFilterCategory, value)}
                       activeOpacity={0.7}
                     >
                       <MaterialCommunityIcons
@@ -646,7 +677,7 @@ const UserSearchJobScreen = ({ navigation, route }) => {
                         size={22}
                         color={checked ? BLACK : "#8C97B2"}
                       />
-                      <Text style={styles.filterValueText}>{choice}</Text>
+                      <Text style={styles.filterValueText}>{label}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -660,10 +691,10 @@ const UserSearchJobScreen = ({ navigation, route }) => {
                   setIsFilterModalVisible(false);
                 }}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t("userSearchJob.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-                <Text style={styles.applyButtonText}>Apply filters</Text>
+                <Text style={styles.applyButtonText}>{t("userSearchJob.applyFilters")}</Text>
               </TouchableOpacity>
             </View>
           </View>

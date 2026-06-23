@@ -27,8 +27,11 @@ import { POSTNETWORK, PUTNETWORK } from "../../../utils/Network";
 import { getObjByKey } from "../../../utils/Storage";
 import { BLACK, BRANDCOLOR, WHITE } from "../../../constant/color";
 import { TextInputComponent } from "../../../components/commonComponents/TextInputComponent";
+import { useTranslation } from "../../../hooks/useTranslation";
 
 const ChangePasswordScreen = ({ navigation }) => {
+    const { t, i18n } = useTranslation();
+
     /* ---------- STATES ---------- */
     const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -121,7 +124,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 console.error("Change password error: No token found");
                 setToastMessage({
                     type: "error",
-                    msg: "Session expired. Please login again.",
+                    msg: t("changePassword.sessionExpired"),
                     visible: true,
                 });
                 return;
@@ -158,7 +161,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                         setTimeout(() => {
                             setToastMessage({
                                 type: "success",
-                                msg: result?.message || "Password changed successfully",
+                                msg: result?.message || t("changePassword.passwordChanged"),
                                 visible: true,
                             });
                         }, 100);
@@ -166,7 +169,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                         console.error("Change password failed:", result?.message || result?.error || "Unknown error");
                         setToastMessage({
                             type: "error",
-                            msg: result?.message || result?.error || "Failed to change password",
+                            msg: result?.message || result?.error || t("changePassword.failedChange"),
                             visible: true,
                         });
                     }
@@ -175,7 +178,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                     console.error("Change password error:", error);
                     setToastMessage({
                         type: "error",
-                        msg: "Failed to change password. Please try again.",
+                        msg: t("changePassword.failedRetry"),
                         visible: true,
                     });
                 });
@@ -183,7 +186,7 @@ const ChangePasswordScreen = ({ navigation }) => {
             console.error("Change password exception:", error);
             setToastMessage({
                 type: "error",
-                msg: "Unable to process request",
+                msg: t("changePassword.unableProcess"),
                 visible: true,
             });
         }
@@ -194,7 +197,7 @@ const ChangePasswordScreen = ({ navigation }) => {
         if (!oldPassword || !newPassword || !confirmPassword) {
             setToastMessage({
                 type: "error",
-                msg: "All fields are required",
+                msg: t("changePassword.allFieldsRequired"),
                 visible: true,
             });
             return;
@@ -203,7 +206,7 @@ const ChangePasswordScreen = ({ navigation }) => {
         if (newPassword !== confirmPassword) {
             setToastMessage({
                 type: "error",
-                msg: "New password and confirm password do not match",
+                msg: t("changePassword.passwordMismatch"),
                 visible: true,
             });
             return;
@@ -223,7 +226,7 @@ const ChangePasswordScreen = ({ navigation }) => {
         setResendCount(0);
         setToastMessage({
             type: "info",
-            msg: "Enter your registered email to get OTP",
+            msg: t("changePassword.enterEmailOtp"),
             visible: true,
         });
         // console.log("[ChangePassword JobSeeker] Forgot flow opened");
@@ -261,7 +264,7 @@ const ChangePasswordScreen = ({ navigation }) => {
         if (!forgotEmail) {
             setToastMessage({
                 type: "error",
-                msg: "Please enter your email",
+                msg: t("changePassword.enterEmail"),
                 visible: true,
             });
             return;
@@ -292,20 +295,20 @@ const ChangePasswordScreen = ({ navigation }) => {
                 // console.log("[ChangePassword JobSeeker] OTP request success → opening OTP step", { msg });
                 setForgotStep(2);
                 setOtpTimer(60);
-                setOtpStatus("OTP sent. Enter 6-digit code");
+                setOtpStatus(t("changePassword.otpSent"));
                 setResendCount(0);
                 setOtpValue("");
                 setOtpVerified(false);
 
                 setToastMessage({
                     type: "success",
-                    msg: msg || "OTP sent to your email",
+                    msg: msg || t("changePassword.otpSentEmail"),
                     visible: true,
                 });
             } else {
                 setToastMessage({
                     type: "error",
-                    msg: msg || "Failed to send OTP",
+                    msg: msg || t("changePassword.failedSendOtp"),
                     visible: true,
                 });
             }
@@ -313,7 +316,7 @@ const ChangePasswordScreen = ({ navigation }) => {
             // console.log("[ChangePassword JobSeeker] Send OTP error", error);
             setToastMessage({
                 type: "error",
-                msg: "Error sending OTP",
+                msg: t("changePassword.errorSendOtp"),
                 visible: true,
             });
         }
@@ -326,10 +329,10 @@ const ChangePasswordScreen = ({ navigation }) => {
         if (resendCount >= MAX_RESEND_ATTEMPTS) {
             setToastMessage({
                 type: "error",
-                msg: "Max resend attempts reached",
+                msg: t("changePassword.maxResend"),
                 visible: true,
             });
-            setOtpStatus("Max resend attempts reached");
+            setOtpStatus(t("changePassword.maxResend"));
             return;
         }
 
@@ -353,17 +356,17 @@ const ChangePasswordScreen = ({ navigation }) => {
             if (isSuccess) {
                 setResendCount((prev) => prev + 1);
                 setOtpTimer(60);
-                setOtpStatus("OTP resent successfully");
+                setOtpStatus(t("changePassword.otpResent"));
 
                 setToastMessage({
                     type: "success",
-                    msg: msg || "OTP resent successfully",
+                    msg: msg || t("changePassword.otpResent"),
                     visible: true,
                 });
             } else {
                 setToastMessage({
                     type: "error",
-                    msg: msg || "Failed to resend OTP",
+                    msg: msg || t("changePassword.failedResend"),
                     visible: true,
                 });
             }
@@ -371,7 +374,7 @@ const ChangePasswordScreen = ({ navigation }) => {
             // console.log("[ChangePassword JobSeeker] Resend OTP error", error);
             setToastMessage({
                 type: "error",
-                msg: "Error resending OTP",
+                msg: t("changePassword.errorResend"),
                 visible: true,
             });
         }
@@ -421,20 +424,20 @@ const ChangePasswordScreen = ({ navigation }) => {
 
                     if (isSuccess) {
                         setOtpVerified(true);
-                        setOtpStatus(msg || "OTP verified successfully");
+                        setOtpStatus(msg || t("changePassword.otpVerified"));
 
                         setToastMessage({
                             type: "success",
-                            msg: msg || "OTP verified",
+                            msg: msg || t("changePassword.otpVerifiedShort"),
                             visible: true,
                         });
                     } else {
                         setOtpVerified(false);
-                        setOtpStatus(msg || "Invalid OTP");
+                        setOtpStatus(msg || t("changePassword.invalidOtp"));
 
                         setToastMessage({
                             type: "error",
-                            msg: msg || "Invalid OTP",
+                            msg: msg || t("changePassword.invalidOtp"),
                             visible: true,
                         });
                     }
@@ -442,7 +445,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                     // console.log("[ChangePassword JobSeeker] Verify OTP error", error);
                     setToastMessage({
                         type: "error",
-                        msg: "OTP verification failed",
+                        msg: t("changePassword.otpVerificationFailed"),
                         visible: true,
                     });
                 }
@@ -493,7 +496,7 @@ const ChangePasswordScreen = ({ navigation }) => {
         if (!otpVerified) {
             setToastMessage({
                 type: "error",
-                msg: "Please enter valid OTP",
+                msg: t("changePassword.enterValidOtp"),
                 visible: true,
             });
             return;
@@ -502,7 +505,7 @@ const ChangePasswordScreen = ({ navigation }) => {
         if (!newPassword || !confirmPassword) {
             setToastMessage({
                 type: "error",
-                msg: "Enter all fields",
+                msg: t("changePassword.enterAllFields"),
                 visible: true,
             });
             return;
@@ -511,7 +514,7 @@ const ChangePasswordScreen = ({ navigation }) => {
         if (newPassword !== confirmPassword) {
             setToastMessage({
                 type: "error",
-                msg: "Passwords do not match",
+                msg: t("register.passwordMismatch"),
                 visible: true,
             });
             return;
@@ -539,7 +542,7 @@ const ChangePasswordScreen = ({ navigation }) => {
             if (isSuccess) {
                 setToastMessage({
                     type: "success",
-                    msg: msg || "Password reset successfully",
+                    msg: msg || t("changePassword.resetSuccess"),
                     visible: true,
                 });
 
@@ -548,7 +551,7 @@ const ChangePasswordScreen = ({ navigation }) => {
             } else {
                 setToastMessage({
                     type: "error",
-                    msg: msg || "Reset failed",
+                    msg: msg || t("changePassword.resetFailed"),
                     visible: true,
                 });
             }
@@ -556,7 +559,7 @@ const ChangePasswordScreen = ({ navigation }) => {
             // console.log("[ChangePassword JobSeeker] Update Password error", error);
             setToastMessage({
                 type: "error",
-                msg: "Error resetting password",
+                msg: t("changePassword.errorResetPassword"),
                 visible: true,
             });
         }
@@ -574,7 +577,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 <MyHeader
                     showBack
                     showCenterTitle
-                    title="Change Password"
+                    title={t("changePassword.title")}
                     onBackPress={() => navigation.goBack()}
                 />
                 <KeyboardAvoidingView
@@ -598,7 +601,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                             {/* OLD PASSWORD */}
                             <View style={styles.textInputView} key={`old-${resetKey}`}>
                                 <TextInputComponent
-                                    placeholder="Enter Your Old Password"
+                                    placeholder={t("changePassword.oldPassword")}
                                     type="password"
                                     inputdata={oldPassword}
                                     setInputdata={setOldPassword}
@@ -617,16 +620,16 @@ const ChangePasswordScreen = ({ navigation }) => {
                                 style={styles.forgotPasswordContainer}
                             >
                                 <Text style={styles.forgotPasswordText}>
-                                    Forgot Password?
+                                    {t("changePassword.forgotPassword")}
                                 </Text>
                             </TouchableOpacity>
 
                             {showForgotSection && (
                                 <View style={styles.forgotSection}>
-                                    <Text style={styles.title}>Reset via OTP</Text>
+                                    <Text style={styles.title}>{t("changePassword.resetViaOtp")}</Text>
 
                                     <TextInputComponent
-                                        placeholder="Enter Registered Email"
+                                        placeholder={t("login.enterRegisteredEmail")}
                                         type="email"
                                         inputdata={forgotEmail}
                                         setInputdata={setForgotEmail}
@@ -639,7 +642,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                                     {forgotStep === 1 && (
                                         <View style={{ width: '100%', marginTop: 12, alignItems: 'center' }}>
                                             <CustomButton
-                                                text="Send OTP"
+                                                text={t("register.sendOtp")}
                                                 onPress={handleProceedEmail}
                                                 color={WHITE}
                                                 width="70%"
@@ -669,17 +672,17 @@ const ChangePasswordScreen = ({ navigation }) => {
 
                                             <View style={{ width: '100%', alignItems: 'center' }}>
                                                 <Text style={{ marginVertical: 4, fontSize: 14, color: '#333' }}>
-                                                    Time left: {otpTimer}s
+                                                    {t("changePassword.timeLeft", { seconds: otpTimer })}
                                                 </Text>
 
                                                 {resendCount > 0 && (
                                                     <Text style={{ marginBottom: 6, fontSize: 14, color: '#666' }}>
-                                                        Resend attempts: {resendCount}/{MAX_RESEND_ATTEMPTS}
+                                                        {t("changePassword.resendAttempts", { current: resendCount, max: MAX_RESEND_ATTEMPTS })}
                                                     </Text>
                                                 )}
 
                                                 <CustomButton
-                                                    text={otpTimer > 0 ? `Resend in ${otpTimer}s` : 'Resend OTP'}
+                                                    text={otpTimer > 0 ? t("changePassword.resendIn", { seconds: otpTimer }) : t("register.resendOtp")}
                                                     onPress={handleResendOtp}
                                                     color={WHITE}
                                                     disabled={otpTimer > 0 || resendCount >= MAX_RESEND_ATTEMPTS || otpVerified}
@@ -688,7 +691,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                                             </View>
 
                                             {otpVerified && (
-                                                <Text style={styles.verifiedText}>OTP Verified Successfully</Text>
+                                                <Text style={styles.verifiedText}>{t("register.otpVerified")}</Text>
                                             )}
                                         </>
                                     )}
@@ -696,7 +699,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                                     {otpVerified && (
                                         <>
                                             <TextInputComponent
-                                                placeholder="New Password"
+                                                placeholder={t("login.newPassword")}
                                                 type="password"
                                                 inputdata={newPassword}
                                                 setInputdata={setNewPassword}
@@ -709,7 +712,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                                             />
 
                                             <TextInputComponent
-                                                placeholder="Confirm New Password"
+                                                placeholder={t("changePassword.confirmNewPassword")}
                                                 type="password"
                                                 inputdata={confirmPassword}
                                                 setInputdata={setConfirmPassword}
@@ -723,7 +726,7 @@ const ChangePasswordScreen = ({ navigation }) => {
 
                                             <View style={{ width: '100%', marginTop: 12 }}>
                                                 <CustomButton
-                                                    text="Update Password"
+                                                    text={t("changePassword.updatePassword")}
                                                     onPress={handleForgotUpdatePassword}
                                                     color={WHITE}
                                                 />
@@ -733,7 +736,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                                                 onPress={() => setShowForgotSection(false)}
                                                 style={{ marginTop: 10, alignItems: 'center' }}
                                             >
-                                                <Text style={styles.forgotPasswordText}>Back to change password</Text>
+                                                <Text style={styles.forgotPasswordText}>{t("changePassword.backToChangePassword")}</Text>
                                             </TouchableOpacity>
                                         </>
                                     )}
@@ -743,7 +746,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                             {/* NEW PASSWORD */}
                             <View style={styles.textInputView} key={`new-${resetKey}`}>
                                 <TextInputComponent
-                                    placeholder="Enter New Password"
+                                    placeholder={t("changePassword.newPassword")}
                                     type="password"
                                     inputdata={newPassword}
                                     setInputdata={setNewPassword}
@@ -759,7 +762,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                             {/* CONFIRM PASSWORD */}
                             <View style={styles.textInputView} key={`confirm-${resetKey}`}>
                                 <TextInputComponent
-                                    placeholder="Confirm New Password"
+                                    placeholder={t("changePassword.confirmNewPassword")}
                                     type="password"
                                     inputdata={confirmPassword}
                                     setInputdata={setConfirmPassword}
@@ -778,7 +781,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                             <View style={styles.buttonContainer}>
                                 <CustomButton
                                     onPress={onChangePassword}
-                                    text="Change Password"
+                                    text={t("changePassword.changeBtn")}
                                     color={WHITE}
                                 />
                             </View>
@@ -804,10 +807,10 @@ const ChangePasswordScreen = ({ navigation }) => {
             {/* CONFIRM ALERT */}
             <MyAlert
                 visible={showConfirmAlert}
-                title="Confirm"
-                message="Are you sure you want to change your password?"
-                textLeft="Cancel"
-                textRight="Yes"
+                title={t("changePassword.confirm")}
+                message={t("changePassword.confirmMessage")}
+                textLeft={t("common.cancel")}
+                textRight={t("common.yes")}
                 showLeftButton
                 showRightButton
                 onPressLeft={() => setShowConfirmAlert(false)}

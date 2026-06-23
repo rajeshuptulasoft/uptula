@@ -23,6 +23,11 @@ import {
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { DrawerActions } from "@react-navigation/native";
+import { useTranslation } from "../../../hooks/useTranslation";
+import i18n from "../../../i18n";
+import { useLanguageRefresh } from "../../../hooks/useLanguageRefresh";
+import { translateCategoryName } from "../../../i18n/translateApiLabel";
+import { ChangeLanguageModal } from "../../../components/commonComponents/ChangeLanguageModal";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { pick, isCancel } from '@react-native-documents/picker';
 import ReactNativeBlobUtil from 'react-native-blob-util';
@@ -73,10 +78,14 @@ import { handleProfilePress } from "../../../navigations/CustomDrawerContent";
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK, POSTNETWORK, DELETENETWORK } from "../../../utils/Network";
 
-// Format jobType: full_time -> Full Time
+// Format jobType with i18n when available
 const formatJobType = (jobType) => {
   if (!jobType) return '';
-  return jobType
+  const normalized = String(jobType).toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_');
+  const key = `jobTypes.${normalized}`;
+  const translated = i18n.t(key);
+  if (translated && translated !== key) return translated;
+  return String(jobType)
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
@@ -165,12 +174,13 @@ const normalizeDecision = (value) => {
 
 // Format salary (no INR prefix, icon shows currency)
 const formatSalary = (salaryRange) => {
-  if (!salaryRange) return 'Salary not specified';
+  if (!salaryRange) return i18n.t('home.salaryNotSpecified');
   // Remove INR prefix if present
   return salaryRange.trim().replace(/^INR\s*/i, '');
 };
 
 const SectionGrid = ({ title, companiesData, expanded, onToggle }) => {
+  const { t } = useTranslation();
   const data = useMemo(
     () => (expanded ? companiesData : companiesData.slice(0, 3)),
     [expanded, companiesData]
@@ -181,7 +191,7 @@ const SectionGrid = ({ title, companiesData, expanded, onToggle }) => {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{title}</Text>
         <TouchableOpacity onPress={onToggle}>
-          <Text style={styles.viewAll}>{expanded ? "View less" : "View all"}</Text>
+          <Text style={styles.viewAll}>{expanded ? t('home.viewLess') : t('home.viewAll')}</Text>
         </TouchableOpacity>
       </View>
       {data.length > 0 ? (
@@ -193,13 +203,14 @@ const SectionGrid = ({ title, companiesData, expanded, onToggle }) => {
           renderItem={({ item }) => <CompanyCard item={item} />}
         />
       ) : (
-        <Text style={styles.emptyText}>No companies available</Text>
+        <Text style={styles.emptyText}>{t('home.noCompanies')}</Text>
       )}
     </View>
   );
 };
 
 const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, applicationStatus, onToggleStatus, isExpanded }) => {
+  const { t } = useTranslation();
   // Construct logo URL if it's a relative path - use companyLogoUrl for recommended jobs
   const logoUrl = item.companyLogoUrl 
     ? (item.companyLogoUrl.startsWith('http://') || item.companyLogoUrl.startsWith('https://') 
@@ -214,7 +225,7 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, appl
     const decision = normalizeDecision(status.decision || status.statusDecision || status.finalDecision);
     const stages = [
       { 
-        label: 'Applied', 
+        label: t('home.statusApplied'), 
         completed: true,
         date: status.appliedAt || status.appliedDate || status.createdAt 
       },
@@ -222,7 +233,7 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, appl
 
     if (decision === 'viewed' || decision === 'accepted' || decision === 'rejected') {
       stages.push({
-        label: 'Resume Viewed By Recruiter',
+        label: t('home.resumeViewed'),
         completed: true,
         date: status.resumeViewedAt || status.statusUpdatedAt || status.updatedAt,
       });
@@ -230,14 +241,14 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, appl
 
     if (decision === 'accepted') {
       stages.push({
-        label: 'Approved',
+        label: t('home.approved'),
         completed: true,
         date: status.statusUpdatedAt || status.updatedAt,
         isFinal: true,
       });
     } else if (decision === 'rejected') {
       stages.push({
-        label: 'Rejected',
+        label: t('home.rejected'),
         completed: true,
         date: status.statusUpdatedAt || status.updatedAt,
         isFinal: true,
@@ -274,9 +285,9 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, appl
           onPress={() => onPress(item)} 
           activeOpacity={0.7}
         >
-          <Text style={styles.cardTitle}>{item.jobTitle || 'N/A'}</Text>
+          <Text style={styles.cardTitle}>{item.jobTitle || t('common.na')}</Text>
           <View style={styles.cardSubtitleRow}>
-            <Text style={styles.cardSubtitle}>{item.companyName || 'N/A'}</Text>
+            <Text style={styles.cardSubtitle}>{item.companyName || t('common.na')}</Text>
             {isVerified ? (
               <Image source={VERIFIEDPROVIDER} style={styles.cardVerifiedIcon} />
             ) : null}
@@ -304,11 +315,11 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, appl
           {isApplied ? (
             <View style={styles.appliedContainer}>
               <MaterialCommunityIcons name="check-circle" size={WIDTH * 0.05} color="#26AE61" />
-              <Text style={styles.appliedText}>Applied</Text>
+              <Text style={styles.appliedText}>{t('home.applied')}</Text>
             </View>
           ) : (
             <TouchableOpacity style={styles.applyButton} onPress={(e) => { e.stopPropagation(); onApply(item); }}>
-        <Text style={styles.applyText}>Apply</Text>
+        <Text style={styles.applyText}>{t('home.apply')}</Text>
       </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.heartButton} onPress={(e) => { e.stopPropagation(); onSave(item); }}>
@@ -329,7 +340,7 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, appl
             onPress={handleToggleStatus}
             activeOpacity={0.7}
           >
-            <Text style={styles.cardStatusLabel}>Status</Text>
+            <Text style={styles.cardStatusLabel}>{t('home.status')}</Text>
             <MaterialCommunityIcons 
               name={isExpanded ? "chevron-up" : "chevron-down"} 
               size={WIDTH * 0.04} 
@@ -372,6 +383,7 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, appl
 };
 
 const LatestJobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, applicationStatus, onToggleStatus, isExpanded }) => {
+  const { t } = useTranslation();
   // Construct logo URL if it's a relative path - check both logo and companyLogoUrl
   const logoSource = item.logo || item.companyLogoUrl || null;
   const logoUrl = logoSource 
@@ -387,7 +399,7 @@ const LatestJobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied
     const decision = normalizeDecision(status.decision || status.statusDecision || status.finalDecision);
     const stages = [
       { 
-        label: 'Applied', 
+        label: t('home.statusApplied'), 
         completed: true,
         date: status.appliedAt || status.appliedDate || status.createdAt 
       },
@@ -395,7 +407,7 @@ const LatestJobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied
 
     if (decision === 'viewed' || decision === 'accepted' || decision === 'rejected') {
       stages.push({
-        label: 'Resume Viewed By Recruiter',
+        label: t('home.resumeViewed'),
         completed: true,
         date: status.resumeViewedAt || status.statusUpdatedAt || status.updatedAt,
       });
@@ -403,14 +415,14 @@ const LatestJobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied
 
     if (decision === 'accepted') {
       stages.push({
-        label: 'Approved',
+        label: t('home.approved'),
         completed: true,
         date: status.statusUpdatedAt || status.updatedAt,
         isFinal: true,
       });
     } else if (decision === 'rejected') {
       stages.push({
-        label: 'Rejected',
+        label: t('home.rejected'),
         completed: true,
         date: status.statusUpdatedAt || status.updatedAt,
         isFinal: true,
@@ -483,14 +495,14 @@ const LatestJobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied
         {isApplied ? (
           <View style={styles.latestAppliedContainer}>
             <MaterialCommunityIcons name="check-circle" size={WIDTH * 0.04} color="#26AE61" />
-            <Text style={styles.latestAppliedText}>Applied</Text>
+            <Text style={styles.latestAppliedText}>{t('home.applied')}</Text>
           </View>
         ) : (
           <TouchableOpacity 
             style={styles.latestApplyButton} 
             onPress={(e) => { e.stopPropagation(); onApply(item); }}
           >
-            <Text style={styles.latestApplyText}>Apply</Text>
+            <Text style={styles.latestApplyText}>{t('home.apply')}</Text>
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -593,44 +605,7 @@ const SponsorshipCard = ({ item }) => {
 };
 
 const CategoryCard = ({ item, onPress }) => {
-  // Format category name: replace underscores, capitalize each word, keep acronyms uppercase
-  const formatCategoryName = (category) => {
-    if (!category) return 'N/A';
-    
-    // Check if category is one of the "Other" sub-categories
-    const categoryLower = category.toLowerCase().replace(/_/g, ' ');
-    if (categoryLower.includes('cook') || categoryLower.includes('security guard') || categoryLower.includes('security_guard') || categoryLower.includes('supervisor') || categoryLower.includes('plumber')) {
-      return 'Other';
-    }
-    
-    // If it's already "other", return "Other"
-    if (categoryLower === 'other' || categoryLower.trim() === 'other') {
-      return 'Other';
-    }
-    
-    // Replace underscores with spaces
-    let formatted = category.replace(/_/g, ' ');
-    
-    // Split into words
-    const words = formatted.split(' ');
-    
-    // Capitalize each word, but keep acronyms (2-3 letter words) in uppercase
-    const capitalizedWords = words.map(word => {
-      const trimmedWord = word.trim();
-      if (trimmedWord.length <= 3 && trimmedWord.toUpperCase() === trimmedWord) {
-        // Keep acronyms as uppercase (like IT, HR)
-        return trimmedWord.toUpperCase();
-      } else if (trimmedWord.length <= 3) {
-        // Convert short words to uppercase (like it -> IT)
-        return trimmedWord.toUpperCase();
-      } else {
-        // Capitalize first letter of longer words
-        return trimmedWord.charAt(0).toUpperCase() + trimmedWord.slice(1).toLowerCase();
-      }
-    });
-    
-    return capitalizedWords.join(' ');
-  };
+  const { t } = useTranslation();
 
   // Get icon image based on category name
   const getCategoryIcon = (category) => {
@@ -668,58 +643,20 @@ const CategoryCard = ({ item, onPress }) => {
         />
       </View>
       <Text style={styles.categoryName} numberOfLines={2}>
-        {formatCategoryName(item.category)}
+        {translateCategoryName(item.category)}
       </Text>
       <Text style={styles.categoryJobCount}>
-        {item.job_count || 0} Jobs
+        {t('home.jobCount', { count: item.job_count || 0 })}
       </Text>
     </TouchableOpacity>
   );
 };
 
 const AllCategoriesSlider = ({ categories, onCategoryPress }) => {
+  const { t } = useTranslation();
   const scrollViewRef = React.useRef(null);
   const scrollPositionRef = React.useRef(0);
   const animationRef = React.useRef(null);
-
-  // Format category name: replace underscores, capitalize each word, keep acronyms uppercase
-  const formatCategoryName = (category) => {
-    if (!category) return 'N/A';
-    
-    // Check if category is one of the "Other" sub-categories
-    const categoryLower = category.toLowerCase().replace(/_/g, ' ');
-    if (categoryLower.includes('cook') || categoryLower.includes('security guard') || categoryLower.includes('security_guard') || categoryLower.includes('supervisor') || categoryLower.includes('plumber')) {
-      return 'Other';
-    }
-    
-    // If it's already "other", return "Other"
-    if (categoryLower === 'other' || categoryLower.trim() === 'other') {
-      return 'Other';
-    }
-    
-    // Replace underscores with spaces
-    let formatted = category.replace(/_/g, ' ');
-    
-    // Split into words
-    const words = formatted.split(' ');
-    
-    // Capitalize each word, but keep acronyms (2-3 letter words) in uppercase
-    const capitalizedWords = words.map(word => {
-      const trimmedWord = word.trim();
-      if (trimmedWord.length <= 3 && trimmedWord.toUpperCase() === trimmedWord) {
-        // Keep acronyms as uppercase (like IT, HR)
-        return trimmedWord.toUpperCase();
-      } else if (trimmedWord.length <= 3) {
-        // Convert short words to uppercase (like it -> IT)
-        return trimmedWord.toUpperCase();
-      } else {
-        // Capitalize first letter of longer words
-        return trimmedWord.charAt(0).toUpperCase() + trimmedWord.slice(1).toLowerCase();
-      }
-    });
-    
-    return capitalizedWords.join(' ');
-  };
 
   // Get icon image based on category name (same as CategoryCard)
   const getCategoryIcon = (category) => {
@@ -810,10 +747,10 @@ const AllCategoriesSlider = ({ categories, onCategoryPress }) => {
                 />
               </View>
               <Text style={styles.allCategoryName} numberOfLines={2}>
-                {formatCategoryName(item.category)}
+                {translateCategoryName(item.category)}
               </Text>
               <Text style={styles.allCategoryJobCount}>
-                {item.job_count || 0} Jobs
+                {t('home.jobCount', { count: item.job_count || 0 })}
               </Text>
             </TouchableOpacity>
           ))}
@@ -824,6 +761,7 @@ const AllCategoriesSlider = ({ categories, onCategoryPress }) => {
 };
 
 const SearchOverlay = ({ onClose, navigation, companiesData = [] }) => {
+  const { t } = useTranslation();
   const RECENT_SEARCHES_KEY = "user_recent_job_searches";
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
@@ -1075,15 +1013,15 @@ const SearchOverlay = ({ onClose, navigation, companiesData = [] }) => {
           <TouchableOpacity onPress={onClose}>
             <MaterialCommunityIcons name="arrow-left" size={WIDTH * 0.065} color={BLACK} />
         </TouchableOpacity>
-        <Text style={styles.overlayTitle}>Search</Text>
+        <Text style={styles.overlayTitle}>{t('home.search')}</Text>
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Skills, Designation, Companies</Text>
+        <Text style={styles.inputLabel}>{t('home.skillsLabel')}</Text>
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="e.g. React, Designer, Uptula"
+          placeholder={t('home.skillsPlaceholder')}
           placeholderTextColor="#7A7A7A"
           style={styles.input}
           onSubmitEditing={handleSearchSubmit}
@@ -1092,11 +1030,11 @@ const SearchOverlay = ({ onClose, navigation, companiesData = [] }) => {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Location</Text>
+        <Text style={styles.inputLabel}>{t('home.location')}</Text>
         <TextInput
           value={location}
           onChangeText={setLocation}
-          placeholder="City, state, or remote"
+          placeholder={t('home.locationPlaceholder')}
           placeholderTextColor="#7A7A7A"
           style={styles.input}
         />
@@ -1106,14 +1044,14 @@ const SearchOverlay = ({ onClose, navigation, companiesData = [] }) => {
         <View style={styles.inputGroup}>
           <View style={styles.recentSearchesWrap}>
             <View style={styles.recentSearchesHeader}>
-              <Text style={styles.recentSearchesTitle}>Previous Searches</Text>
+              <Text style={styles.recentSearchesTitle}>{t('home.previousSearches')}</Text>
               <TouchableOpacity
                 onPress={async () => {
                   setRecentSearches([]);
                   await storeObjByKey(RECENT_SEARCHES_KEY, []);
                 }}
               >
-                <Text style={styles.recentSearchesClear}>Clear</Text>
+                <Text style={styles.recentSearchesClear}>{t('home.clear')}</Text>
               </TouchableOpacity>
             </View>
             {recentSearches.map((item) => (
@@ -1139,7 +1077,7 @@ const SearchOverlay = ({ onClose, navigation, companiesData = [] }) => {
           onPress={handleSearchSubmit}
           activeOpacity={0.8}
         >
-          <Text style={styles.searchSubmitButtonText}>Search for "{query}"</Text>
+          <Text style={styles.searchSubmitButtonText}>{t('home.searchFor', { query })}</Text>
           <MaterialCommunityIcons name="arrow-right" size={20} color={WHITE} />
         </TouchableOpacity>
       )}
@@ -1147,13 +1085,13 @@ const SearchOverlay = ({ onClose, navigation, companiesData = [] }) => {
         {loading && (
           <View style={styles.loadingIndicatorContainer}>
             <ActivityIndicator size="small" color={BRANDCOLOR} />
-            <Text style={styles.loadingIndicatorText}>Searching...</Text>
+            <Text style={styles.loadingIndicatorText}>{t('home.searching')}</Text>
           </View>
         )}
 
         {searchResults.length > 0 && (
           <View style={styles.searchResultsContainer}>
-            <Text style={styles.searchResultsTitle}>Search Results</Text>
+            <Text style={styles.searchResultsTitle}>{t('home.searchResults')}</Text>
             <FlatList
               data={searchResults}
               keyExtractor={(item, index) => item.id?.toString() || item._id?.toString() || index.toString()}
@@ -1222,7 +1160,7 @@ const SearchOverlay = ({ onClose, navigation, companiesData = [] }) => {
                       style={styles.searchApplyButton} 
                       onPress={(e) => { e.stopPropagation(); handleApply(item); }}
                     >
-                      <Text style={styles.searchApplyText}>Apply</Text>
+                      <Text style={styles.searchApplyText}>{t('home.apply')}</Text>
                     </TouchableOpacity>
                   </TouchableOpacity>
                 );
@@ -1234,19 +1172,19 @@ const SearchOverlay = ({ onClose, navigation, companiesData = [] }) => {
         {!loading && searchResults.length === 0 && query.trim() === '' && location.trim() === '' && (
       <ScrollView showsVerticalScrollIndicator={false}>
         <SectionGrid
-          title="Top Companies"
+          title={t('home.topCompanies')}
           companiesData={topCompaniesData}
           expanded={expandedTop}
           onToggle={() => setExpandedTop(!expandedTop)}
         />
         <SectionGrid
-          title="Featured Companies"
+          title={t('home.featuredCompanies')}
           companiesData={featuredCompaniesData}
           expanded={expandedFeatured}
           onToggle={() => setExpandedFeatured(!expandedFeatured)}
         />
         <SectionGrid
-          title="Sponsored Companies"
+          title={t('home.sponsoredCompanies')}
           companiesData={sponsoredCompaniesData}
           expanded={expandedSponsored}
           onToggle={() => setExpandedSponsored(!expandedSponsored)}
@@ -1256,7 +1194,7 @@ const SearchOverlay = ({ onClose, navigation, companiesData = [] }) => {
 
         {!loading && searchResults.length === 0 && (query.trim() !== '' || location.trim() !== '') && (
           <View style={styles.emptySearchContainer}>
-            <Text style={styles.emptySearchText}>No jobs found matching your search</Text>
+            <Text style={styles.emptySearchText}>{t('home.noJobsFound')}</Text>
     </View>
         )}
       </View>
@@ -1428,15 +1366,16 @@ const DreamJobSection = ({ jobs, latestJobs }) => {
 
 // Resume Premium Section Component
 const ResumePremiumSection = ({ onLearnMore }) => {
+  const { t, i18n } = useTranslation();
   return (
-    <View style={styles.resumePremiumContainer}>
+    <View style={styles.resumePremiumContainer} key={i18n.language}>
       <View style={styles.resumePremiumLeftSection}>
-        <Text style={styles.resumePremiumTitle}>Accelerate your job search with premium services</Text>
+        <Text style={styles.resumePremiumTitle}>{t('home.accelerateTitle')}</Text>
         <Text style={styles.resumePremiumDescription}>
-          If scored 70% then you can use the premium version
+          {t('home.accelerateDescription')}
         </Text>
         <View style={styles.resumePremiumTag}>
-          <Text style={styles.resumePremiumTagText}>by Uptula</Text>
+          <Text style={styles.resumePremiumTagText}>{t('home.byUptula')}</Text>
         </View>
       </View>
       <View style={styles.resumePremiumRightSection}>
@@ -1446,9 +1385,9 @@ const ResumePremiumSection = ({ onLearnMore }) => {
           onPress={onLearnMore}
           activeOpacity={0.7}
         >
-          <Text style={styles.resumePremiumButtonText}>Learn More</Text>
+          <Text style={styles.resumePremiumButtonText}>{t('home.learnMore')}</Text>
         </TouchableOpacity>
-        <Text style={styles.resumePremiumNote}>Includes paid services</Text>
+        <Text style={styles.resumePremiumNote}>{t('home.includesPaidServices')}</Text>
       </View>
     </View>
   );
@@ -1500,6 +1439,7 @@ const QuickFilterSection = ({ keywords, onFilterPress }) => {
 
 // Jobs Based on Applied Section Component
 const JobsBasedOnAppliedSection = ({ jobs, loading, onJobPress, onApply, onSave, wishlistedJobs, appliedJobs, applicationStatuses, onToggleStatus, expandedStatusCards }) => {
+  const { t } = useTranslation();
   if (!jobs || jobs.length === 0) {
     return null;
   }
@@ -1507,12 +1447,12 @@ const JobsBasedOnAppliedSection = ({ jobs, loading, onJobPress, onApply, onSave,
   return (
     <View style={styles.sectionContainer}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Jobs Based on Your Applied ({jobs.length})</Text>
+        <Text style={styles.sectionTitle}>{t('home.jobsBasedOnApplied', { count: jobs.length })}</Text>
       </View>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={BRANDCOLOR} />
-          <Text style={styles.loadingText}>Loading jobs...</Text>
+          <Text style={styles.loadingText}>{t('home.loadingJobs')}</Text>
         </View>
       ) : (
         <FlatList
@@ -1550,6 +1490,7 @@ const JobsBasedOnAppliedSection = ({ jobs, loading, onJobPress, onApply, onSave,
 
 // Jobs Based on Profile Section Component
 const JobsBasedOnProfileSection = ({ jobs, loading, onJobPress, onApply, onSave, wishlistedJobs, appliedJobs, applicationStatuses, onToggleStatus, expandedStatusCards }) => {
+  const { t } = useTranslation();
   if (!jobs || jobs.length === 0) {
     return null;
   }
@@ -1557,12 +1498,12 @@ const JobsBasedOnProfileSection = ({ jobs, loading, onJobPress, onApply, onSave,
   return (
     <View style={styles.sectionContainer}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Jobs Based on Your Profile ({jobs.length})</Text>
+        <Text style={styles.sectionTitle}>{t('home.jobsBasedOnProfile', { count: jobs.length })}</Text>
       </View>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={BRANDCOLOR} />
-          <Text style={styles.loadingText}>Loading jobs...</Text>
+          <Text style={styles.loadingText}>{t('home.loadingJobs')}</Text>
         </View>
       ) : (
         <FlatList
@@ -1635,6 +1576,7 @@ const CompanyCard = ({ item }) => {
 // Top Companies Section Component
 // Cities Section Component
 const CitiesSection = ({ navigation }) => {
+  const { t } = useTranslation();
   const [cityJobCounts, setCityJobCounts] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -1724,7 +1666,7 @@ const CitiesSection = ({ navigation }) => {
 
   return (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionTitle}>Get your jobs through the City</Text>
+      <Text style={styles.sectionTitle}>{t('home.getJobsThroughCity')}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -1744,7 +1686,7 @@ const CitiesSection = ({ navigation }) => {
                 {/* Job count at top left */}
                 <View style={styles.cityJobCountTopLeft}>
                   <MaterialCommunityIcons name="briefcase" size={WIDTH * 0.035} color={BRANDCOLOR} />
-                  <Text style={styles.cityJobCountText}>{jobCount} JOBS</Text>
+                  <Text style={styles.cityJobCountText}>{jobCount} {t('common.jobsUpper')}</Text>
                 </View>
                 {/* Right arrow icon on top right */}
                 <TouchableOpacity 
@@ -1772,19 +1714,20 @@ const CitiesSection = ({ navigation }) => {
 
 // Poster Section Component
 const PosterSection = () => {
+  const { t, i18n } = useTranslation();
   return (
-    <View style={styles.posterContainer}>
+    <View style={styles.posterContainer} key={i18n.language}>
       <View style={styles.posterGradient}>
         <View style={styles.posterContent}>
           <View style={styles.posterIconContainer}>
             <MaterialCommunityIcons name="chart-line" size={WIDTH * 0.12} color={WHITE} />
           </View>
-          <Text style={styles.posterTitle}>70% hiring happen any Job post</Text>
-          <Text style={styles.posterSlogan}>Find your dream job today!</Text>
-          <Text style={styles.posterSlogan}>Join thousands of successful candidates</Text>
+          <Text style={styles.posterTitle}>{t('home.posterTitle')}</Text>
+          <Text style={styles.posterSlogan}>{t('home.posterSlogan1')}</Text>
+          <Text style={styles.posterSlogan}>{t('home.posterSlogan2')}</Text>
           <View style={styles.posterBadge}>
             <MaterialCommunityIcons name="star" size={WIDTH * 0.04} color={WHITE} />
-            <Text style={styles.posterBadgeText}>Trusted by 10,000+ Job Seekers</Text>
+            <Text style={styles.posterBadgeText}>{t('home.trustedBy', { count: '10,000+' })}</Text>
           </View>
         </View>
       </View>
@@ -1793,9 +1736,11 @@ const PosterSection = () => {
 };
 
 const HomeScreen = ({ navigation, route }) => {
+  const { t } = useTranslation();
   const nav = useNavigation();
   const [searchOpen, setSearchOpen] = useState(false);
   const [loginPromptVisible, setLoginPromptVisible] = useState(false);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [exitAlertVisible, setExitAlertVisible] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
@@ -2644,6 +2589,8 @@ const HomeScreen = ({ navigation, route }) => {
     setRefreshing(false);
   }, [fetchRecommendedJobs, fetchLatestJobs, fetchSponsorships, fetchCategories, fetchUserProfile, fetchJobsBasedOnApplied, fetchJobsBasedOnProfile, fetchTopCompanies, fetchAppliedJobs, fetchWishlistStatus]);
 
+  useLanguageRefresh(onRefresh);
+
   // Navigate to job details
   const handleJobPress = (item) => {
     const jobId = item.id || item._id;
@@ -3356,11 +3303,12 @@ const HomeScreen = ({ navigation, route }) => {
     <View style={styles.container}>
         <View style={styles.headerContainer}>
           <MyHeader
-            searchPlaceholder="Search jobs"
+            searchPlaceholder={t('header.searchJobs')}
             showLogo={false}
             onSearchPress={() => setSearchOpen(true)}
             onProfilePress={handleProfileIconPress}
             onNotificationPress={() => navigation.navigate('SeekerNotifications')}
+            onLanguagePress={() => setLanguageModalVisible(true)}
           />
       </View>
 
@@ -3424,11 +3372,11 @@ const HomeScreen = ({ navigation, route }) => {
           
           return (
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Recommended Job for you</Text>
+          <Text style={styles.sectionTitle}>{t('home.recommendedJobs')}</Text>
           {loadingRecommended ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={BRANDCOLOR} />
-              <Text style={styles.loadingText}>Loading jobs...</Text>
+              <Text style={styles.loadingText}>{t('home.loadingJobs')}</Text>
             </View>
               ) : filteredRecommendedJobs.length > 0 ? (
             <FlatList
@@ -3461,7 +3409,7 @@ const HomeScreen = ({ navigation, route }) => {
             />
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No recommended jobs available</Text>
+              <Text style={styles.emptyText}>{t('home.noRecommendedJobs')}</Text>
             </View>
           )}
         </View>
@@ -3470,11 +3418,11 @@ const HomeScreen = ({ navigation, route }) => {
 
         {/* Latest Jobs Section */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Latest Job</Text>
+          <Text style={styles.sectionTitle}>{t('home.latestJobs')}</Text>
           {loadingLatest ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={BRANDCOLOR} />
-              <Text style={styles.loadingText}>Loading latest jobs...</Text>
+              <Text style={styles.loadingText}>{t('home.loadingLatestJobs')}</Text>
             </View>
           ) : latestJobs.length > 0 ? (
             <FlatList
@@ -3507,17 +3455,17 @@ const HomeScreen = ({ navigation, route }) => {
             />
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No latest jobs available</Text>
+              <Text style={styles.emptyText}>{t('home.noLatestJobs')}</Text>
             </View>
           )}
       </View>
 
         <View style={styles.sectionContainer}>
-          <Text style={styles.companySectionTitle}>Your Dream Company Is Hiring</Text>
+          <Text style={styles.companySectionTitle}>{t('home.dreamCompanyHiring')}</Text>
           {loadingTopCompanies ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={BRANDCOLOR} />
-              <Text style={styles.loadingText}>Loading companies...</Text>
+              <Text style={styles.loadingText}>{t('home.loadingCompanies')}</Text>
             </View>
           ) : topCompanies.length > 0 ? (
             <FlatList
@@ -3539,7 +3487,7 @@ const HomeScreen = ({ navigation, route }) => {
             />
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No companies available</Text>
+              <Text style={styles.emptyText}>{t('home.noCompanies')}</Text>
             </View>
           )}
         </View>
@@ -3547,7 +3495,7 @@ const HomeScreen = ({ navigation, route }) => {
         {/* Dream Job Section - Only show when not logged in */}
         {!isLoggedIn && (
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Find Your Dream Jobs</Text>
+            <Text style={styles.sectionTitle}>{t('home.findDreamJobs')}</Text>
             <DreamJobSection jobs={recommendedJobs} latestJobs={latestJobs} />
           </View>
         )}
@@ -3562,11 +3510,11 @@ const HomeScreen = ({ navigation, route }) => {
         {/* Sponsorships Section - Only show if there's data */}
         {sponsorships.length > 0 && (
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Sponsorships</Text>
+            <Text style={styles.sectionTitle}>{t('home.sponsorships')}</Text>
             {loadingSponsorships ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={BRANDCOLOR} />
-                <Text style={styles.loadingText}>Loading sponsorships...</Text>
+                <Text style={styles.loadingText}>{t('home.loadingSponsorships')}</Text>
               </View>
             ) : (
               <FlatList
@@ -3590,7 +3538,7 @@ const HomeScreen = ({ navigation, route }) => {
         {/* All Categories Sliding Banner */}
         {allCategories.length > 0 && (
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>All Categories</Text>
+            <Text style={styles.sectionTitle}>{t('home.allCategories')}</Text>
             <AllCategoriesSlider 
               categories={allCategories} 
               onCategoryPress={handleCategoryPress}
@@ -3604,10 +3552,10 @@ const HomeScreen = ({ navigation, route }) => {
 
       <MyAlert
         visible={loginPromptVisible}
-        title="Login required"
-        message="Please login or register to continue."
-        textLeft="Login"
-        textRight="Register"
+        title={t('login.loginRequired')}
+        message={t('login.loginRequiredMessage')}
+        textLeft={t('common.login')}
+        textRight={t('common.register')}
         image={LOGO}
         onPressLeft={() => {
           setLoginPromptVisible(false);
@@ -3618,6 +3566,11 @@ const HomeScreen = ({ navigation, route }) => {
           navigation.navigate("Register");
         }}
         onRequestClose={() => setLoginPromptVisible(false)}
+      />
+
+      <ChangeLanguageModal
+        visible={languageModalVisible}
+        onClose={() => setLanguageModalVisible(false)}
       />
 
       <MyAlert

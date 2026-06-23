@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { Animated, StatusBar, StyleSheet, View, Platform, SafeAreaView } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, StatusBar, StyleSheet, View, Platform, SafeAreaView, Text } from "react-native";
 import { BLACK, WHITE } from "../../constant/color";
 import { LOGO, UP } from "../../constant/imagePath";
 import { UBUNTUBOLD } from "../../constant/fontPath";
@@ -10,19 +10,15 @@ import { NotificationListener, requestUserPermission } from "../../utils/PushNot
 import SpInAppUpdates, { IAUUpdateKind } from "sp-react-native-in-app-updates";
 import { BASE_URL } from "../../constant/url";
 import messaging from '@react-native-firebase/messaging';
-
-const SLOGAN_LINES = ['Put your "CV"', "Dream job Waiting"];
-
-const SLOGAN_LETTERS = SLOGAN_LINES.flatMap((line, lineIndex) =>
-    [...line].map((char) => ({ char, lineIndex }))
-);
+import { ensureLanguageLoaded } from "../../i18n";
+import i18n from "../../i18n";
 
 const LETTER_ENTER_MS = 55;
 const LETTER_EXIT_MS = 42;
 const HOLD_AFTER_SLOGAN_MS = 1400;
 
-const createLetterAnims = () =>
-    SLOGAN_LETTERS.map(() => ({
+const createLetterAnims = (count) =>
+    Array.from({ length: count }, () => ({
         opacity: new Animated.Value(0),
         translateY: new Animated.Value(14),
         scale: new Animated.Value(0.55),
@@ -85,14 +81,63 @@ const resetLetterAnims = (letterAnims) => {
     });
 };
 
-export default SplashScreen = ({ navigation }) => {
+const SplashScreen = ({ navigation }) => {
+    const [splashReady, setSplashReady] = useState(false);
+    const [sloganLines, setSloganLines] = useState([]);
+    const hasNavigatedRef = useRef(false);
 
     const logoScale = useRef(new Animated.Value(0.8)).current;
     const logoOpacity = useRef(new Animated.Value(0)).current;
     const sloganOpacity = useRef(new Animated.Value(0)).current;
     const sloganTranslate = useRef(new Animated.Value(-10)).current;
-    const letterAnims = useRef(createLetterAnims()).current;
+    const letterAnimsRef = useRef([]);
     const inAppUpdates = new SpInAppUpdates(false);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const prepareSplash = async () => {
+            try {
+                await ensureLanguageLoaded();
+            } catch {
+                /* continue with English */
+            }
+            if (!mounted) return;
+
+            const lines = [
+                i18n.t('splash.sloganLine1'),
+                i18n.t('splash.sloganLine2'),
+            ];
+            const count = lines.reduce((sum, line) => sum + line.length, 0);
+            letterAnimsRef.current = createLetterAnims(Math.max(count, 1));
+            setSloganLines(lines);
+            setSplashReady(true);
+        };
+
+        prepareSplash();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    const navigateFromSplash = async () => {
+        if (hasNavigatedRef.current) return;
+        hasNavigatedRef.current = true;
+
+        try {
+            const skipSplash = await getStringByKey("skipSplash");
+            if (skipSplash === "true") {
+                await storeStringByKey("skipSplash", "");
+            }
+
+            const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
+            const target = hasSeenOnboarding === "true" ? "MainTabs" : "OnBoarding";
+            navigation.replace(target);
+        } catch {
+            navigation.replace("OnBoarding");
+        }
+    };
 
     /* ✅ PlayStore Update Concept Start */
     const isPlayStoreOwnershipError = (error) => {
@@ -167,18 +212,24 @@ export default SplashScreen = ({ navigation }) => {
 
 
     useEffect(() => {
+        if (!splashReady) return;
+
+        let cancelled = false;
+        const safetyTimer = setTimeout(() => {
+            if (!cancelled) navigateFromSplash();
+        }, 10000);
+
         const runSplashFlow = async () => {
             const skipSplash = await getStringByKey("skipSplash");
+            if (cancelled) return;
+
             if (skipSplash === "true") {
-                await storeStringByKey("skipSplash", "");
-                const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
-                navigation.replace(
-                    hasSeenOnboarding === "true" ? "MainTabs" : "OnBoarding"
-                );
+                clearTimeout(safetyTimer);
+                await navigateFromSplash();
                 return;
             }
 
-            resetLetterAnims(letterAnims);
+            resetLetterAnims(letterAnimsRef.current);
             sloganOpacity.setValue(0);
             sloganTranslate.setValue(-10);
 
@@ -218,22 +269,25 @@ export default SplashScreen = ({ navigation }) => {
                     useNativeDriver: true,
                 }),
             ]),
-            animateLettersIn(letterAnims),
+            animateLettersIn(letterAnimsRef.current),
             Animated.delay(HOLD_AFTER_SLOGAN_MS),
-            animateLettersOut(letterAnims),
-            ]).start(async () => {
-                const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
-
-                if (hasSeenOnboarding === "true") {
-                    navigation.replace("MainTabs");
-                } else {
-                    navigation.replace("OnBoarding");
+            animateLettersOut(letterAnimsRef.current),
+            ]).start(({ finished }) => {
+                if (cancelled) return;
+                clearTimeout(safetyTimer);
+                if (finished) {
+                    navigateFromSplash();
                 }
             });
         };
 
         runSplashFlow();
-    }, [navigation, letterAnims]);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(safetyTimer);
+        };
+    }, [splashReady, navigation]);
 
     // Your Firebase configuration
     const firebaseConfig = {
@@ -373,8 +427,8 @@ export default SplashScreen = ({ navigation }) => {
                         />
 
                         <View style={styles.sloganTextBlock}>
-                            {SLOGAN_LINES.map((line, lineIndex) => {
-                                const lineStartIndex = SLOGAN_LINES.slice(0, lineIndex)
+                            {splashReady && sloganLines.map((line, lineIndex) => {
+                                const lineStartIndex = sloganLines.slice(0, lineIndex)
                                     .reduce((sum, l) => sum + l.length, 0);
 
                                 return (
@@ -387,18 +441,20 @@ export default SplashScreen = ({ navigation }) => {
                                     >
                                         {[...line].map((char, charIndex) => {
                                             const index = lineStartIndex + charIndex;
+                                            const letterAnim = letterAnimsRef.current[index];
+                                            if (!letterAnim) return null;
                                             return (
                                                 <Animated.Text
-                                                    key={`slogan-${index}-${char}`}
+                                                    key={`slogan-${lineIndex}-${charIndex}`}
                                                     style={[
                                                         styles.sloganLetter,
                                                         Platform.OS === "ios" && styles.sloganLetterIOS,
                                                         Platform.OS === "android" && styles.sloganLetterAndroid,
                                                         {
-                                                            opacity: letterAnims[index].opacity,
+                                                            opacity: letterAnim.opacity,
                                                             transform: [
-                                                                { translateY: letterAnims[index].translateY },
-                                                                { scale: letterAnims[index].scale },
+                                                                { translateY: letterAnim.translateY },
+                                                                { scale: letterAnim.scale },
                                                             ],
                                                         },
                                                     ]}
@@ -416,7 +472,9 @@ export default SplashScreen = ({ navigation }) => {
             </Container>
         </>
     )
-}
+};
+
+export default SplashScreen;
 
 const styles = StyleSheet.create({
     container: {

@@ -41,6 +41,7 @@ import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK, POSTNETWORK, DELETENETWORK } from "../../../utils/Network";
 import { getObjByKey } from "../../../utils/Storage";
 import { MyAlert } from "../../../components/commonComponents/MyAlert";
+import { useTranslation } from "../../../hooks/useTranslation";
 
 // Format jobType: full_time -> Full Time
 const formatJobType = (jobType) => {
@@ -80,13 +81,13 @@ const formatLocation = (state, city) => {
 };
 
 // Format salary (no INR prefix, icon shows currency)
-const formatSalary = (salaryRange) => {
-  if (!salaryRange) return 'Salary not specified';
+const formatSalary = (salaryRange, t) => {
+  if (!salaryRange) return t("home.salaryNotSpecified");
   return salaryRange.trim().replace(/^INR\s*/i, '');
 };
 
 // Job Card Component (Square Grid Style)
-const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied }) => {
+const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied, t }) => {
   const logoUrl = item.companyLogoUrl || item.logo
     ? ((item.companyLogoUrl || item.logo).startsWith('http://') || (item.companyLogoUrl || item.logo).startsWith('https://') 
         ? (item.companyLogoUrl || item.logo) 
@@ -140,20 +141,20 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied }) =>
         <View style={styles.cardInfoRow}>
           <MaterialCommunityIcons name="currency-inr" size={WIDTH * 0.03} color={BRANDCOLOR} />
           <Text style={styles.cardSalary} numberOfLines={1}>
-            {formatSalary(item.salaryRange || item.salary)}
+            {formatSalary(item.salaryRange || item.salary, t)}
           </Text>
         </View>
         {isApplied ? (
           <View style={styles.appliedContainer}>
             <MaterialCommunityIcons name="check-circle" size={WIDTH * 0.04} color="#26AE61" />
-            <Text style={styles.appliedText}>Applied</Text>
+            <Text style={styles.appliedText}>{t("home.applied")}</Text>
           </View>
         ) : (
           <TouchableOpacity 
             style={styles.applyButton} 
             onPress={(e) => { e.stopPropagation(); onApply(item); }}
           >
-            <Text style={styles.applyText}>Apply</Text>
+            <Text style={styles.applyText}>{t("companyDetails.apply")}</Text>
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -162,6 +163,7 @@ const JobCard = ({ item, onApply, onSave, onPress, isWishlisted, isApplied }) =>
 };
 
 const CompanyDetailsJobScreen = ({ navigation, route }) => {
+  const { t, i18n } = useTranslation();
   const { keyword, companyName, cityName } = route?.params || {};
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -587,8 +589,8 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
         const hasPermission = await requestStoragePermission();
         if (!hasPermission) {
           Alert.alert(
-            "Permission Denied",
-            "Please grant storage permission to select documents.",
+            t("companyDetails.permissionDenied"),
+            t("companyDetails.storagePermissionMessage"),
             [{ text: "OK" }]
           );
           return;
@@ -613,17 +615,17 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
           // User cancelled
         } else {
           Alert.alert(
-            "Select Document",
-            "Please navigate to your device's file manager and select a PDF, DOC, or DOCX file.",
-            [{ text: "OK" }]
+            t("companyDetails.selectDocument"),
+            t("companyDetails.selectDocumentMessage"),
+            [{ text: t("common.ok") }]
           );
         }
       }
     } catch (err) {
       Alert.alert(
-        "File Selection",
-        "Unable to open file picker. Please ensure you have granted storage permissions.",
-        [{ text: "OK" }]
+        t("companyDetails.fileSelection"),
+        t("companyDetails.fileSelectionMessage"),
+        [{ text: t("common.ok") }]
       );
     }
   };
@@ -631,19 +633,19 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
   // Validate form
   const validateApplyForm = () => {
     if (!applyName.trim()) {
-      Alert.alert("Validation Error", "Please enter your full name");
+      Alert.alert(t("companyDetails.validationError"), t("companyDetails.validationFullName"));
       return false;
     }
     if (!applyEmail.trim()) {
-      Alert.alert("Validation Error", "Please enter your email address");
+      Alert.alert(t("companyDetails.validationError"), t("companyDetails.validationEmail"));
       return false;
     }
     if (!applyPhone.trim()) {
-      Alert.alert("Validation Error", "Please enter your phone number");
+      Alert.alert(t("companyDetails.validationError"), t("companyDetails.validationPhone"));
       return false;
     }
     if (!applyFile) {
-      Alert.alert("Validation Error", "Please upload your resume");
+      Alert.alert(t("companyDetails.validationError"), t("companyDetails.validationResume"));
       return false;
     }
     return true;
@@ -656,13 +658,13 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
     }
 
     if (!selectedJob) {
-      Alert.alert("Error", "Job information is missing");
+      Alert.alert(t("common.error"), t("companyDetails.jobInfoMissing"));
       return;
     }
 
     const jobId = selectedJob.id || selectedJob._id;
     if (!jobId) {
-      Alert.alert("Error", "Job ID is missing");
+      Alert.alert(t("common.error"), t("companyDetails.jobIdMissing"));
       return;
     }
 
@@ -674,7 +676,7 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
       if (!loginResponse) {
         setApplyToastMessage({
           type: "error",
-          msg: "Please login to apply for jobs",
+          msg: t("companyDetails.loginToApply"),
           visible: true,
         });
         setApplyLoading(false);
@@ -698,7 +700,7 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
       if (!token || typeof token !== 'string' || token.trim() === '') {
         setApplyToastMessage({
           type: "error",
-          msg: "Authentication token not found. Please login again.",
+          msg: t("companyDetails.authTokenMissing"),
           visible: true,
         });
         setApplyLoading(false);
@@ -768,7 +770,7 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
         (!parsedResult?.error && !parsedResult?.errors);
 
       if (isSuccess) {
-        const successMessage = parsedResult?.message || "Your application has been submitted successfully!";
+        const successMessage = parsedResult?.message || t("companyDetails.applicationSuccess");
         
         setApplyToastMessage({
           type: "success",
@@ -789,7 +791,7 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
           handleCloseApplyForm();
         }, 2000);
       } else {
-        const errorMessage = parsedResult?.errors?.[0]?.msg || parsedResult?.message || parsedResult?.error || "Failed to submit application. Please try again.";
+        const errorMessage = parsedResult?.errors?.[0]?.msg || parsedResult?.message || parsedResult?.error || t("companyDetails.applicationFailed");
         
         setApplyToastMessage({
           type: "error",
@@ -801,7 +803,7 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
     } catch (error) {
       setApplyToastMessage({
         type: "error",
-        msg: "An error occurred while submitting your application. Please try again.",
+        msg: t("companyDetails.applicationError"),
         visible: true,
       });
       setApplyLoading(false);
@@ -826,14 +828,14 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
         <MyHeader
           showBack
           showCenterTitle
-          title={cityName || companyName || keyword || "Jobs"}
+          title={cityName || companyName || keyword || t("common.jobs")}
           onBackPress={() => navigation.goBack()}
         />
 
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={BRANDCOLOR} />
-            <Text style={styles.loadingText}>Loading jobs...</Text>
+            <Text style={styles.loadingText}>{t("companyDetails.loadingJobs")}</Text>
           </View>
         ) : (
           <FlatList
@@ -853,7 +855,7 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No jobs found for "{keyword}"</Text>
+                <Text style={styles.emptyText}>{t("companyDetails.noJobsFoundFor", { keyword })}</Text>
               </View>
             }
             renderItem={({ item }) => {
@@ -868,6 +870,7 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
                   onPress={handleJobPress}
                   isWishlisted={isWishlisted}
                   isApplied={isApplied}
+                  t={t}
                 />
               );
             }}
@@ -877,10 +880,10 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
 
       <MyAlert
         visible={loginPromptVisible}
-        title="Login required"
-        message="Please login or register to continue."
-        textLeft="Login"
-        textRight="Register"
+        title={t("companyDetails.loginRequired")}
+        message={t("companyDetails.loginOrRegister")}
+        textLeft={t("common.login")}
+        textRight={t("common.register")}
         onPressLeft={() => {
           setLoginPromptVisible(false);
           navigation.navigate("Login");
@@ -898,7 +901,7 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
           <View style={styles.applyModalContainer}>
             <MyHeader
               showBack
-              title="Apply Job"
+              title={t("companyDetails.applyJob")}
               onBackPress={handleCloseApplyForm}
             />
 
@@ -910,13 +913,13 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
               {selectedJob && (
                 <View style={styles.applyJobTitleContainer}>
                   <Text style={styles.applyJobTitle}>
-                    {selectedJob.jobTitle || selectedJob.title || 'Job Application'}
+                    {selectedJob.jobTitle || selectedJob.title || t("companyDetails.jobApplication")}
                   </Text>
                 </View>
               )}
 
               <TextInputComponent
-                placeholder="Full Name"
+                placeholder={t("companyDetails.fullName")}
                 inputdata={applyName}
                 setInputdata={setApplyName}
                 borderColor={BRANDCOLOR}
@@ -925,7 +928,7 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
               />
 
               <TextInputComponent
-                placeholder="Email Address"
+                placeholder={t("companyDetails.emailAddress")}
                 inputdata={applyEmail}
                 setInputdata={setApplyEmail}
                 keyboardType="email-address"
@@ -935,7 +938,7 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
               />
 
               <TextInputComponent
-                placeholder="Phone Number"
+                placeholder={t("companyDetails.phoneNumber")}
                 inputdata={applyPhone}
                 setInputdata={setApplyPhone}
                 keyboardType="numeric"
@@ -948,13 +951,13 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
                 {!applyFile ? (
                   <TouchableOpacity style={styles.applyUploadArea} onPress={handlePickFile}>
                     <Image source={UPLOAD} style={styles.applyUploadIcon} />
-                    <Text style={styles.applyFileText}>Upload Resume</Text>
+                    <Text style={styles.applyFileText}>{t("companyDetails.uploadResume")}</Text>
                   </TouchableOpacity>
                 ) : (
                   <View style={styles.applySelectedFile}>
                     <Text style={styles.applyFileName}>{applyFile.name}</Text>
                     <TouchableOpacity onPress={() => setApplyFile(null)} style={styles.applyRemoveBtn}>
-                      <Text style={styles.applyRemoveText}>Remove</Text>
+                      <Text style={styles.applyRemoveText}>{t("companyDetails.remove")}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -963,10 +966,10 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
               <View style={styles.applyCoverLetterContainer}>
                 <View style={styles.applyCoverLetterHeader}>
                   <Image source={COVERLETTER} style={styles.applyCoverLetterIcon} />
-                  <Text style={styles.applyCoverLetterLabel}>Cover Letter (Description)</Text>
+                  <Text style={styles.applyCoverLetterLabel}>{t("companyDetails.coverLetter")}</Text>
                 </View>
                 <TextInput
-                  placeholder="Enter your cover letter or description here..."
+                  placeholder={t("companyDetails.coverLetterPlaceholder")}
                   placeholderTextColor="#7A7A7A"
                   value={applyCoverLetter}
                   onChangeText={setApplyCoverLetter}
@@ -983,7 +986,7 @@ const CompanyDetailsJobScreen = ({ navigation, route }) => {
 
               <View style={styles.applyButtonWrapper}>
                 <CustomButton
-                  text={applyLoading ? "Submitting..." : "Submit Application"}
+                  text={applyLoading ? t("companyDetails.submitting") : t("companyDetails.submitApplication")}
                   color={WHITE}
                   onPress={handleSubmitApplication}
                   disabled={applyLoading}

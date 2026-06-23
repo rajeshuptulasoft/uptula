@@ -50,8 +50,10 @@ import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK, PUTNETWORK } from "../../../utils/Network";
 import { ToastMessage } from "../../../components/commonComponents/ToastMessage";
 import ReactNativeBlobUtil from 'react-native-blob-util';
+import { useTranslation } from "../../../hooks/useTranslation";
 
 const EditProfileScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute();
   const params = route.params || {};
@@ -168,14 +170,14 @@ const EditProfileScreen = () => {
         // console.error('❌ Error: API returned errors:', result.errors);
         setToastMessage({
           type: "error",
-          msg: "Failed to load profile data. Please try again.",
+          msg: t('editCompanyProfile.loadFailed'),
           visible: true,
         });
       } else {
         // console.error('❌ Error: Invalid response from API');
         setToastMessage({
           type: "error",
-          msg: "Failed to load profile data. Please try again.",
+          msg: t('editCompanyProfile.loadFailed'),
           visible: true,
         });
       }
@@ -183,13 +185,13 @@ const EditProfileScreen = () => {
       // console.error('❌ Error fetching employer profile:', error);
       setToastMessage({
         type: "error",
-        msg: "Failed to load profile data. Please try again.",
+        msg: t('editCompanyProfile.loadFailed'),
         visible: true,
       });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // Fetch profile data when screen comes into focus
   useFocusEffect(
@@ -300,8 +302,8 @@ const EditProfileScreen = () => {
         return;
       } else if (response.errorCode) {
         Alert.alert(
-          "Error",
-          response.errorMessage || "Failed to pick image"
+          t('editCompanyProfile.error'),
+          response.errorMessage || t('editCompanyProfile.pickImageFailed')
         );
       } else if (response.assets && response.assets[0]) {
         setProfileImage(response.assets[0]);
@@ -320,7 +322,7 @@ const EditProfileScreen = () => {
         // console.error('❌ Error: No token found in loginResponse');
         setToastMessage({
           type: "error",
-          msg: "Authentication token missing. Please login again.",
+          msg: t('editCompanyProfile.authTokenMissing'),
           visible: true,
         });
         return;
@@ -516,7 +518,7 @@ const EditProfileScreen = () => {
 
         setToastMessage({
           type: "success",
-          msg: "Profile updated successfully!",
+          msg: t('editCompanyProfile.updateSuccess'),
           visible: true,
         });
 
@@ -546,7 +548,7 @@ const EditProfileScreen = () => {
 
           // Show first error message to user
           const firstError = result.errors[0];
-          const errorMsg = firstError.msg || firstError.message || 'Failed to update profile';
+          const errorMsg = firstError.msg || firstError.message || t('editCompanyProfile.updateFailed');
           setToastMessage({
             type: "error",
             msg: errorMsg,
@@ -556,21 +558,21 @@ const EditProfileScreen = () => {
           // console.error('❌ API returned single error:', result.error);
           setToastMessage({
             type: "error",
-            msg: result.error || "Failed to update profile. Please try again.",
+            msg: result.error || t('editCompanyProfile.updateFailedRetry'),
             visible: true,
           });
         } else if (result?.message) {
           // console.error('❌ API returned message:', result.message);
           setToastMessage({
             type: "error",
-            msg: result.message || "Failed to update profile. Please try again.",
+            msg: result.message || t('editCompanyProfile.updateFailedRetry'),
             visible: true,
           });
         } else {
           // console.error('❌ Unknown error format');
           setToastMessage({
             type: "error",
-            msg: "Failed to update profile. Please try again.",
+            msg: t('editCompanyProfile.updateFailedRetry'),
             visible: true,
           });
         }
@@ -584,7 +586,7 @@ const EditProfileScreen = () => {
       // console.error('❌ Error stack:', error.stack);
       setToastMessage({
         type: "error",
-        msg: "Failed to update profile. Please try again.",
+        msg: t('editCompanyProfile.updateFailedRetry'),
         visible: true,
       });
     } finally {
@@ -615,11 +617,11 @@ const EditProfileScreen = () => {
   };
 
   const completionPercentage = calculateCompletion();
-  const companyTypeLabel = companyType === "" ? "Select company type" :
-    companyType === "small_business" ? "Small Business" :
-    companyType === "medium_business" ? "Medium Business" :
-    companyType === "large_corporation" ? "Large Corporation" :
-    companyType === "non_profit" ? "Non-Profit" :
+  const companyTypeLabel = companyType === "" ? t('editCompanyProfile.selectCompanyType') :
+    companyType === "small_business" ? t('editCompanyProfile.smallBusiness') :
+    companyType === "medium_business" ? t('editCompanyProfile.mediumBusiness') :
+    companyType === "large_corporation" ? t('editCompanyProfile.largeCorporation') :
+    companyType === "non_profit" ? t('editCompanyProfile.nonProfit') :
     companyType;
 
   const Container = Platform.OS === "ios" ? SafeAreaView : View;
@@ -640,7 +642,7 @@ const EditProfileScreen = () => {
           <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
             <Image source={BACK} style={styles.backIcon} />
           </TouchableOpacity>
-          <Text style={styles.topHeaderTitle}>Edit Profile</Text>
+          <Text style={styles.topHeaderTitle}>{t('editCompanyProfile.headerTitle')}</Text>
         </View>
 
         <KeyboardAvoidingView
@@ -649,7 +651,7 @@ const EditProfileScreen = () => {
         >
           {loading ? (
             <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading profile data...</Text>
+              <Text style={styles.loadingText}>{t('editCompanyProfile.loadingProfile')}</Text>
             </View>
           ) : (
             <ScrollView
@@ -702,9 +704,9 @@ const EditProfileScreen = () => {
               </View>
 
               <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>Basic Information</Text>
+                <Text style={styles.sectionTitle}>{t('editCompanyProfile.basicInformation')}</Text>
                 <TextInputComponent
-                  placeholder="Company Name"
+                  placeholder={t('editCompanyProfile.companyName')}
                   inputdata={companyName}
                   setInputdata={setCompanyName}
                   borderColor={BRANDCOLOR}
@@ -714,7 +716,7 @@ const EditProfileScreen = () => {
                   editable={false}
                 />
                 <TextInputComponent
-                  placeholder="Company Address"
+                  placeholder={t('editCompanyProfile.companyAddress')}
                   inputdata={companyAddress}
                   setInputdata={setCompanyAddress}
                   borderColor={BRANDCOLOR}
@@ -723,7 +725,7 @@ const EditProfileScreen = () => {
                   iconTintColor={null}
                 />
                 <TextInputComponent
-                  placeholder="Contact Person Name"
+                  placeholder={t('editCompanyProfile.contactPersonName')}
                   inputdata={contactPersonName}
                   setInputdata={setContactPersonName}
                   borderColor={BRANDCOLOR}
@@ -732,7 +734,7 @@ const EditProfileScreen = () => {
                   iconTintColor={null}
                 />
                 <TextInputComponent
-                  placeholder="Company Email"
+                  placeholder={t('editCompanyProfile.companyEmail')}
                   type="email"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -745,7 +747,7 @@ const EditProfileScreen = () => {
                   editable={false}
                 />
                 <TextInputComponent
-                  placeholder="Company Phone Number"
+                  placeholder={t('editCompanyProfile.companyPhone')}
                   type="number"
                   keyboardType="phone-pad"
                   inputdata={companyPhone}
@@ -757,7 +759,7 @@ const EditProfileScreen = () => {
                   editable={false}
                 />
                 <TextInputComponent
-                  placeholder="Company Website"
+                  placeholder={t('editCompanyProfile.companyWebsite')}
                   type="url"
                   keyboardType="url"
                   autoCapitalize="none"
@@ -772,15 +774,15 @@ const EditProfileScreen = () => {
               </View>
 
               <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>Company Details</Text>
+                <Text style={styles.sectionTitle}>{t('editCompanyProfile.companyDetails')}</Text>
                 <View style={styles.rowContainer}>
                   <View style={styles.halfWidth}>
-                    <Text style={styles.label}>Industry</Text>
+                    <Text style={styles.label}>{t('editCompanyProfile.industry')}</Text>
                     <View style={styles.pickerWrapper}>
                       <View style={styles.pickerContainer}>
                         <View style={styles.pickerTextContainer}>
                           <Text style={styles.pickerSelectedText} numberOfLines={1}>
-                            {industry === "" ? "Select industry" : industry === "IT" ? "Information Technology" : industry === "HealthCare" ? "Health Care" : industry}
+                            {industry === "" ? t('editCompanyProfile.selectIndustry') : industry === "IT" ? t('editCompanyProfile.informationTechnology') : industry === "HealthCare" ? t('editCompanyProfile.healthCare') : industry}
                           </Text>
                         </View>
                         <Picker
@@ -789,27 +791,27 @@ const EditProfileScreen = () => {
                           style={styles.picker}
                           itemStyle={styles.pickerItem}
                         >
-                          <Picker.Item label="Select industry" value="" />
-                          <Picker.Item label="Information Technology" value="IT" />
-                          <Picker.Item label="Hardware" value="Hardware" />
-                          <Picker.Item label="Mechanical" value="Mechanical" />
-                          <Picker.Item label="Health Care" value="HealthCare" />
-                          <Picker.Item label="Finance" value="Finance" />
-                          <Picker.Item label="Education" value="Education" />
-                          <Picker.Item label="Marketing" value="Marketing" />
-                          <Picker.Item label="Other" value="Other" />
+                          <Picker.Item label={t('editCompanyProfile.selectIndustry')} value="" />
+                          <Picker.Item label={t('editCompanyProfile.informationTechnology')} value="IT" />
+                          <Picker.Item label={t('editCompanyProfile.hardware')} value="Hardware" />
+                          <Picker.Item label={t('editCompanyProfile.mechanical')} value="Mechanical" />
+                          <Picker.Item label={t('editCompanyProfile.healthCare')} value="HealthCare" />
+                          <Picker.Item label={t('editCompanyProfile.finance')} value="Finance" />
+                          <Picker.Item label={t('editCompanyProfile.education')} value="Education" />
+                          <Picker.Item label={t('editCompanyProfile.marketing')} value="Marketing" />
+                          <Picker.Item label={t('editCompanyProfile.other')} value="Other" />
                         </Picker>
                         <Image source={DROPDOWN} style={styles.dropdownIcon} />
                       </View>
                     </View>
                   </View>
                   <View style={styles.halfWidth}>
-                    <Text style={styles.label}>Company Size</Text>
+                    <Text style={styles.label}>{t('editCompanyProfile.companySize')}</Text>
                     <View style={styles.pickerWrapper}>
                       <View style={styles.pickerContainer}>
                         <View style={styles.pickerTextContainer}>
                           <Text style={styles.pickerSelectedText} numberOfLines={1}>
-                            {companySize === "" ? "Select company size" : companySize}
+                            {companySize === "" ? t('editCompanyProfile.selectCompanySize') : companySize}
                           </Text>
                         </View>
                         <Picker
@@ -818,13 +820,13 @@ const EditProfileScreen = () => {
                           style={styles.picker}
                           itemStyle={styles.pickerItem}
                         >
-                          <Picker.Item label="Select company size" value="" />
-                          <Picker.Item label="1-10 employees" value="1-10 employees" />
-                          <Picker.Item label="11-50 employees" value="11-50 employees" />
-                          <Picker.Item label="51-100 employees" value="51-100 employees" />
-                          <Picker.Item label="101-500 employees" value="101-500 employees" />
-                          <Picker.Item label="501-1000 employees" value="501-1000 employees" />
-                          <Picker.Item label="1000+ employees" value="1000+ employees" />
+                          <Picker.Item label={t('editCompanyProfile.selectCompanySize')} value="" />
+                          <Picker.Item label={t('editCompanyProfile.employees1to10')} value="1-10 employees" />
+                          <Picker.Item label={t('editCompanyProfile.employees11to50')} value="11-50 employees" />
+                          <Picker.Item label={t('editCompanyProfile.employees51to100')} value="51-100 employees" />
+                          <Picker.Item label={t('editCompanyProfile.employees101to500')} value="101-500 employees" />
+                          <Picker.Item label={t('editCompanyProfile.employees501to1000')} value="501-1000 employees" />
+                          <Picker.Item label={t('editCompanyProfile.employees1000plus')} value="1000+ employees" />
                         </Picker>
                         <Image source={DROPDOWN} style={styles.dropdownIcon} />
                       </View>
@@ -833,7 +835,7 @@ const EditProfileScreen = () => {
                 </View>
                 <View style={styles.rowContainer}>
                   <View style={styles.halfWidth}>
-                    <Text style={styles.label}>Company Type</Text>
+                    <Text style={styles.label}>{t('editCompanyProfile.companyType')}</Text>
                     <View style={styles.pickerWrapper}>
                       <View style={styles.pickerContainer}>
                         <View style={styles.pickerTextContainer}>
@@ -847,24 +849,24 @@ const EditProfileScreen = () => {
                           style={styles.picker}
                           itemStyle={styles.pickerItem}
                         >
-                          <Picker.Item label="Select company type" value="" />
-                          <Picker.Item label="Private" value="Private" />
-                          <Picker.Item label="Public" value="Public" />
-                          <Picker.Item label="Startup" value="Startup" />
-                          <Picker.Item label="Small Business" value="Small Business" />
-                          <Picker.Item label="Medium Business" value="Medium Business" />
-                          <Picker.Item label="Large Corporation" value="Large Corporation" />
-                          <Picker.Item label="Non-Profit" value="Non-Profit" />
-                          <Picker.Item label="Government" value="Government" />
+                          <Picker.Item label={t('editCompanyProfile.selectCompanyType')} value="" />
+                          <Picker.Item label={t('editCompanyProfile.private')} value="Private" />
+                          <Picker.Item label={t('editCompanyProfile.public')} value="Public" />
+                          <Picker.Item label={t('editCompanyProfile.startup')} value="Startup" />
+                          <Picker.Item label={t('editCompanyProfile.smallBusiness')} value="Small Business" />
+                          <Picker.Item label={t('editCompanyProfile.mediumBusiness')} value="Medium Business" />
+                          <Picker.Item label={t('editCompanyProfile.largeCorporation')} value="Large Corporation" />
+                          <Picker.Item label={t('editCompanyProfile.nonProfit')} value="Non-Profit" />
+                          <Picker.Item label={t('editCompanyProfile.government')} value="Government" />
                         </Picker>
                         <Image source={DROPDOWN} style={styles.dropdownIcon} />
                       </View>
                     </View>
                   </View>
                   <View style={styles.halfWidth}>
-                    <Text style={styles.label}>Founded</Text>
+                    <Text style={styles.label}>{t('editCompanyProfile.founded')}</Text>
                     <TextInputComponent
-                      placeholder="Founded Year"
+                      placeholder={t('editCompanyProfile.foundedYear')}
                       type="number"
                       keyboardType="numeric"
                       inputdata={founded}
@@ -879,11 +881,11 @@ const EditProfileScreen = () => {
               </View>
 
               <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>Company Description</Text>
+                <Text style={styles.sectionTitle}>{t('providerProfile.companyDescription')}</Text>
                 <View style={styles.descriptionContainerCard}>
                   <TextInput
                     style={styles.descriptionInput}
-                    placeholder="Enter company description..."
+                    placeholder={t('editCompanyProfile.descriptionPlaceholder')}
                     placeholderTextColor="#999"
                     value={companyDescription}
                     onChangeText={setCompanyDescription}
@@ -901,12 +903,12 @@ const EditProfileScreen = () => {
               {/* ========== ADDITIONAL INFORMATION SECTION ========== */}
               <View style={styles.sectionHeadingContainer}>
                 <Image source={INDUSTRY} style={styles.sectionIcon} />
-                <Text style={styles.sectionHeading}>Additional Information</Text>
+                <Text style={styles.sectionHeading}>{t('editCompanyProfile.additionalInformation')}</Text>
               </View>
 
               {/* GSTIN */}
               <TextInputComponent
-                placeholder="GSTIN"
+                placeholder={t('editCompanyProfile.gstin')}
                 inputdata={taxId}
                 setInputdata={setTaxId}
                 borderColor={BRANDCOLOR}
@@ -918,10 +920,10 @@ const EditProfileScreen = () => {
               {/* Social Media Section */}
               <View style={styles.sectionHeadingContainer}>
                 <Image source={INDUSTRY} style={styles.sectionIcon} />
-                <Text style={styles.sectionHeading}>Social Media</Text>
+                <Text style={styles.sectionHeading}>{t('editCompanyProfile.socialMedia')}</Text>
               </View>
               <TextInputComponent
-                placeholder="LinkedIn"
+                placeholder={t('editCompanyProfile.linkedin')}
                 inputdata={linkedin}
                 setInputdata={setLinkedin}
                 borderColor={BRANDCOLOR}
@@ -939,7 +941,7 @@ const EditProfileScreen = () => {
                 iconTintColor={null}
               />
               <TextInputComponent
-                placeholder="Facebook"
+                placeholder={t('editCompanyProfile.facebook')}
                 inputdata={facebook}
                 setInputdata={setFacebook}
                 borderColor={BRANDCOLOR}
@@ -948,7 +950,7 @@ const EditProfileScreen = () => {
                 iconTintColor={null}
               />
               <TextInputComponent
-                placeholder="Instagram"
+                placeholder={t('editCompanyProfile.instagram')}
                 inputdata={instagram}
                 setInputdata={setInstagram}
                 borderColor={BRANDCOLOR}
@@ -960,7 +962,7 @@ const EditProfileScreen = () => {
               {/* Save Button */}
               <View style={styles.buttonWrapper}>
                 <CustomButton
-                  text="Save Profile"
+                  text={t('editCompanyProfile.saveProfile')}
                   color={WHITE}
                   onPress={handleSaveProfile}
                 />

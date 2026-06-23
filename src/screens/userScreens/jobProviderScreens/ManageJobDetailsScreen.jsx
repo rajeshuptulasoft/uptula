@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -50,15 +50,27 @@ import {
 } from "../../../constant/imagePath";
 import { ToastMessage } from "../../../components/commonComponents/ToastMessage";
 import { GETNETWORK } from "../../../utils/Network";
+import { useTranslation } from "../../../hooks/useTranslation";
 
 const ManageJobDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const { t, i18n } = useTranslation();
   const { jobData: initialJobData } = route.params || {};
+  const tabs = useMemo(
+    () => [
+      { id: "jobDetails", label: t("jobDetails.tabJobDetails") },
+      { id: "aboutCompany", label: t("jobDetails.tabAboutCompany") },
+      { id: "reviews", label: t("jobDetails.tabReviews") },
+      { id: "benefits", label: t("jobDetails.tabBenefits") },
+      { id: "salaries", label: t("jobDetails.tabSalaries") },
+    ],
+    [t]
+  );
 
   const [jobData, setJobData] = useState(initialJobData || null);
   const [loading, setLoading] = useState(!initialJobData);
-  const [activeTab, setActiveTab] = useState("Job Details");
+  const [activeTab, setActiveTab] = useState("jobDetails");
   const [toastMessage, setToastMessage] = useState({
     type: "",
     msg: "",
@@ -83,7 +95,7 @@ const ManageJobDetailsScreen = () => {
           } catch (error) {
             setToastMessage({
               type: "error",
-              msg: "Failed to load job details",
+              msg: t("jobDetails.failedToLoad"),
               visible: true,
             });
           } finally {
@@ -121,11 +133,11 @@ const ManageJobDetailsScreen = () => {
           showNotification={false}
           showBack
           showCenterTitle
-          title="Job Details"
+          title={t("jobDetails.title")}
           onBackPress={handleBackPress}
         />
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No job data available</Text>
+          <Text style={styles.errorText}>{t("jobDetails.noJobData")}</Text>
         </View>
       </View>
     );
@@ -198,11 +210,11 @@ const ManageJobDetailsScreen = () => {
         <MyHeader
           showBack
           showCenterTitle
-          title="Job Details"
+          title={t("jobDetails.title")}
           onBackPress={handleBackPress}
         />
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading job details...</Text>
+          <Text style={styles.loadingText}>{t("jobDetails.loading")}</Text>
         </View>
       </Container>
     );
@@ -223,7 +235,7 @@ const ManageJobDetailsScreen = () => {
       <MyHeader
         showBack
         showCenterTitle
-        title="Job Details"
+        title={t("jobDetails.title")}
         onBackPress={handleBackPress}
       />
 
@@ -260,11 +272,11 @@ const ManageJobDetailsScreen = () => {
             <View style={styles.countContainer}>
               <View style={styles.countItem}>
                 <Image source={VIEW} style={styles.countIcon} />
-                <Text style={styles.countText}>{jobData.views_count || 0} Views</Text>
+                <Text style={styles.countText}>{t("jobDetails.viewsCount", { count: jobData.views_count || 0 })}</Text>
               </View>
               <View style={styles.countItem}>
                 <Image source={APPLICATION} style={styles.countIcon} />
-                <Text style={styles.countText}>{jobData.applications_count || 0} Applications</Text>
+                <Text style={styles.countText}>{t("jobDetails.applicationsCount", { count: jobData.applications_count || 0 })}</Text>
               </View>
             </View>
           </View>
@@ -273,41 +285,40 @@ const ManageJobDetailsScreen = () => {
         {/* Tab Navigation */}
         <View style={styles.tabContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScrollContent}>
-            {["Job Details", "About Company", "Reviews", "Benefits", "Salaries"].map((tab) => (
+            {tabs.map((tab) => (
               <TouchableOpacity
-                key={tab}
-                style={[styles.tab, activeTab === tab && styles.activeTab]}
-                onPress={() => setActiveTab(tab)}
+                key={tab.id}
+                style={[styles.tab, activeTab === tab.id && styles.activeTab]}
+                onPress={() => setActiveTab(tab.id)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-                  {tab}
+                <Text style={[styles.tabText, activeTab === tab.id && styles.activeTabText]}>
+                  {tab.label}
                 </Text>
-                {activeTab === tab && <View style={styles.tabIndicator} />}
+                {activeTab === tab.id && <View style={styles.tabIndicator} />}
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
 
         {/* Content based on active tab */}
-        {activeTab === "Job Details" && (
+        {activeTab === "jobDetails" && (
           <>
-            {/* Job Highlights Card */}
             <View style={styles.highlightsCard}>
-              <Text style={styles.highlightsTitle}>Job highlights</Text>
+              <Text style={styles.highlightsTitle}>{t("jobDetails.jobHighlights")}</Text>
               <View style={styles.highlightsList}>
                 <Text style={styles.highlightItem}>
-                  • {jobData.experience || "1-3 years"} of experience required
+                  • {t("jobDetails.experienceRequired", { experience: jobData.experience || "1-3 years" })}
                 </Text>
                 <Text style={styles.highlightItem}>
-                  • {jobData.no_of_vacancy || 1} vacancy available
+                  • {t("jobDetails.vacancyAvailable", { count: jobData.no_of_vacancy || 1 })}
                 </Text>
                 <Text style={styles.highlightItem}>
-                  • Location: {formatLocation(jobData.city, jobData.state)}
+                  • {t("jobDetails.locationPrefix", { location: formatLocation(jobData.city, jobData.state) })}
                 </Text>
                 {jobData.skills && (
                   <Text style={styles.highlightItem}>
-                    • Skills: {jobData.skills.split(",").slice(0, 3).join(", ")}
+                    • {t("jobDetails.skillsPrefix", { skills: jobData.skills.split(",").slice(0, 3).join(", ") })}
                   </Text>
                 )}
               </View>
@@ -321,7 +332,7 @@ const ManageJobDetailsScreen = () => {
               </View>
               <View style={styles.infoItem}>
                 <MaterialCommunityIcons name="account-outline" size={20} color={BRANDCOLOR} />
-                <Text style={styles.infoItemText}>{jobData.no_of_vacancy || 1} vacancy</Text>
+                <Text style={styles.infoItemText}>{t("jobDetails.vacancyCount", { count: jobData.no_of_vacancy || 1 })}</Text>
               </View>
               <View style={styles.infoItem}>
                 <MaterialCommunityIcons name="map-marker-outline" size={20} color={BRANDCOLOR} />
@@ -334,7 +345,7 @@ const ManageJobDetailsScreen = () => {
                 <Text style={styles.infoItemText}>
                   {formatSalary(jobData.salary_range) !== "NA"
                     ? formatSalary(jobData.salary_range)
-                    : "Not disclosed"}
+                    : t("jobDetails.notDisclosed")}
                 </Text>
               </View>
             </View>
@@ -342,7 +353,7 @@ const ManageJobDetailsScreen = () => {
             {/* Skills Section */}
             {jobData.skills && (
               <View style={styles.skillsSection}>
-                <Text style={styles.skillsLabel}>Must have skills:</Text>
+                <Text style={styles.skillsLabel}>{t("jobDetails.mustHaveSkills")}</Text>
                 <View style={styles.skillsContainer}>
                   {jobData.skills.split(",").slice(0, 5).map((skill, index) => (
                     <View key={index} style={styles.skillTag}>
@@ -352,7 +363,7 @@ const ManageJobDetailsScreen = () => {
                 </View>
                 {jobData.skills.split(",").length > 5 && (
                   <>
-                    <Text style={styles.skillsLabel}>Good to have skills:</Text>
+                    <Text style={styles.skillsLabel}>{t("jobDetails.goodToHaveSkills")}</Text>
                     <View style={styles.skillsContainer}>
                       {jobData.skills.split(",").slice(5).map((skill, index) => (
                         <View key={index} style={styles.skillTag}>
@@ -367,39 +378,38 @@ const ManageJobDetailsScreen = () => {
 
             {/* Job Description Section */}
             <View style={styles.descriptionSection}>
-              <Text style={styles.sectionTitle}>Job description</Text>
+              <Text style={styles.sectionTitle}>{t("jobDetails.jobDescription")}</Text>
 
               {jobData.description && (
                 <Text style={styles.descriptionText}>{jobData.description}</Text>
               )}
 
               {/* What you'll do */}
-              <Text style={styles.subsectionTitle}>What you'll do:</Text>
+              <Text style={styles.subsectionTitle}>{t("jobDetails.whatYoullDo")}</Text>
               <Text style={styles.descriptionText}>
-                {jobData.description || "Join our team and contribute to exciting projects."}
+                {jobData.description || t("jobDetails.joinTeamDefault")}
               </Text>
 
-              {/* Requirements */}
-              <Text style={styles.subsectionTitle}>Requirements:</Text>
+              <Text style={styles.subsectionTitle}>{t("jobDetails.requirements")}</Text>
               <View style={styles.responsibilitiesList}>
                 {jobData.qualification && (
                   <Text style={styles.responsibilityItem}>
-                    • Qualification: {jobData.qualification}
+                    • {t("jobDetails.qualificationLabel", { value: jobData.qualification })}
                   </Text>
                 )}
                 {jobData.experience && (
                   <Text style={styles.responsibilityItem}>
-                    • Experience: {jobData.experience}
+                    • {t("jobDetails.experienceLabel", { value: jobData.experience })}
                   </Text>
                 )}
                 {jobData.job_type && (
                   <Text style={styles.responsibilityItem}>
-                    • Job Type: {formatJobType(jobData.job_type)}
+                    • {t("jobDetails.jobTypeLabel", { value: formatJobType(jobData.job_type) })}
                   </Text>
                 )}
                 {jobData.skills && (
                   <Text style={styles.responsibilityItem}>
-                    • Skills Required: {jobData.skills}
+                    • {t("jobDetails.skillsRequiredLabel", { value: jobData.skills })}
                   </Text>
                 )}
               </View>
@@ -407,12 +417,12 @@ const ManageJobDetailsScreen = () => {
           </>
         )}
 
-        {activeTab === "About Company" && (
+        {activeTab === "aboutCompany" && (
           <>
             <View style={styles.aboutCompanySection}>
-              <Text style={styles.sectionTitle}>About Company</Text>
+              <Text style={styles.sectionTitle}>{t("jobDetails.aboutCompany")}</Text>
               <Text style={styles.descriptionText}>
-                {jobData.company_name || "Company information will be displayed here."}
+                {jobData.company_name || t("jobDetails.aboutCompanyPlaceholder")}
               </Text>
               {jobData.description && (
                 <Text style={styles.descriptionText}>{jobData.description}</Text>
@@ -423,54 +433,54 @@ const ManageJobDetailsScreen = () => {
             <View style={styles.section}>
               <View style={styles.sectionTitleContainer}>
                 <Image source={COMPANYNAME} style={styles.sectionIcon} />
-                <Text style={styles.sectionTitle}>Company Address</Text>
+                <Text style={styles.sectionTitle}>{t("jobDetails.companyAddress")}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={MAIL} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>Email:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.emailLabel")}</Text>
                 <Text style={styles.infoValue}>{(jobData.email && jobData.email.trim() !== "") ? jobData.email : "NA"}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={PHONE} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>Phone Number:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.phoneLabel")}</Text>
                 <Text style={styles.infoValue}>{(jobData.phone && jobData.phone.trim() !== "") ? jobData.phone : "NA"}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={WEBSITE} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>Website:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.websiteLabel")}</Text>
                 <Text style={styles.infoValue}>{(jobData.website && jobData.website.trim() !== "") ? jobData.website : "NA"}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={ADDRESS} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>Address:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.addressLabel")}</Text>
                 <Text style={styles.infoValue}>{(jobData.address && jobData.address.trim() !== "") ? jobData.address : "NA"}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={CITY} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>City:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.cityLabel")}</Text>
                 <Text style={styles.infoValue}>{formatCity(jobData.city)}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={STATE} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>State:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.stateLabel")}</Text>
                 <Text style={styles.infoValue}>{formatState(jobData.state)}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={COUNTRY} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>Country:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.countryLabel")}</Text>
                 <Text style={styles.infoValue}>{formatCountry(jobData.country)}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={PINCODE} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>Zip Code:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.zipCodeLabel")}</Text>
                 <Text style={styles.infoValue}>{(jobData.zip_code && jobData.zip_code.trim() !== "") ? jobData.zip_code : "NA"}</Text>
               </View>
             </View>
@@ -479,74 +489,79 @@ const ManageJobDetailsScreen = () => {
             <View style={styles.section}>
               <View style={styles.sectionTitleContainer}>
                 <Image source={SOCIALACCOUNT} style={styles.sectionIcon} />
-                <Text style={styles.sectionTitle}>Social Accounts</Text>
+                <Text style={styles.sectionTitle}>{t("jobDetails.socialAccounts")}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={FACEBOOK} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>Facebook:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.facebookLabel")}</Text>
                 <Text style={styles.infoValue}>{(jobData.facebook && jobData.facebook.trim() !== "") ? jobData.facebook : "NA"}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={GOOGLE} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>Google:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.googleLabel")}</Text>
                 <Text style={styles.infoValue}>{(jobData.google && jobData.google.trim() !== "") ? jobData.google : "NA"}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={TWITTER} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>Twitter:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.twitterLabel")}</Text>
                 <Text style={styles.infoValue}>{(jobData.twitter && jobData.twitter.trim() !== "") ? jobData.twitter : "NA"}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={PRINTREST} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>Pinterest:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.pinterestLabel")}</Text>
                 <Text style={styles.infoValue}>{(jobData.pinterest && jobData.pinterest.trim() !== "") ? jobData.pinterest : "NA"}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <Image source={INSTAGRAM} style={styles.infoIcon} />
-                <Text style={styles.infoLabel}>Instagram:</Text>
+                <Text style={styles.infoLabel}>{t("jobDetails.instagramLabel")}</Text>
                 <Text style={styles.infoValue}>{(jobData.instagram && jobData.instagram.trim() !== "") ? jobData.instagram : "NA"}</Text>
               </View>
             </View>
           </>
         )}
 
-        {activeTab === "Reviews" && (
+        {activeTab === "reviews" && (
           <View style={styles.reviewsSection}>
             <View style={styles.reviewsHeader}>
-              <Text style={styles.sectionTitle}>Reviews</Text>
+              <Text style={styles.sectionTitle}>{t("jobDetails.reviews")}</Text>
             </View>
             <Text style={styles.descriptionText}>
-              Reviews will be displayed here.
+              {t("jobDetails.reviewsPlaceholder")}
             </Text>
           </View>
         )}
 
-        {activeTab === "Benefits" && (
+        {activeTab === "benefits" && (
           <View style={styles.benefitsSection}>
-            <Text style={styles.sectionTitle}>Benefits</Text>
+            <Text style={styles.sectionTitle}>{t("jobDetails.benefits")}</Text>
             <Text style={styles.descriptionText}>
-              Benefits information will be displayed here.
+              {t("jobDetails.benefitsPlaceholder")}
             </Text>
           </View>
         )}
 
-        {activeTab === "Salaries" && (
+        {activeTab === "salaries" && (
           <View style={styles.salariesSection}>
-            <Text style={styles.sectionTitle}>Salary insights</Text>
+            <Text style={styles.sectionTitle}>{t("jobDetails.salaryInsights")}</Text>
             <Text style={styles.salaryDescription}>
-              Compare salaries of {jobData.job_title || "this position"} with similar companies.
+              {t("jobDetails.compareSalaries", {
+                jobTitle: jobData.job_title || t("jobDetails.thisPosition"),
+              })}
             </Text>
 
             <View style={styles.salaryCard}>
               <Text style={styles.avgSalaryText}>
-                Avg. Salary - {formatSalary(jobData.salary_range) !== "NA"
-                  ? formatSalary(jobData.salary_range)
-                  : "Not disclosed"}
+                {t("jobDetails.avgSalaryLine", {
+                  value:
+                    formatSalary(jobData.salary_range) !== "NA"
+                      ? formatSalary(jobData.salary_range)
+                      : t("jobDetails.notDisclosed"),
+                })}
               </Text>
             </View>
           </View>

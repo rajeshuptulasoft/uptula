@@ -46,6 +46,7 @@ import {
   formatCategoryPreferenceNames,
   resolveCategoryPreferenceLabels,
 } from "../../../utils/profileCategoryPreferences";
+import { useTranslation } from "../../../hooks/useTranslation";
 
 // Helper function to capitalize first letter
 const capitalizeFirst = (str) => {
@@ -140,6 +141,7 @@ const getResumeName = (resume) => {
 };
 
 const UserProfileScreen = ({ navigation }) => {
+  const { t, i18n } = useTranslation();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profilePicture, setProfilePicture] = useState(null);
@@ -322,7 +324,7 @@ const UserProfileScreen = ({ navigation }) => {
         <MyHeader
           showBack
           showCenterTitle
-          title="My Profile"
+          title={t("userProfile.title")}
           onBackPress={() => navigation.goBack()}
         />
 
@@ -333,7 +335,7 @@ const UserProfileScreen = ({ navigation }) => {
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={BRANDCOLOR} />
-              <Text style={styles.loadingText}>Loading profile...</Text>
+              <Text style={styles.loadingText}>{t("userProfile.loading")}</Text>
             </View>
           ) : (
             <>
@@ -394,32 +396,32 @@ const UserProfileScreen = ({ navigation }) => {
 
               {/* Your Career Preferences Section */}
               <SectionCard
-                title="Your career preferences"
+                title={t("userProfile.careerPreferences")}
                 onEdit={() => navigateToEdit(user)}
               >
                 <View style={styles.preferencesGrid}>
-                  <PreferenceItem label="Primary location" value={getValue(user.preferredLocation || user.preferred_location)} />
-                  <PreferenceItem label="Categories" value={formatCategoryPreferenceNames(user.categories)} />
-                  <PreferenceItem label="Subcategories" value={formatCategoryPreferenceNames(user.subcategories)} />
-                  <PreferenceItem label="Expected salary" value={getValue(user.expectedSalary)} />
-                  <PreferenceItem label="Notice period" value={getValue(user.noticePeriod)} />
+                  <PreferenceItem label={t("userProfile.primaryLocation")} value={getValue(user.preferredLocation || user.preferred_location)} />
+                  <PreferenceItem label={t("userProfile.categories")} value={formatCategoryPreferenceNames(user.categories)} />
+                  <PreferenceItem label={t("userProfile.subcategories")} value={formatCategoryPreferenceNames(user.subcategories)} />
+                  <PreferenceItem label={t("userProfile.expectedSalary")} value={getValue(user.expectedSalary)} />
+                  <PreferenceItem label={t("userProfile.noticePeriod")} value={getValue(user.noticePeriod)} />
                 </View>
               </SectionCard>
 
               {/* Basic Details Section */}
               <SectionCard
-                title="Basic details"
+                title={t("userProfile.basicDetails")}
                 icon={USER}
                 onEdit={() => navigateToEdit(user)}
               >
                 <View style={styles.detailsList}>
-                  <DetailRow label="Name" value={capitalizeWords(getValue(user.name))} />
-                  <DetailRow label="Email" value={getValue(user.email)} />
-                  <DetailRow label="Phone" value={getValue(user.phone)} />
-                  <DetailRow label="Address" value={getValue(user.address)} />
-                  <DetailRow label="Gender" value={capitalizeFirst(getValue(user.gender))} />
+                  <DetailRow label={t("userProfile.name")} value={capitalizeWords(getValue(user.name))} />
+                  <DetailRow label={t("userProfile.email")} value={getValue(user.email)} />
+                  <DetailRow label={t("userProfile.phone")} value={getValue(user.phone)} />
+                  <DetailRow label={t("userProfile.address")} value={getValue(user.address)} />
+                  <DetailRow label={t("userProfile.gender")} value={capitalizeFirst(getValue(user.gender))} />
                   <DetailRow
-                    label="Date of Birth"
+                    label={t("userProfile.dateOfBirth")}
                     value={getValue(
                       formatDate(
                         user.dateOfBirth || user.dob || user.date_of_birth || user.birthDate
@@ -431,21 +433,21 @@ const UserProfileScreen = ({ navigation }) => {
 
               {/* Portfolio and Other Section */}
               <SectionCard
-                title="Portfolio and other"
+                title={t("userProfile.portfolioOther")}
                 icon={PORTFOLIO}
                 onEdit={() => navigateToEdit(user)}
               >
                 <View style={styles.detailsList}>
-                  <DetailRowWithIcon icon={LINKEDIN} label="LinkedIn" value={getValue(user.linkedin || user.linkedIn)} />
-                  <DetailRowWithIcon icon={GITHUB} label="GitHub" value={getValue(user.github)} />
-                  <DetailRowWithIcon icon={PORTFOLIO} label="Portfolio" value={getValue(user.google)} />
-                  <DetailRowWithIcon icon={OTHERS} label="Other" value={getValue(user.others || user.other)} />
+                  <DetailRowWithIcon icon={LINKEDIN} label={t("userProfile.linkedin")} value={getValue(user.linkedin || user.linkedIn)} />
+                  <DetailRowWithIcon icon={GITHUB} label={t("userProfile.github")} value={getValue(user.github)} />
+                  <DetailRowWithIcon icon={PORTFOLIO} label={t("userProfile.portfolio")} value={getValue(user.google)} />
+                  <DetailRowWithIcon icon={OTHERS} label={t("userProfile.other")} value={getValue(user.others || user.other)} />
                 </View>
               </SectionCard>
 
               {/* Bio Section */}
               <SectionCard
-                title="Bio"
+                title={t("userProfile.bio")}
                 icon={JOBDESCRIPTION}
                 onEdit={() => navigateToEdit(user)}
               >
@@ -454,7 +456,7 @@ const UserProfileScreen = ({ navigation }) => {
 
               {/* Resume Section */}
               <SectionCard
-                title="Resume"
+                title={t("userProfile.resume")}
                 icon={JOBDESCRIPTION}
                 onEdit={() => navigateToEdit(user)}
               >
@@ -463,12 +465,12 @@ const UserProfileScreen = ({ navigation }) => {
 
               {/* Professional Details Section */}
               <SectionCard
-                title="Professional details"
+                title={t("userProfile.professionalDetails")}
                 icon={EXPERIENCE}
                 onEdit={() => navigateToEdit(user)}
               >
                 <View style={styles.detailsList}>
-                  <DetailRow label="Current salary" value={getValue(user.currentSalary)} />
+                  <DetailRow label={t("userProfile.currentSalary")} value={getValue(user.currentSalary)} />
                   {/* {Array.isArray(user.experience) && user.experience.length > 0 && (
                     user.experience.map((exp, idx) => (
                       <View key={idx}>
@@ -486,7 +488,7 @@ const UserProfileScreen = ({ navigation }) => {
 
               {/* Technical Skills Section */}
               <SectionCard
-                title="Skills"
+                title={t("userProfile.skills")}
                 icon={SKILLS}
                 onEdit={() => navigateToEdit(user)}
               >
@@ -513,7 +515,7 @@ const UserProfileScreen = ({ navigation }) => {
 
               {/* Employment History Section */}
               <SectionCard
-                title="Employment History"
+                title={t("userProfile.employmentHistory")}
                 icon={EXPERIENCE}
                 showAdd
                 onEdit={() => navigateToEdit(user)}
@@ -539,7 +541,7 @@ const UserProfileScreen = ({ navigation }) => {
 
               {/* Certifications Section */}
               <SectionCard
-                title="Certifications"
+                title={t("userProfile.certifications")}
                 icon={SKILLS}
                 showAdd
                 onEdit={() => navigateToEdit(user)}
@@ -558,7 +560,7 @@ const UserProfileScreen = ({ navigation }) => {
 
               {/* Education Section */}
               <SectionCard
-                title="Education"
+                title={t("userProfile.education")}
                 icon={EDUCATION}
                 showAdd
                 onEdit={() => navigateToEdit(user)}
@@ -578,7 +580,7 @@ const UserProfileScreen = ({ navigation }) => {
 
               {/* Languages Known Section */}
               <SectionCard
-                title="Languages Known"
+                title={t("userProfile.languagesKnown")}
                 icon={LANGUAGE}
                 showAdd
                 onEdit={() => navigateToEdit(user)}

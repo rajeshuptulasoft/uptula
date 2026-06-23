@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useDispatch } from "react-redux";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from "../../hooks/useTranslation";
 
 import { BLACK, BRANDCOLOR, WHITE } from "../../constant/color";
 import {
@@ -47,6 +48,7 @@ import { OtpInput } from "../../components/otpComponets/OtpInput";
 
 const LoginScreen = ({ navigation }) => {
     const dispatch = useDispatch();
+    const { t } = useTranslation();
 
     /* ---------- STATES ---------- */
     const [email, setEmail] = useState("");
@@ -71,8 +73,6 @@ const LoginScreen = ({ navigation }) => {
     const [otpStatus, setOtpStatus] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-
-    const MAX_RESEND_ATTEMPTS = 5;
 
     const isPhoneMode = (value) => {
         if (!value) return false;
@@ -1051,7 +1051,7 @@ const LoginScreen = ({ navigation }) => {
                                 styles.headerText,
                                 Platform.OS === "ios" && styles.headerTextIOS,
                                 Platform.OS === "android" && styles.headerTextAndroid
-                            ]}>Login</Text>
+                            ]}>{t('login.title')}</Text>
 
                             {/* USER TYPE */}
                             <View style={[
@@ -1085,7 +1085,7 @@ const LoginScreen = ({ navigation }) => {
                                             userType === "JobSeeker" && styles.userTypeTextActive,
                                         ]}
                                     >
-                                        Job Seeker
+                                        {t('login.jobSeeker')}
                                     </Text>
                                 </TouchableOpacity>
 
@@ -1115,7 +1115,7 @@ const LoginScreen = ({ navigation }) => {
                                             userType === "JobProvider" && styles.userTypeTextActive,
                                         ]}
                                     >
-                                        Job Provider
+                                        {t('login.jobProvider')}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -1156,7 +1156,7 @@ const LoginScreen = ({ navigation }) => {
                                     Platform.OS === "android" && styles.textInputViewAndroid
                                 ]}>
                                     <TextInputComponent
-                                        placeholder="Enter Your Password"
+                                        placeholder={t('login.enterPassword')}
                                         type="password"
                                         inputdata={password}
                                         setInputdata={setPassword}
@@ -1186,21 +1186,21 @@ const LoginScreen = ({ navigation }) => {
                                         Platform.OS === "ios" && styles.forgotPasswordTextIOS,
                                         Platform.OS === "android" && styles.forgotPasswordTextAndroid
                                     ]}>
-                                        Forgot Password?
+                                        {t('login.forgotPassword')}
                                     </Text>
                                 </TouchableOpacity>
 
                                 <View style={{ height: Platform.OS === "ios" ? HEIGHT * 0.04 : HEIGHT * 0.035 }} />
 
                                 {/* LOGIN BUTTON */}
-                                <CustomButton onPress={onLogin} text="Login" color={WHITE} />
+                                <CustomButton onPress={onLogin} text={t('login.loginButton')} color={WHITE} />
 
                                 <View style={{ height: HEIGHT * 0.02 }} />
 
                                 {/* OR SEPARATOR */}
                                 <View style={styles.orContainer}>
                                     <View style={styles.orLine} />
-                                    <Text style={styles.orText}>OR</Text>
+                                    <Text style={styles.orText}>{t('login.or')}</Text>
                                     <View style={styles.orLine} />
                                 </View>
 
@@ -1215,10 +1215,10 @@ const LoginScreen = ({ navigation }) => {
                                     activeOpacity={0.85}
                                 >
                                     <Image source={GOOGLE} style={styles.googleIcon} />
-                                    <Text style={styles.googleButtonText}>Continue with Google Account</Text>
+                                    <Text style={styles.googleButtonText}>{t('login.continueGoogle')}</Text>
                                 </TouchableOpacity>
 
-                                <View style={{ height: HEIGHT * 0.02 }} />
+                                <View style={{ height: HEIGHT * 0.015 }} />
 
                                 {/* REGISTER */}
                                 <TouchableOpacity
@@ -1234,8 +1234,8 @@ const LoginScreen = ({ navigation }) => {
                                         Platform.OS === "ios" && styles.registerTextIOS,
                                         Platform.OS === "android" && styles.registerTextAndroid
                                     ]}>
-                                        Don't Have an account ?
-                                        <Text style={styles.registerHighlight}> Register</Text>
+                                        {t('login.noAccount')}
+                                        <Text style={styles.registerHighlight}>{t('login.registerHighlight')}</Text>
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -1261,8 +1261,8 @@ const LoginScreen = ({ navigation }) => {
             {/* EXIT ALERT */}
             <MyAlert
                 visible={isExitAlertVisible}
-                title="Exit App"
-                message="Are you sure you want to exit?"
+                title={t('login.exitApp')}
+                message={t('login.exitAppMessage')}
                 textRight="Yes"
                 textLeft="Cancel"
                 showRightButton
@@ -1703,6 +1703,15 @@ const styles = StyleSheet.create({
     },
     registerHighlight: {
         color: BRANDCOLOR,
+    },
+    languageLinkContainer: {
+        alignSelf: "center",
+    },
+    languageLinkText: {
+        fontFamily: FIRASANSSEMIBOLD,
+        color: BRANDCOLOR,
+        fontSize: HEIGHT * 0.015,
+        textDecorationLine: "underline",
     },
     googleButton: {
         marginTop: HEIGHT * 0.018,

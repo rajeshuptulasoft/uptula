@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -32,90 +32,12 @@ import { POSTNETWORK } from "../../utils/Network";
 import { getObjByKey } from "../../utils/Storage";
 import { BASE_URL } from "../../constant/url";
 import { DROPDOWN } from "../../constant/imagePath";
+import { useTranslation } from "../../hooks/useTranslation";
 
 const LIGHT_GREEN = "#E8F7EF";
 const DARK_GREEN = "#1A6B42";
 const TEXT_MUTED = "#5F6B7A";
 const CARD_BORDER = "#D8E8DF";
-
-const ISSUE_CATEGORIES = [
-  { label: "Select category", value: "" },
-  { label: "Technical Issue", value: "technical" },
-  { label: "Account Issue", value: "account" },
-  { label: "Job Posting Issue", value: "job_posting" },
-  { label: "Payment Issue", value: "payment" },
-  { label: "Feedback", value: "feedback" },
-  { label: "Other", value: "other" },
-];
-
-const MISSION_ITEMS = [
-  "Provide equal opportunities for every individual regardless of background.",
-  "Simplify the recruitment process for both employers and job seekers.",
-  "Build a robust ecosystem where talent and opportunity meet together.",
-  "Continuously innovate to make job searching more accessible.",
-];
-
-const VISION_ITEMS = [
-  "Expand into more industries and geographies.",
-  "Introduce AI-powered tools for personalized skill learning.",
-  "Build inclusive work environments to ensure equity.",
-  "Become a global leader in career development and growth.",
-];
-
-const JOB_SEEKER_OFFERS = [
-  "Access to a wide range of job listings across industries.",
-  "Real-time job alerts and notifications.",
-  "Easy-to-use resume builder tools.",
-  "Personalized career counseling and guidance.",
-  "Up-to-date status tracking for applications.",
-];
-
-const EMPLOYER_OFFERS = [
-  "Access to a large and diverse talent pool.",
-  "Advanced search filters to find the perfect candidate.",
-  "Streamlined application management and scheduling.",
-  "Real-time candidate communication tools.",
-  "Analytics reports to track hiring performance.",
-];
-
-const WHY_CHOOSE_ITEMS = [
-  "A user-centric platform designed for ease of use.",
-  "Verified employers and job listings for trust and safety.",
-  "Comprehensive career development resources.",
-  "Dedicated support team available to help you at every step.",
-  "Available on multiple devices for easy access.",
-  "Regular updates and improvements based on user feedback.",
-];
-
-const IMPACT_STATS = [
-  { value: "50K+", label: "Job Seekers" },
-  { value: "5K+", label: "Employers" },
-  { value: "200+", label: "Industries" },
-  { value: "98%", label: "Satisfaction Rate" },
-];
-
-const VALUES = [
-  {
-    icon: "shield-check-outline",
-    title: "Trust & Safety",
-    text: "Prioritizing security and authenticity for every user on our platform.",
-  },
-  {
-    icon: "account-group-outline",
-    title: "Inclusivity",
-    text: "Equal opportunities for everyone, regardless of background or experience.",
-  },
-  {
-    icon: "lightbulb-on-outline",
-    title: "Innovation",
-    text: "Constantly improving with technology to deliver the best experience.",
-  },
-  {
-    icon: "heart-outline",
-    title: "User First",
-    text: "Always focused on the user experience and continuous improvement.",
-  },
-];
 
 const SectionHeader = ({ icon, title }) => (
   <View style={styles.sectionHeader}>
@@ -125,9 +47,6 @@ const SectionHeader = ({ icon, title }) => (
     <Text style={styles.sectionTitle}>{title}</Text>
   </View>
 );
-
-const getCategoryLabel = (value) =>
-  ISSUE_CATEGORIES.find((c) => c.value === value)?.label || "Select category";
 
 const TwoColumnGrid = ({ children }) => (
   <View style={styles.twoColGrid}>{children}</View>
@@ -146,6 +65,116 @@ const BulletList = ({ items, icon = "check-circle" }) => (
 
 const AboutUsScreen = () => {
   const navigation = useNavigation();
+  const { t, i18n } = useTranslation();
+
+  const ISSUE_CATEGORIES = useMemo(
+    () => [
+      { label: t("aboutUs.selectCategory"), value: "" },
+      { label: t("aboutUs.catTechnical"), value: "technical" },
+      { label: t("aboutUs.catAccount"), value: "account" },
+      { label: t("aboutUs.catJobPosting"), value: "job_posting" },
+      { label: t("aboutUs.catPayment"), value: "payment" },
+      { label: t("aboutUs.catFeedback"), value: "feedback" },
+      { label: t("aboutUs.catOther"), value: "other" },
+    ],
+    [t]
+  );
+
+  const MISSION_ITEMS = useMemo(
+    () => [
+      t("aboutUs.mission1"),
+      t("aboutUs.mission2"),
+      t("aboutUs.mission3"),
+      t("aboutUs.mission4"),
+    ],
+    [t]
+  );
+
+  const VISION_ITEMS = useMemo(
+    () => [
+      t("aboutUs.vision1"),
+      t("aboutUs.vision2"),
+      t("aboutUs.vision3"),
+      t("aboutUs.vision4"),
+    ],
+    [t]
+  );
+
+  const JOB_SEEKER_OFFERS = useMemo(
+    () => [
+      t("aboutUs.seekerOffer1"),
+      t("aboutUs.seekerOffer2"),
+      t("aboutUs.seekerOffer3"),
+      t("aboutUs.seekerOffer4"),
+      t("aboutUs.seekerOffer5"),
+    ],
+    [t]
+  );
+
+  const EMPLOYER_OFFERS = useMemo(
+    () => [
+      t("aboutUs.employerOffer1"),
+      t("aboutUs.employerOffer2"),
+      t("aboutUs.employerOffer3"),
+      t("aboutUs.employerOffer4"),
+      t("aboutUs.employerOffer5"),
+    ],
+    [t]
+  );
+
+  const WHY_CHOOSE_ITEMS = useMemo(
+    () => [
+      t("aboutUs.why1"),
+      t("aboutUs.why2"),
+      t("aboutUs.why3"),
+      t("aboutUs.why4"),
+      t("aboutUs.why5"),
+      t("aboutUs.why6"),
+    ],
+    [t]
+  );
+
+  const IMPACT_STATS = useMemo(
+    () => [
+      { value: "50K+", label: t("aboutUs.jobSeekers") },
+      { value: "5K+", label: t("aboutUs.employers") },
+      { value: "200+", label: t("aboutUs.industries") },
+      { value: "98%", label: t("aboutUs.satisfactionRate") },
+    ],
+    [t]
+  );
+
+  const VALUES = useMemo(
+    () => [
+      {
+        icon: "shield-check-outline",
+        title: t("aboutUs.trustSafety"),
+        text: t("aboutUs.trustSafetyDesc"),
+      },
+      {
+        icon: "account-group-outline",
+        title: t("aboutUs.inclusivity"),
+        text: t("aboutUs.inclusivityDesc"),
+      },
+      {
+        icon: "lightbulb-on-outline",
+        title: t("aboutUs.innovation"),
+        text: t("aboutUs.innovationDesc"),
+      },
+      {
+        icon: "heart-outline",
+        title: t("aboutUs.userFirst"),
+        text: t("aboutUs.userFirstDesc"),
+      },
+    ],
+    [t]
+  );
+
+  const getCategoryLabel = useCallback(
+    (value) =>
+      ISSUE_CATEGORIES.find((c) => c.value === value)?.label || t("aboutUs.selectCategory"),
+    [ISSUE_CATEGORIES, t]
+  );
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -171,19 +200,19 @@ const AboutUsScreen = () => {
 
   const handleSubmitIssue = async () => {
     if (!fullName.trim()) {
-      showToast("error", "Please enter your full name.");
+      showToast("error", t("aboutUs.enterFullName"));
       return;
     }
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email.trim())) {
-      showToast("error", "Please enter a valid email address.");
+      showToast("error", t("aboutUs.enterValidEmail"));
       return;
     }
     if (!issueCategory) {
-      showToast("error", "Please select an issue category.");
+      showToast("error", t("aboutUs.selectIssueCategory"));
       return;
     }
     if (!issueDescription.trim()) {
-      showToast("error", "Please describe the issue.");
+      showToast("error", t("aboutUs.describeIssueRequired"));
       return;
     }
 
@@ -205,7 +234,7 @@ const AboutUsScreen = () => {
           : `${BASE_URL}user/tickets`;
         const result = await POSTNETWORK(url, payload, true);
         if (result?.ticket || result?.success || result?.id || result?.ticket_id) {
-          showToast("success", result?.message || "Issue report submitted successfully.");
+          showToast("success", result?.message || t("aboutUs.reportSuccess"));
           setFullName("");
           setEmail("");
           setIssueCategory("");
@@ -216,14 +245,14 @@ const AboutUsScreen = () => {
 
       showToast(
         "success",
-        "Thank you! Your report has been recorded. Our team will contact you shortly."
+        t("aboutUs.reportThankYou")
       );
       setFullName("");
       setEmail("");
       setIssueCategory("");
       setIssueDescription("");
     } catch {
-      showToast("error", "Failed to submit report. Please try again or email support@uptula.com.");
+      showToast("error", t("aboutUs.reportFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -237,7 +266,7 @@ const AboutUsScreen = () => {
           <MyHeader
             showBack
             showCenterTitle
-            title="About Us"
+            title={t("aboutUs.title")}
             onBackPress={goBack}
             showNotification={false}
             backgroundColor={WHITE}
@@ -248,7 +277,7 @@ const AboutUsScreen = () => {
           <MyHeader
             showBack
             showCenterTitle
-            title="About Us"
+            title={t("aboutUs.title")}
             onBackPress={goBack}
             showNotification={false}
             backgroundColor={WHITE}
@@ -264,60 +293,54 @@ const AboutUsScreen = () => {
       >
         {/* About Uptula */}
         <View style={styles.card}>
-          <SectionHeader icon="information-outline" title="About Uptula" />
+          <SectionHeader icon="information-outline" title={t("aboutUs.aboutUptula")} />
           <Text style={styles.bodyText}>
-            Uptula is a leading career and recruitment platform dedicated to connecting talented
-            professionals with the right opportunities. We believe everyone deserves access to
-            meaningful work and growth in their chosen field.
+            {t("aboutUs.aboutIntro")}
           </Text>
           <View style={styles.highlightBox}>
             <Text style={styles.highlightText}>
-              Your career starts here. Uptula provides a platform for everyone to find the right job,
-              upskill, and find the right career path for them.
+              {t("aboutUs.highlight")}
             </Text>
           </View>
         </View>
 
         {/* Mission */}
         <View style={styles.card}>
-          <SectionHeader icon="target" title="Our Mission" />
+          <SectionHeader icon="target" title={t("aboutUs.ourMission")} />
           <Text style={styles.bodyText}>
-            At Uptula, our mission is to bridge the gap between talent and opportunity. We strive to
-            create a seamless experience that empowers individuals and organizations alike.
+            {t("aboutUs.missionIntro")}
           </Text>
           <BulletList items={MISSION_ITEMS} />
         </View>
 
         {/* Vision */}
         <View style={styles.card}>
-          <SectionHeader icon="eye-outline" title="Our Vision" />
+          <SectionHeader icon="eye-outline" title={t("aboutUs.ourVision")} />
           <Text style={styles.bodyText}>
-            To become the most trusted and innovative career platform globally, transforming how
-            people discover, pursue, and grow in their careers.
+            {t("aboutUs.visionIntro")}
           </Text>
-          <Text style={styles.subHeading}>Looking Ahead</Text>
+          <Text style={styles.subHeading}>{t("aboutUs.lookingAhead")}</Text>
           <BulletList items={VISION_ITEMS} />
         </View>
 
         {/* What We Offer */}
         <View style={styles.card}>
-          <SectionHeader icon="package-variant-closed" title="What We Offer" />
+          <SectionHeader icon="package-variant-closed" title={t("aboutUs.whatWeOffer")} />
           <Text style={styles.bodyText}>
-            Uptula is designed to cater to both job seekers and employers, offering tools and
-            resources tailored to each audience.
+            {t("aboutUs.offerIntro")}
           </Text>
-          <Text style={styles.subHeading}>For Job Seekers</Text>
+          <Text style={styles.subHeading}>{t("aboutUs.forJobSeekers")}</Text>
           <BulletList items={JOB_SEEKER_OFFERS} />
-          <Text style={[styles.subHeading, styles.subHeadingSpaced]}>For Employers & Recruiters</Text>
+          <Text style={[styles.subHeading, styles.subHeadingSpaced]}>{t("aboutUs.forEmployers")}</Text>
           <BulletList items={EMPLOYER_OFFERS} />
         </View>
 
         {/* Why Choose */}
         <View style={styles.card}>
-          <SectionHeader icon="help-circle-outline" title="Why Choose Uptula?" />
+          <SectionHeader icon="help-circle-outline" title={t("aboutUs.whyChoose")} />
           <View style={styles.highlightBox}>
             <Text style={styles.highlightText}>
-              Uptula is more than just a job board. It&apos;s a comprehensive career platform.
+              {t("aboutUs.whyHighlight")}
             </Text>
           </View>
           <BulletList items={WHY_CHOOSE_ITEMS} />
@@ -325,9 +348,9 @@ const AboutUsScreen = () => {
 
         {/* Impact */}
         <View style={styles.card}>
-          <SectionHeader icon="chart-bar" title="Our Impact" />
+          <SectionHeader icon="chart-bar" title={t("aboutUs.ourImpact")} />
           <Text style={styles.bodyText}>
-            Numbers that reflect our commitment to connecting talent with opportunity.
+            {t("aboutUs.impactIntro")}
           </Text>
           <TwoColumnGrid>
             {IMPACT_STATS.map((stat) => (
@@ -341,8 +364,8 @@ const AboutUsScreen = () => {
 
         {/* Values */}
         <View style={styles.card}>
-          <SectionHeader icon="heart-outline" title="Our Values" />
-          <Text style={styles.bodyText}>The principles that guide everything we do at Uptula.</Text>
+          <SectionHeader icon="heart-outline" title={t("aboutUs.ourValues")} />
+          <Text style={styles.bodyText}>{t("aboutUs.valuesIntro")}</Text>
           <TwoColumnGrid>
             {VALUES.map((v) => (
               <View key={v.title} style={styles.valueCard}>
@@ -356,21 +379,20 @@ const AboutUsScreen = () => {
 
         {/* Report Issue */}
         <View style={styles.card}>
-          <SectionHeader icon="alert-circle-outline" title="Report an Issue" />
+          <SectionHeader icon="alert-circle-outline" title={t("aboutUs.reportIssue")} />
           <Text style={styles.bodyText}>
-            Encountered a technical issue or have feedback? Let us know and our team will get back
-            to you as soon as possible.
+            {t("aboutUs.reportIntro")}
           </Text>
 
           <TextInputComponent
-            placeholder="Full Name"
+            placeholder={t("aboutUs.fullName")}
             inputdata={fullName}
             setInputdata={setFullName}
             width="100%"
             maxLength={80}
           />
           <TextInputComponent
-            placeholder="Email Address"
+            placeholder={t("aboutUs.emailAddress")}
             inputdata={email}
             setInputdata={setEmail}
             type="email"
@@ -380,7 +402,7 @@ const AboutUsScreen = () => {
             maxLength={120}
           />
 
-          <Text style={styles.inputLabel}>Issue Category</Text>
+          <Text style={styles.inputLabel}>{t("aboutUs.issueCategory")}</Text>
           <View style={styles.pickerWrapper}>
             <View style={styles.pickerContainer}>
               <View style={styles.pickerTextContainer}>
@@ -400,7 +422,7 @@ const AboutUsScreen = () => {
                 style={styles.picker}
                 itemStyle={styles.pickerItem}
                 mode="dropdown"
-                prompt="Select category"
+                prompt={t("aboutUs.selectCategory")}
               >
                 {ISSUE_CATEGORIES.map((c) => (
                   <Picker.Item key={c.value || "empty"} label={c.label} value={c.value} />
@@ -410,12 +432,12 @@ const AboutUsScreen = () => {
             </View>
           </View>
 
-          <Text style={styles.inputLabel}>Describe the Issue</Text>
+          <Text style={styles.inputLabel}>{t("aboutUs.describeIssue")}</Text>
           <TextInput
             style={styles.textArea}
             value={issueDescription}
             onChangeText={setIssueDescription}
-            placeholder="Please describe the issue in detail..."
+            placeholder={t("aboutUs.describePlaceholder")}
             placeholderTextColor="#9CA3AF"
             multiline
             numberOfLines={5}
@@ -423,7 +445,7 @@ const AboutUsScreen = () => {
           />
 
           <CustomButton
-            text={submitting ? "SUBMITTING..." : "SUBMIT ISSUE REPORT"}
+            text={submitting ? t("aboutUs.submitting") : t("aboutUs.submitReport")}
             backgroundColor={DARK_GREEN}
             color={WHITE}
             width="100%"

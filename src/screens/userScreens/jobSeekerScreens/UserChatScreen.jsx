@@ -17,6 +17,7 @@ import {
   Image,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from "../../../hooks/useTranslation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { MyHeader } from "../../../components/commonComponents/MyHeader";
@@ -29,6 +30,7 @@ import { ToastMessage } from "../../../components/commonComponents/ToastMessage"
 import { LOGO } from "../../../constant/imagePath";
 import { WIDTH, HEIGHT } from "../../../constant/config";
 import { handleProfilePress } from "../../../navigations/CustomDrawerContent";
+import { useLanguageRefresh } from "../../../hooks/useLanguageRefresh";
 
 const buildLogoUri = (raw) => {
   if (!raw || typeof raw !== "string") return null;
@@ -39,6 +41,7 @@ const buildLogoUri = (raw) => {
 };
 
 const UserChatScreen = ({ navigation, route }) => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { chatId } = route?.params || {};
   const [chats, setChats] = useState([]);
@@ -233,6 +236,8 @@ const UserChatScreen = ({ navigation, route }) => {
       }
     }
   }, [fetchChats, fetchMessages, selectedChat]);
+
+  useLanguageRefresh(onRefresh);
 
   // Validation functions
   const containsPhoneNumber = (text) => {
@@ -829,11 +834,11 @@ const UserChatScreen = ({ navigation, route }) => {
     const formatStatusText = (st) => {
       const statusLower = st?.toLowerCase() || "";
       if (statusLower.includes("approved") || statusLower.includes("active")) {
-        return "Approved";
+        return t('chat.statusApproved');
       }
-      if (statusLower.includes("closed")) return "Closed";
-      if (statusLower.includes("decline") || statusLower.includes("declined")) return "Declined";
-      return "Pending";
+      if (statusLower.includes("closed")) return t('chat.statusClosed');
+      if (statusLower.includes("decline") || statusLower.includes("declined")) return t('chat.statusDeclined');
+      return t('chat.statusPending');
     };
 
     return (
@@ -1027,16 +1032,16 @@ const UserChatScreen = ({ navigation, route }) => {
           />
           <View style={styles.guestContainer}>
             <MaterialCommunityIcons name="chat-outline" size={80} color="#4D72DC" />
-            <Text style={styles.guestTitle}>Login Required</Text>
+            <Text style={styles.guestTitle}>{t('chat.loginRequired')}</Text>
             <Text style={styles.guestDescription}>
-              Please login or register to access your chats with employers.
+              {t('chat.loginRequiredDesc')}
             </Text>
             <TouchableOpacity
               style={styles.loginButton}
               onPress={() => navigation.navigate('Login')}
               activeOpacity={0.7}
             >
-              <Text style={styles.loginButtonText}>Login / Register</Text>
+              <Text style={styles.loginButtonText}>{t('chat.loginRegister')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1114,7 +1119,7 @@ const UserChatScreen = ({ navigation, route }) => {
               overScrollMode="auto"
               ListEmptyComponent={
                 <View style={styles.emptyMessagesContainer}>
-                  <Text style={styles.emptyMessagesText}>No messages yet</Text>
+                  <Text style={styles.emptyMessagesText}>{t('chat.noMessages')}</Text>
                 </View>
               }
               inverted={false}
@@ -1127,7 +1132,7 @@ const UserChatScreen = ({ navigation, route }) => {
               <View style={styles.whatsappInputWrapper}>
                 <TextInput
                   style={styles.whatsappInput}
-                  placeholder="Enter Your Message"
+                  placeholder={t('chat.enterMessage')}
                   placeholderTextColor="#999"
                   value={messageText}
                   onChangeText={setMessageText}
@@ -1185,7 +1190,7 @@ const UserChatScreen = ({ navigation, route }) => {
       <StatusBar barStyle="light-content" backgroundColor={BRANDCOLOR} translucent={false} />
       <View style={styles.container}>
         <View style={[styles.messagesBrandHeader, { paddingTop: insets.top + 12 }]}>
-          <Text style={styles.messagesBrandTitle}>Messages</Text>
+          <Text style={styles.messagesBrandTitle}>{t('chat.messages')}</Text>
           <Text style={styles.messagesBrandSubtitle}>
             {activeConversationCount} active conversation{activeConversationCount === 1 ? "" : "s"}
           </Text>

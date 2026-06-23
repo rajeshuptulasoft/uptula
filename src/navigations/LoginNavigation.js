@@ -17,7 +17,8 @@ const LoginNavigation = () => {
       const skipSplash = await getStringByKey("skipSplash");
       if (skipSplash === "true") {
         await storeStringByKey("skipSplash", "");
-        setInitialRoute("Login");
+        const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
+        setInitialRoute(hasSeenOnboarding === "true" ? "MainTabs" : "OnBoarding");
         return;
       }
       setInitialRoute("Splash");

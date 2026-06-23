@@ -18,6 +18,7 @@ import { BRANDCOLOR } from '../../../constant/color';
 import { FACEBOOK, INSTAGRAM, LINKEDIN, TWITTER, VERIFIEDPROVIDER } from '../../../constant/imagePath';
 import { BASE_URL } from '../../../constant/url';
 import { GETNETWORK } from '../../../utils/Network';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -87,10 +88,10 @@ const ensureUrl = (value) => {
   if (!url) return '';
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 };
-const formatRoleSalary = (value) => {
+const formatRoleSalary = (value, t) => {
   const text = (value || '').toString().trim();
-  if (!text) return 'Salary not specified';
-  if (text.toLowerCase() === 'negotiable') return 'Negotiable';
+  if (!text) return t('home.salaryNotSpecified');
+  if (text.toLowerCase() === 'negotiable') return t('displayCompanyProfile.negotiable');
   return text;
 };
 const splitAddressLines = (value) => {
@@ -105,8 +106,8 @@ const splitAddressLines = (value) => {
     secondary: parts.slice(1).join(', '),
   };
 };
-const formatDate = (value) => {
-  if (!value) return 'Recently posted';
+const formatDate = (value, t) => {
+  if (!value) return t('displayCompanyProfile.recentlyPosted');
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();
@@ -166,7 +167,7 @@ const InfoRow = ({ icon, label, value, link }) => (
   </View>
 );
 
-const JobCard = ({ role, companyName, companyLogoSource }) => (
+const JobCard = ({ role, companyName, companyLogoSource, t }) => (
   <View style={S.jobCard}>
     <View style={S.jobHeaderRow}>
       {companyLogoSource ? (
@@ -178,7 +179,7 @@ const JobCard = ({ role, companyName, companyLogoSource }) => (
         </View>
         {role.urgent && (
           <View style={S.urgentBadge}>
-            <Text style={S.urgentBadgeText}>🔥 Urgent</Text>
+            <Text style={S.urgentBadgeText}>🔥 {t('displayCompanyProfile.urgent')}</Text>
           </View>
         )}
       </View>
@@ -191,13 +192,14 @@ const JobCard = ({ role, companyName, companyLogoSource }) => (
       <Text style={S.jobMetaText}>🕐 {role.posted}</Text>
     </View>
     <TouchableOpacity style={S.applyBtn} activeOpacity={0.85}>
-      <Text style={S.applyBtnText}>Apply Now</Text>
+      <Text style={S.applyBtnText}>{t('displayCompanyProfile.applyNow')}</Text>
     </TouchableOpacity>
   </View>
 );
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 export default function DisplayCompanyProfileScreen({ navigation, route }) {
+  const { t, i18n } = useTranslation();
   const BANNER_H  = Math.round(SW * 0.33);
   const LOGO_SIZE = 80;
   const LOGO_HALF = LOGO_SIZE / 2;
@@ -287,13 +289,13 @@ export default function DisplayCompanyProfileScreen({ navigation, route }) {
           })
           .map((job, index) => ({
             id: job.id || job._id || `job-${index}`,
-            type: job.jobType || job.type || 'Full Time',
+            type: job.jobType || job.type || t('displayCompanyProfile.fullTime'),
             typeColor: BRAND.primary,
             typeBg: BRAND.primaryLight,
-            title: job.jobTitle || job.title || job.designation || 'Open Role',
-            salary: formatRoleSalary(job.salaryRange || job.salary || 'Salary not specified'),
+            title: job.jobTitle || job.title || job.designation || t('displayCompanyProfile.openRole'),
+            salary: formatRoleSalary(job.salaryRange || job.salary || '', t),
             location: buildLocation(job, COMPANY.location),
-            posted: formatDate(job.createdAt || job.postedAt || job.updatedAt),
+            posted: formatDate(job.createdAt || job.postedAt || job.updatedAt, t),
             urgent: toBoolean(job.urgent),
           }));
 
@@ -306,7 +308,7 @@ export default function DisplayCompanyProfileScreen({ navigation, route }) {
     };
 
     fetchCompanyJobs();
-  }, [COMPANY.name, COMPANY.location]);
+  }, [COMPANY.name, COMPANY.location, t]);
 
   const companyLogoSource = getImageSource(
     rawCompanyData.logo ||
@@ -397,17 +399,17 @@ export default function DisplayCompanyProfileScreen({ navigation, route }) {
 
         {/* ════ COMPANY SNAPSHOT ════ */}
         <Card>
-          <SectionTitle>Company Snapshot</SectionTitle>
-          <InfoRow icon="🌐" label="Website" value={COMPANY.website} link />
+          <SectionTitle>{t('displayCompanyProfile.snapshot')}</SectionTitle>
+          <InfoRow icon="🌐" label={t('displayCompanyProfile.website')} value={COMPANY.website} link />
           <InfoRow
             icon="🏭"
-            label="Industry"
+            label={t('displayCompanyProfile.industry')}
             value={COMPANY.address ? `${COMPANY.industry} · ${COMPANY.address}` : COMPANY.industry}
           />
           {COMPANY.departments.length > 0 ? (
-            <InfoRow icon="🏢" label="Department" value={COMPANY.departments.join(', ')} />
+            <InfoRow icon="🏢" label={t('displayCompanyProfile.department')} value={COMPANY.departments.join(', ')} />
           ) : null}
-          <InfoRow icon="👥" label="Company Size" value={COMPANY.companySize} />
+          <InfoRow icon="👥" label={t('displayCompanyProfile.companySize')} value={COMPANY.companySize} />
           <View style={S.socialRow}>
             {[
               { key: 'linkedin', icon: LINKEDIN, url: COMPANY.social.linkedin || 'https://linkedin.com' },
@@ -429,7 +431,7 @@ export default function DisplayCompanyProfileScreen({ navigation, route }) {
 
         {/* ════ WHO WE ARE ════ */}
         <Card>
-          <SectionTitle>Who We Are</SectionTitle>
+          <SectionTitle>{t('displayCompanyProfile.whoWeAre')}</SectionTitle>
           <Text style={S.bodyText}>{COMPANY.description}</Text>
         </Card>
 
@@ -437,14 +439,14 @@ export default function DisplayCompanyProfileScreen({ navigation, route }) {
         <View style={S.rolesSection}>
           <View style={S.rolesHeader}>
             <View style={{ flex: 1 }}>
-              <SectionTitle style={{ marginBottom: 2 }}>Open Roles</SectionTitle>
-              <Text style={S.rolesSubtitle}>Jobs opened by this company.</Text>
+              <SectionTitle style={{ marginBottom: 2 }}>{t('displayCompanyProfile.openRoles')}</SectionTitle>
+              <Text style={S.rolesSubtitle}>{t('displayCompanyProfile.rolesSubtitle')}</Text>
             </View>
           </View>
           {loadingJobs ? (
             <View style={S.loadingBox}>
               <ActivityIndicator size="small" color={BRAND.primary} />
-              <Text style={S.loadingText}>Loading open roles...</Text>
+              <Text style={S.loadingText}>{t('displayCompanyProfile.loadingRoles')}</Text>
             </View>
           ) : companyJobs.length > 0 ? (
             companyJobs.map((r) => (
@@ -453,10 +455,11 @@ export default function DisplayCompanyProfileScreen({ navigation, route }) {
                 role={r}
                 companyName={COMPANY.name}
                 companyLogoSource={companyLogoSource}
+                t={t}
               />
             ))
           ) : (
-            <Text style={S.emptyText}>No open roles for this company.</Text>
+            <Text style={S.emptyText}>{t('displayCompanyProfile.noOpenRoles')}</Text>
           )}
         </View>
 
