@@ -16,6 +16,7 @@ import {
   PermissionsAndroid,
   Pressable,
   Linking,
+  Switch,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { launchImageLibrary } from "react-native-image-picker";
@@ -28,14 +29,9 @@ import { TextInputComponent } from "../../../components/commonComponents/TextInp
 import { CustomButton } from "../../../components/commonComponents/Button";
 import { ToastMessage } from "../../../components/commonComponents/ToastMessage";
 import DateComponent from "../../../components/dateComponents/DateComponent";
-import dayjs from "dayjs";
-import customParseFormat from "dayjs/plugin/customParseFormat";
-
-dayjs.extend(customParseFormat);
 
 import {
   PROFILE,
-  LOGO,
   USER,
   MAIL,
   PHONE,
@@ -45,25 +41,11 @@ import {
   SLOGAN,
   DOB,
   UPLOAD,
-  LINKEDIN,
-  GITHUB,
-  PORTFOLIO,
-  OTHERS,
-  JOBTITLE,
-  SALARYRANGE,
-  EXPERIENCED,
-  SKILLS,
 } from "../../../constant/imagePath";
 import { getObjByKey, storeObjByKey } from "../../../utils/Storage";
 import { BASE_URL } from "../../../constant/url";
 import { GETNETWORK, PUTNETWORK } from "../../../utils/Network";
-import {
-  extractCategoryPreferences,
-  formatCategoryPreferenceNames,
-  resolveCategoryPreferenceLabels,
-} from "../../../utils/profileCategoryPreferences";
 import ReactNativeBlobUtil from 'react-native-blob-util';
-import { calculateCompletionPercentage } from "../../../utils/profileCompletion";
 
 const PERMITTED_LANGUAGES = ["English", "Hindi", "Odia", "Bengali", "Telugu"];
 const KEY_SKILL_OPTIONS = [
@@ -94,83 +76,6 @@ const capitalizeFirst = (str) => {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
 
-const GENDER_OPTIONS = [
-  { label: 'Select Gender', value: '' },
-  { label: 'Male', value: 'male' },
-  { label: 'Female', value: 'female' },
-  { label: 'Other', value: 'other' },
-];
-
-const getGenderDisplayLabel = (value) => {
-  const normalized = String(value || '').trim().toLowerCase();
-  const match = GENDER_OPTIONS.find((opt) => opt.value === normalized);
-  return match ? match.label : capitalizeFirst(value);
-};
-
-const CURRENT_SALARY_OPTIONS = [
-  { label: 'Select Current Salary', value: '' },
-  { label: 'Below 5 LPA', value: 'Below 5 LPA' },
-  { label: '5-10 LPA', value: '5-10 LPA' },
-  { label: '10-20 LPA', value: '10-20 LPA' },
-  { label: '20-30 LPA', value: '20-30 LPA' },
-  { label: '30+ LPA', value: '30+ LPA' },
-];
-
-const EXPECTED_SALARY_OPTIONS = [
-  { label: 'Select Expected Salary', value: '' },
-  { label: 'Below 5 LPA', value: 'Below 5 LPA' },
-  { label: '5-10 LPA', value: '5-10 LPA' },
-  { label: '10-20 LPA', value: '10-20 LPA' },
-  { label: '20-30 LPA', value: '20-30 LPA' },
-  { label: '30+ LPA', value: '30+ LPA' },
-];
-
-const NOTICE_PERIOD_OPTIONS = [
-  { label: 'Select Notice Period', value: '' },
-  { label: '15 days', value: '15 days' },
-  { label: '30 days', value: '30 days' },
-  { label: 'Immediate', value: 'Immediate' },
-];
-
-const getPickerDisplayLabel = (options, value) => {
-  const match = options.find((opt) => opt.value === value);
-  return match ? match.label : options[0]?.label || '';
-};
-
-const normalizeProfilePictureRaw = (raw) => {
-  if (!raw) return null;
-  if (typeof raw === 'object' && raw.uri) return String(raw.uri).trim() || null;
-  if (typeof raw === 'string') return raw.trim() || null;
-  return null;
-};
-
-const buildProfilePictureUrl = (raw, baseDomain) => {
-  const uri = normalizeProfilePictureRaw(raw);
-  if (!uri) return null;
-  if (
-    uri.startsWith('http://') ||
-    uri.startsWith('https://') ||
-    uri.startsWith('file://') ||
-    uri.startsWith('content://')
-  ) {
-    return uri;
-  }
-  const path = uri.startsWith('/') ? uri.slice(1) : uri;
-  return `${baseDomain}${path}`;
-};
-
-const extractProfilePictureRaw = (data, routePicture) => {
-  const fromData =
-    data?.profilePicture ??
-    data?.profile_picture ??
-    data?.picture ??
-    data?.avatar ??
-    data?.profileImage ??
-    data?.profile_image;
-  if (fromData) return fromData;
-  return routePicture ?? null;
-};
-
 const formatSkillName = (skill) => {
   if (!skill || typeof skill !== 'string') return skill || '';
 
@@ -191,39 +96,23 @@ const formatSkillName = (skill) => {
 
 const formatDateToDDMMYYYY = (dateString) => {
   if (!dateString) return "";
-  const trimmed = String(dateString).trim();
-  if (!trimmed) return "";
-
-  const ddmmyyyy = dayjs(trimmed, "DD/MM/YYYY", true);
-  if (ddmmyyyy.isValid()) return ddmmyyyy.format("DD/MM/YYYY");
-
-  const iso = dayjs(trimmed, "YYYY-MM-DD", true);
-  if (iso.isValid()) return iso.format("DD/MM/YYYY");
-
-  const fallback = dayjs(trimmed);
-  if (fallback.isValid()) return fallback.format("DD/MM/YYYY");
-
-  return trimmed;
+  try {
+    if (typeof dateString !== 'string') return '';
+    if (dateString.includes("/") && dateString.split("/").length === 3) {
+      return dateString;
+    }
+    const date = new Date(dateString);
+    if (!isNaN(date.getTime())) {
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    return dateString;
+  } catch {
+    return dateString;
+  }
 };
-
-/** Convert UI date (DD/MM/YYYY) to API format (YYYY-MM-DD). */
-const toApiDateOfBirth = (value) => {
-  const trimmed = String(value || "").trim();
-  if (!trimmed) return "";
-
-  const ddmmyyyy = dayjs(trimmed, "DD/MM/YYYY", true);
-  if (ddmmyyyy.isValid()) return ddmmyyyy.format("YYYY-MM-DD");
-
-  const iso = dayjs(trimmed, "YYYY-MM-DD", true);
-  if (iso.isValid()) return iso.format("YYYY-MM-DD");
-
-  const fallback = dayjs(trimmed);
-  if (fallback.isValid()) return fallback.format("YYYY-MM-DD");
-
-  return "";
-};
-
-const isValidDobValue = (value) => Boolean(toApiDateOfBirth(value));
 
 const CircularProgress = ({ size, strokeWidth, progress, color }) => {
   const radius = size / 2;
@@ -286,6 +175,92 @@ const CircularProgress = ({ size, strokeWidth, progress, color }) => {
   );
 };
 
+const calculateCompletionPercentage = ({
+  name, email, phone, address, gender, dob, profilePicture,
+  preferredLocation, currentSalary, expectedSalary, noticePeriod, bio,
+  slogan, file, resumeUrl,
+  experienceItems, educationItems, certificationItems, keySkills, languages
+}) => {
+  let percentage = 0;
+
+  // Helper function to check if field is truly filled
+  const isFieldFilled = (field) => {
+    if (!field) return false;
+    const strValue = String(field).trim();
+    return strValue !== '' && strValue !== 'N/A';
+  };
+
+  // Personal Details Section: 20% (if name, email, phone, address, gender, dob are filled)
+  const personalDetailsFields = [name, email, phone, address, gender, dob];
+  const personalDetailsFilled = personalDetailsFields.filter(isFieldFilled).length;
+  if (personalDetailsFilled === personalDetailsFields.length) {
+    percentage += 20;
+  }
+
+  // Profile Picture: 10% (if profilePicture is set)
+  if (profilePicture) {
+    // Handle both object with uri and string URL
+    const hasPicture = profilePicture.uri ? true : (typeof profilePicture === 'string' && profilePicture.trim() !== '');
+    if (hasPicture) {
+      percentage += 10;
+    }
+  }
+
+  // Career Preference Section: 10% (if preferredLocation, currentSalary, expectedSalary, noticePeriod, bio are filled)
+  const careerFields = [preferredLocation, currentSalary, expectedSalary, noticePeriod, bio];
+  const careerFieldsFilled = careerFields.filter(isFieldFilled).length;
+  if (careerFieldsFilled === careerFields.length) {
+    percentage += 10;
+  }
+
+  // Profile Summary Section: 5% (if slogan is filled)
+  if (isFieldFilled(slogan)) {
+    percentage += 5;
+  }
+
+  // Resume Added: 10% (if file or resumeUrl is added and not empty)
+  const hasResume = (file && file.uri && file.uri.trim() !== '') || (resumeUrl && String(resumeUrl).trim() !== '');
+  if (hasResume) {
+    percentage += 10;
+  }
+
+  // Employment History: 10% (if experienceItems has at least one filled entry)
+  const filledExperience = experienceItems.filter(
+    (exp) => exp.companyName && String(exp.companyName).trim() !== ''
+  ).length;
+  if (filledExperience > 0) {
+    percentage += 10;
+  }
+
+  // Certification: 2% (if certificationItems has at least one filled entry)
+  const filledCertifications = certificationItems.filter(
+    (cert) => cert.name && String(cert.name).trim() !== ''
+  ).length;
+  if (filledCertifications > 0) {
+    percentage += 2;
+  }
+
+  // Education: 20% (if educationItems has at least one filled entry)
+  const filledEducation = educationItems.filter(
+    (edu) => edu.degree && String(edu.degree).trim() !== ''
+  ).length;
+  if (filledEducation > 0) {
+    percentage += 20;
+  }
+
+  // Skills: 20% (if keySkills array has at least one skill)
+  if (keySkills && keySkills.length > 0) {
+    percentage += 20;
+  }
+
+  // Language: 13% (if languages array has at least one language)
+  if (languages && languages.length > 0) {
+    percentage += 13;
+  }
+
+  return Math.min(Math.round(percentage), 100);
+};
+
 const EditUserProfileScreen = ({ navigation, route }) => {
   const params = route?.params || {};
 
@@ -295,6 +270,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [preferredLocation, setPreferredLocation] = useState("");
+  const [preferredRole, setPreferredRole] = useState("");
   const [employmentType, setEmploymentType] = useState("");
   const [experience, setExperience] = useState("");
   const [expectedSalary, setExpectedSalary] = useState("");
@@ -320,15 +296,11 @@ const EditUserProfileScreen = ({ navigation, route }) => {
   const [resumeUrl, setResumeUrl] = useState(null);
   const [resumeName, setResumeName] = useState("");
   const [linkedin, setLinkedin] = useState("");
-  const [github, setGithub] = useState("");
-  const [portfolio, setPortfolio] = useState("");
-  const [others, setOthers] = useState("");
+  const [hasDisability, setHasDisability] = useState(false);
+  const [disabilityDetails, setDisabilityDetails] = useState("");
+  const [accommodationNeeds, setAccommodationNeeds] = useState("");
   const [toastMessage, setToastMessage] = useState({ type: "", msg: "", visible: false });
   const [loading, setLoading] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedSubcategories, setSelectedSubcategories] = useState([]);
-  const [categoryIds, setCategoryIds] = useState([]);
-  const [subcategoryIds, setSubcategoryIds] = useState([]);
 
   const parseToArray = (value) => {
     if (Array.isArray(value)) return value;
@@ -338,19 +310,11 @@ const EditUserProfileScreen = ({ navigation, route }) => {
   };
 
   const getRouteProfilePayload = () => {
-    const payload = params.profileData || params.profile || params.user || {};
-    const picture =
-      params.profilePicture ||
-      payload.profilePicture ||
-      payload.profile_picture;
-    if (picture || params.resume) {
-      return {
-        ...payload,
-        ...(picture ? { profilePicture: picture } : {}),
-        ...(params.resume ? { resume: params.resume } : {}),
-      };
-    }
-    return payload;
+    const payload = params.profileData || params.profile || params.user;
+    if (payload) return payload;
+    // If direct params have profilePicture or resume, use params
+    if (params.profilePicture || params.resume) return params;
+    return {};
   };
 
   const getBaseDomain = () => BASE_URL.replace(/\/api\/?$/, '/');
@@ -412,13 +376,6 @@ const EditUserProfileScreen = ({ navigation, route }) => {
     }));
   };
 
-  const applyCategoryPreferences = (prefs) => {
-    setSelectedCategories(prefs.categories || []);
-    setSelectedSubcategories(prefs.subcategories || []);
-    setCategoryIds(prefs.categoryIds || []);
-    setSubcategoryIds(prefs.subcategoryIds || []);
-  };
-
   const loadProfileData = (user, fromParams = false) => {
     const data = user || {};
     const nameValue = data.name || `${data.firstName || ""} ${data.lastName || ""}`.trim();
@@ -428,6 +385,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
     setPhone(data.phone || data.mobile || data.mobileNumber || "");
     setAddress(data.address || data.location || "");
     setPreferredLocation(data.preferredLocation || data.preferred_location || "");
+    setPreferredRole(data.preferredRole || data.preferred_role || data.role || "");
     setEmploymentType(data.employmentType || data.employment_type || "");
     setExperience(data.experience || data.experienceYears || "");
     setExpectedSalary(data.expectedSalary || data.expected_salary || "");
@@ -436,25 +394,19 @@ const EditUserProfileScreen = ({ navigation, route }) => {
     setBio(data.bio || data.biography || data.about || "");
     setCompanyName(data.company || "");
     setDesignation(data.currentJobRole || data.designation || data.jobRole || "");
-    // Preferred Job Role is stored in API as `slogan`
-    setSlogan(
-      data.slogan ??
-      data.slogans ??
-      data.summary ??
-      data.preferredRole ??
-      data.preferred_role ??
-      ""
-    );
+    setSlogan(data.slogan || data.slogans || data.summary || "");
     setGender(data.gender ? data.gender.toLowerCase() : '');
-    setDob(
-      formatDateToDDMMYYYY(
-        data.dateOfBirth || data.dob || data.date_of_birth || data.birthDate || ""
-      )
+    setDob(formatDateToDDMMYYYY(data.dob || data.dateOfBirth || data.date_of_birth || data.birthDate || ""));
+    setLinkedin(data.linkedin || data.linkedinUrl || "");
+    const disabilityFlag = data.hasDisability ?? data.has_disability;
+    setHasDisability(
+      disabilityFlag === true ||
+      disabilityFlag === "true" ||
+      disabilityFlag === 1 ||
+      disabilityFlag === "1"
     );
-    setLinkedin(data.linkedin || data.linkedinUrl || data.linkedIn || "");
-    setGithub(data.github || data.githubUrl || "");
-    setPortfolio(data.google || data.portfolio || data.portfolioUrl || "");
-    setOthers(data.others || data.other || data.otherUrl || "");
+    setDisabilityDetails(data.disabilityDetails || data.disability_details || "");
+    setAccommodationNeeds(data.accommodationNeeds || data.accommodation_needs || "");
     setLanguages((() => {
       let languageValues = [];
       if (Array.isArray(data.languages)) languageValues = data.languages;
@@ -493,13 +445,28 @@ const EditUserProfileScreen = ({ navigation, route }) => {
       setResumeName("");
     }
 
-    const pictureRaw = extractProfilePictureRaw(data, params.profilePicture);
-    const fullUri = buildProfilePictureUrl(pictureRaw, getBaseDomain());
-    if (fullUri) {
-      setProfilePicture({ uri: fullUri });
-    }
+    // Handle profile picture
+    if (data.profilePicture || data.profile_picture || (fromParams && params.profilePicture)) {
+      const img = data.profilePicture || data.profile_picture || (fromParams ? params.profilePicture : null);
+      console.log('🖼️ Profile picture from data:', img);
 
-    applyCategoryPreferences(extractCategoryPreferences(data));
+      // Construct full URL if it's a relative path
+      let fullUri;
+      if (img.startsWith('http://') || img.startsWith('https://')) {
+        // Already a full URL
+        fullUri = img;
+      } else {
+        // Relative path - construct full URL
+        const baseUrl = getBaseDomain();
+        fullUri = `${baseUrl}${img.startsWith('/') ? '' : '/'}${img}`;
+      }
+
+      console.log('✅ Setting profile picture URI:', fullUri);
+      setProfilePicture(fullUri);
+    } else if (!fromParams && !profilePicture) {
+      console.log('⚠️ No profile picture found in data and none previously set, setting to null');
+      setProfilePicture(null);
+    }
   };
 
   useFocusEffect(
@@ -535,18 +502,13 @@ const EditUserProfileScreen = ({ navigation, route }) => {
       noticePeriod,
       bio,
       slogan,
-      linkedin,
-      github,
-      portfolio,
-      others,
       file,
       resumeUrl,
       experienceItems,
-      projectItems,
       educationItems,
       certificationItems,
       keySkills,
-      languages,
+      languages
     });
     setCompletionPercentage(newPercentage);
   }, [
@@ -563,33 +525,20 @@ const EditUserProfileScreen = ({ navigation, route }) => {
     noticePeriod,
     bio,
     slogan,
-    linkedin,
-    github,
-    portfolio,
-    others,
     file,
     resumeUrl,
     experienceItems,
-    projectItems,
     educationItems,
     certificationItems,
     keySkills,
-    languages,
+    languages
   ]);
 
   const fetchProfile = async () => {
     try {
-      const stored = await getObjByKey('loginResponse');
-      const storedUser =
-        stored?.data ||
-        stored?.user ||
-        stored?.profile ||
-        stored ||
-        {};
-
       const url = `${BASE_URL}profile`;
       const response = await GETNETWORK(url, true);
-      // console.log('🔄 Fetch profile response:', response);
+      console.log('🔄 Fetch profile response:', response);
 
       // Handle different response structures
       let user = {};
@@ -604,40 +553,15 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         user = response;
       }
 
-      // console.log('👤 Parsed user data:', user);
-      // console.log('🖼️ Profile picture in response:', user?.profilePicture || user?.profile_picture);
+      console.log('👤 Parsed user data:', user);
+      console.log('🖼️ Profile picture in response:', user?.profilePicture || user?.profile_picture);
 
-      loadProfileData(
-        {
-          ...storedUser,
-          ...user,
-          profilePicture:
-            user?.profilePicture ||
-            user?.profile_picture ||
-            storedUser?.profilePicture ||
-            storedUser?.profile_picture ||
-            params.profilePicture,
-        },
-        false
-      );
-
-      const mergedUser = { ...storedUser, ...user };
-      const categoryPrefs = extractCategoryPreferences(mergedUser);
-      const resolvedPrefs = await resolveCategoryPreferenceLabels(categoryPrefs);
-      applyCategoryPreferences(resolvedPrefs);
+      loadProfileData(user, false);
     } catch (error) {
+      console.log('❌ Fetch profile error:', error);
       const stored = await getObjByKey('loginResponse');
-      const user = stored?.data || stored?.user || stored || {};
-      loadProfileData(
-        {
-          ...user,
-          profilePicture:
-            user?.profilePicture ||
-            user?.profile_picture ||
-            params.profilePicture,
-        },
-        false
-      );
+      const user = stored?.data || stored || {};
+      loadProfileData(user, false);
     }
   };
 
@@ -650,15 +574,15 @@ const EditUserProfileScreen = ({ navigation, route }) => {
   };
 
   const pickFile = async () => {
-    // console.log('pickFile called');
+    console.log('pickFile called');
     try {
       if (Platform.OS === 'android' && Platform.Version <= 32) {
-        // console.log('Checking permissions for Android <= 32');
+        console.log('Checking permissions for Android <= 32');
         const hasPermission = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
-        // console.log('Has permission:', hasPermission);
+        console.log('Has permission:', hasPermission);
         if (!hasPermission) {
           const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
-          // console.log('Permission granted:', granted);
+          console.log('Permission granted:', granted);
           if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
             Alert.alert(
               "Permission Required",
@@ -679,15 +603,15 @@ const EditUserProfileScreen = ({ navigation, route }) => {
           }
         }
       } else {
-        // console.log('No Android storage permission required for this OS version');
+        console.log('No Android storage permission required for this OS version');
       }
 
       try {
-        // console.log('Calling pick function');
+        console.log('Calling pick function');
         const [result] = await pick({
           type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
         });
-        // console.log('Pick result:', result);
+        console.log('Pick result:', result);
 
         if (result) {
           setFile({
@@ -696,13 +620,13 @@ const EditUserProfileScreen = ({ navigation, route }) => {
             type: result.type || 'application/pdf',
             size: result.size || 0,
           });
-          // console.log('File set:', result);
+          console.log('File set:', result);
         }
       } catch (pickerErr) {
-        // console.log('Picker error:', pickerErr);
+        console.log('Picker error:', pickerErr);
         if (isCancel(pickerErr)) {
           // User cancelled document picker
-          // console.log('User cancelled');
+          console.log('User cancelled');
         } else {
           Alert.alert(
             "Select Document",
@@ -712,7 +636,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         }
       }
     } catch (err) {
-      // console.log('Outer catch error:', err);
+      console.log('Outer catch error:', err);
       Alert.alert(
         "File Selection",
         "Unable to open file picker. Please ensure you have granted storage permissions and try again.",
@@ -727,38 +651,6 @@ const EditUserProfileScreen = ({ navigation, route }) => {
 
   const handleUpdate = async () => {
     if (loading) return;
-
-    const mandatoryFields = [
-      { label: "Name", value: name },
-      { label: "Email", value: email },
-      { label: "Phone", value: phone },
-      { label: "Gender", value: gender },
-      { label: "Date of Birth", value: dob },
-      { label: "Primary Location", value: preferredLocation },
-      { label: "Preferred Job Role", value: slogan },
-    ];
-    const missingFields = mandatoryFields.filter(
-      (field) => !String(field.value || "").trim()
-    );
-    if (missingFields.length > 0) {
-      setToastMessage({
-        type: "error",
-        msg: `Please fill required fields: ${missingFields.map((f) => f.label).join(", ")}`,
-        visible: true,
-      });
-      return;
-    }
-
-    const apiDateOfBirth = toApiDateOfBirth(dob);
-    if (!isValidDobValue(dob)) {
-      setToastMessage({
-        type: "error",
-        msg: "Please select a valid Date of Birth (e.g. 19/11/2000).",
-        visible: true,
-      });
-      return;
-    }
-
     setLoading(true);
     try {
       const putUrl = `${BASE_URL}profile`;
@@ -780,6 +672,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
       addField('phone', phone);
       addField('address', address);
       addField('preferredLocation', preferredLocation);
+      addField('preferredRole', preferredRole);
       addField('employmentType', employmentType);
       addField('expectedSalary', expectedSalary);
       addField('currentSalary', currentSalary);
@@ -787,16 +680,19 @@ const EditUserProfileScreen = ({ navigation, route }) => {
       addField('bio', bio);
       addField('companyName', companyName);
       addField('currentJobRole', designation);
-      // Preferred Job Role → API field: slogan (always send, e.g. "slogan": "")
-      multipart.push({ name: 'slogan', data: String(slogan ?? '').trim() });
+      addField('slogan', slogan);
       addField('gender', gender ? gender.toLowerCase() : '');
-      // Date of Birth → API field: dateOfBirth as YYYY-MM-DD (e.g. "2000-11-19")
-      multipart.push({ name: 'dateOfBirth', data: apiDateOfBirth });
+      addField('dob', dob);
       addField('linkedin', linkedin);
-      addField('github', github);
-      // Portfolio URL → API field: google (always send, e.g. "google": "")
-      multipart.push({ name: 'google', data: String(portfolio ?? '').trim() });
-      addField('others', others);
+      // Always send disability flag (addField skips empty strings)
+      multipart.push({ name: 'hasDisability', data: hasDisability ? 'true' : 'false' });
+      if (hasDisability) {
+        addField('disabilityDetails', disabilityDetails);
+        addField('accommodationNeeds', accommodationNeeds);
+      } else {
+        multipart.push({ name: 'disabilityDetails', data: '' });
+        multipart.push({ name: 'accommodationNeeds', data: '' });
+      }
       addField('skills', JSON.stringify(keySkills));
       addField('technicalSkills', Array.isArray(technicalSkills) ? technicalSkills.join(', ') : technicalSkills);
       addField('experience', JSON.stringify(experienceItems));
@@ -819,9 +715,9 @@ const EditUserProfileScreen = ({ navigation, route }) => {
               if (stat?.path) {
                 uri = `file://${stat.path}`;
               }
-              // console.log('🧩 Converted content URI for upload:', { original: profilePicture.uri, uploadUri: uri });
+              console.log('🧩 Converted content URI for upload:', { original: profilePicture.uri, uploadUri: uri });
             } catch (e) {
-              // console.log('⚠️ Failed to convert content URI, uploading as-is:', { uri, error: e?.message || e });
+              console.log('⚠️ Failed to convert content URI, uploading as-is:', { uri, error: e?.message || e });
             }
           }
 
@@ -835,9 +731,9 @@ const EditUserProfileScreen = ({ navigation, route }) => {
             type: mimeType,
             data: ReactNativeBlobUtil.wrap(pathForWrap),
           });
-          // console.log('📸 Adding new profile picture (blob multipart):', { filename, mimeType, uri });
+          console.log('📸 Adding new profile picture (blob multipart):', { filename, mimeType, uri });
         } else {
-          // console.log('✅ Profile picture already on server, skipping upload');
+          console.log('✅ Profile picture already on server, skipping upload');
         }
       }
 
@@ -855,11 +751,11 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         };
 
         multipart.push(resumeData);
-        // console.log('📄 Adding resume file to upload:', {
-        //   filename: resumeData.filename,
-        //   type: resumeData.type,
-        //   uri: file.uri,
-        // });
+        console.log('📄 Adding resume file to upload:', {
+          filename: resumeData.filename,
+          type: resumeData.type,
+          uri: file.uri,
+        });
       }
 
       console.log('🟡 PUT profile request', {
@@ -896,7 +792,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         responseData = blobRes?.data;
       }
       const ok = status >= 200 && status < 300;
-      // console.log('🟢 PUT profile response', { ok, status, data: responseData });
+      console.log('🟢 PUT profile response', { ok, status, data: responseData });
 
       const responseMessage =
         responseData?.message ||
@@ -906,7 +802,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         (typeof responseData === 'string' ? responseData : null);
 
       if (ok && (responseData?.success || responseData?.message?.includes('success') || responseData?.profile || responseData?.data || responseData?.profilePicture)) {
-        // console.log('✅ Profile update success:', responseMessage || 'Profile updated successfully');
+        console.log('✅ Profile update success:', responseMessage || 'Profile updated successfully');
         setToastMessage({ type: 'success', msg: responseMessage || 'Profile updated successfully', visible: true });
 
         // Postman returns { message, profilePicture: "/uploads/..." }
@@ -924,8 +820,8 @@ const EditUserProfileScreen = ({ navigation, route }) => {
               ? returnedProfilePicture
               : `${baseUrl}${returnedProfilePicture.startsWith('/') ? '' : '/'}${returnedProfilePicture}`;
 
-          // console.log('🖼️ Updated profile picture from PUT response:', { returnedProfilePicture, fullUri });
-          setProfilePicture({ uri: fullUri });
+          console.log('🖼️ Updated profile picture from PUT response:', { returnedProfilePicture, fullUri });
+          setProfilePicture(fullUri);
 
           // Persist to storage so other screens (fallback paths) see updated picture
           try {
@@ -943,12 +839,12 @@ const EditUserProfileScreen = ({ navigation, route }) => {
             else next.user = mergedUser;
 
             await storeObjByKey('loginResponse', next);
-            // console.log('💾 Stored updated profilePicture in loginResponse');
+            console.log('💾 Stored updated profilePicture in loginResponse');
           } catch (e) {
-            // console.log('⚠️ Failed to persist profilePicture:', e?.message || e);
+            console.log('⚠️ Failed to persist profilePicture:', e?.message || e);
           }
         } else {
-          // console.log('ℹ️ No profilePicture in PUT response');
+          console.log('ℹ️ No profilePicture in PUT response');
         }
 
         // Notify previous screen to refetch
@@ -956,7 +852,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
           try {
             params.onProfileUpdate();
           } catch (e) {
-            // console.log('⚠️ onProfileUpdate callback error:', e?.message || e);
+            console.log('⚠️ onProfileUpdate callback error:', e?.message || e);
           }
         }
 
@@ -977,18 +873,18 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         }
 
         if (Object.keys(updatedUser).length > 0) {
-          // console.log('✅ Using updated profile data from PUT response:', updatedUser);
+          console.log('✅ Using updated profile data from PUT response:', updatedUser);
           loadProfileData(updatedUser);
         } else {
           // Fallback to fetch if response doesn't contain user data
           fetchProfile();
         }
       } else {
-        // console.log('❌ PUT profile error response:', { ok, status, data: responseData });
+        console.log('❌ PUT profile error response:', { ok, status, data: responseData });
         setToastMessage({ type: 'error', msg: responseMessage || 'Update failed', visible: true });
       }
     } catch (error) {
-      // console.log('🔥 PUT profile catch error:', { message: error?.message, raw: error });
+      console.log('🔥 PUT profile catch error:', { message: error?.message, raw: error });
       const errorMsg = error?.message || (typeof error === 'string' ? error : 'Update failed, try again');
       setToastMessage({ type: 'error', msg: errorMsg, visible: true });
     } finally {
@@ -1044,29 +940,11 @@ const EditUserProfileScreen = ({ navigation, route }) => {
     </View>
   );
 
-  const renderEditableRow = (
-    label,
-    value,
-    setter,
-    icon = null,
-    keyboardType = 'default',
-    editable = true,
-    required = false,
-    noIconTint = false
-  ) => (
+  const renderEditableRow = (label, value, setter, icon = null, keyboardType = 'default', editable = true) => (
     <View style={styles.editableRow}>
-      {icon && (
-        <Image
-          source={icon}
-          style={[styles.rowIcon, !noIconTint && styles.rowIconTinted]}
-          resizeMode="contain"
-        />
-      )}
+      {icon && <Image source={icon} style={styles.rowIcon} />}
       <View style={styles.rowContentWrapper}>
-        <Text style={styles.rowLabel}>
-          {label}
-          {required ? <Text style={styles.requiredMark}> *</Text> : null}
-        </Text>
+        <Text style={styles.rowLabel}>{label}</Text>
         <TextInput
           style={[styles.rowInput, !editable && styles.readOnlyInput]}
           value={value}
@@ -1080,49 +958,6 @@ const EditUserProfileScreen = ({ navigation, route }) => {
       <Text style={styles.arrowIcon}>›</Text>
     </View>
   );
-
-  const renderInlinePicker = (label, value, onChange, options, icon = null) => {
-    const displayText = getPickerDisplayLabel(options, value);
-    const isPlaceholder = !String(value || '').trim();
-
-    return (
-      <View style={styles.dobFieldBlock}>
-        <View style={styles.dobLabelSide}>
-          {icon ? <Image source={icon} style={styles.rowIcon} resizeMode="contain" /> : null}
-          <Text style={styles.dobLabel}>{label}</Text>
-        </View>
-        <View style={styles.dobInputSide}>
-          <View style={styles.genderPickerWrapper}>
-            <View style={styles.genderPickerContainer}>
-              <View style={styles.genderPickerTextContainer}>
-                <Text
-                  style={[
-                    styles.genderPickerText,
-                    isPlaceholder && styles.genderPickerPlaceholder,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {displayText}
-                </Text>
-              </View>
-              <Picker
-                selectedValue={value || ''}
-                onValueChange={onChange}
-                style={styles.genderPickerOverlay}
-                dropdownIconColor="#6B7280"
-                itemStyle={styles.genderPickerItem}
-              >
-                {options.map((opt) => (
-                  <Picker.Item key={opt.value || `ph-${opt.label}`} label={opt.label} value={opt.value} />
-                ))}
-              </Picker>
-              <Image source={DROPDOWN} style={styles.genderDropdownIcon} resizeMode="contain" />
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  };
 
   const updateExperienceItem = (index, field, value) => {
     setExperienceItems((prev) => {
@@ -1307,12 +1142,12 @@ const EditUserProfileScreen = ({ navigation, route }) => {
                 color={completionPercentage === 100 ? '#4CAF50' : BRANDCOLOR}
               />
               <View style={styles.profileImageWrapper}>
-                {profilePicture?.uri ? (
-                  <Image
-                    source={{ uri: profilePicture.uri }}
+                {profilePicture ? (
+                  <Image 
+                    source={profilePicture.uri ? { uri: profilePicture.uri } : { uri: profilePicture }}
                     style={styles.profileImage}
                     defaultSource={PROFILE}
-                    key={profilePicture.uri}
+                    key={profilePicture.uri || profilePicture}
                     resizeMode="cover"
                   />
                 ) : (
@@ -1335,46 +1170,70 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         <View style={styles.sectionCard}>
           <Text style={styles.sectionHeader}>Career Preferences</Text>
           <View style={styles.rowDivider} />
-          {renderEditableRow('Primary Location', preferredLocation, setPreferredLocation, ADDRESS, 'default', true, true, true)}
+          {renderEditableRow('Preferred Location', preferredLocation, setPreferredLocation, ADDRESS)}
           <View style={styles.rowDivider} />
-          {renderEditableRow(
-            'Preferred Job Role',
-            slogan,
-            setSlogan,
-            JOBTITLE,
-            'default',
-            true,
-            true,
-            true
-          )}
+          {/* {renderEditableRow('Preferred Role', preferredRole, setPreferredRole)} */}
+          {/* <View style={styles.rowDivider} /> */}
+          <View style={styles.inputWrapper}>
+            <View style={styles.inputLabelRow}>
+              <Text style={styles.inputLabel}>Current Salary</Text>
+            </View>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={currentSalary}
+                onValueChange={setCurrentSalary}
+                style={styles.picker}
+                dropdownIconColor="#6B7280"
+              >
+                <Picker.Item label="Select Current Salary" value="" />
+                <Picker.Item label="Below 5 LPA" value="Below 5 LPA" />
+                <Picker.Item label="5-10 LPA" value="5-10 LPA" />
+                <Picker.Item label="10-20 LPA" value="10-20 LPA" />
+                <Picker.Item label="20-30 LPA" value="20-30 LPA" />
+                <Picker.Item label="30+ LPA" value="30+ LPA" />
+              </Picker>
+            </View>
+          </View>
           <View style={styles.rowDivider} />
-          {renderInlinePicker('Current Salary', currentSalary, setCurrentSalary, CURRENT_SALARY_OPTIONS, SALARYRANGE)}
+          <View style={styles.inputWrapper}>
+            <View style={styles.inputLabelRow}>
+              <Text style={styles.inputLabel}>Expected Salary</Text>
+            </View>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={expectedSalary}
+                onValueChange={setExpectedSalary}
+                style={styles.picker}
+                dropdownIconColor="#6B7280"
+              >
+                <Picker.Item label="Select Expected Salary" value="" />
+                <Picker.Item label="Below 5 LPA" value="Below 5 LPA" />
+                <Picker.Item label="5-10 LPA" value="5-10 LPA" />
+                <Picker.Item label="10-20 LPA" value="10-20 LPA" />
+                <Picker.Item label="20-30 LPA" value="20-30 LPA" />
+                <Picker.Item label="30+ LPA" value="30+ LPA" />
+              </Picker>
+            </View>
+          </View>
           <View style={styles.rowDivider} />
-          {renderInlinePicker('Expected Salary', expectedSalary, setExpectedSalary, EXPECTED_SALARY_OPTIONS, SALARYRANGE)}
-          <View style={styles.rowDivider} />
-          {renderInlinePicker('Notice Period', noticePeriod, setNoticePeriod, NOTICE_PERIOD_OPTIONS, EXPERIENCED)}
-          <View style={styles.rowDivider} />
-          {renderEditableRow(
-            'Categories',
-            formatCategoryPreferenceNames(selectedCategories),
-            () => {},
-            SKILLS,
-            'default',
-            false,
-            false,
-            true
-          )}
-          <View style={styles.rowDivider} />
-          {renderEditableRow(
-            'Subcategories',
-            formatCategoryPreferenceNames(selectedSubcategories),
-            () => {},
-            SKILLS,
-            'default',
-            false,
-            false,
-            true
-          )}
+          <View style={styles.inputWrapper}>
+            <View style={styles.inputLabelRow}>
+              <Text style={styles.inputLabel}>Notice Period</Text>
+            </View>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={noticePeriod}
+                onValueChange={setNoticePeriod}
+                style={styles.picker}
+                dropdownIconColor="#6B7280"
+              >
+                <Picker.Item label="Select Notice Period" value="" />
+                <Picker.Item label="15 days" value="15 days" />
+                <Picker.Item label="30 days" value="30 days" />
+                <Picker.Item label="Immediate" value="Immediate" />
+              </Picker>
+            </View>
+          </View>
           <View style={styles.rowDivider} />
           <TextInput
             style={styles.bioTextInput}
@@ -1391,85 +1250,119 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         <View style={styles.sectionCard}>
           <Text style={styles.sectionHeader}>Personal Details</Text>
           <View style={styles.rowDivider} />
-          {renderEditableRow('Full Name', name, setName, USER, 'default', true, true)}
+          {renderEditableRow('Full Name', name, setName, USER, 'default', false)}
           <View style={styles.rowDivider} />
-          {renderEditableRow('Email', email, setEmail, MAIL, 'email-address', false, true)}
+          {renderEditableRow('Email', email, setEmail, MAIL, 'email-address', false)}
           <View style={styles.rowDivider} />
-          {renderEditableRow('Mobile Number', phone, setPhone, PHONE, 'phone-pad', true, true)}
+          {renderEditableRow('Mobile Number', phone, setPhone, PHONE, 'phone-pad')}
           <View style={styles.rowDivider} />
-          {renderEditableRow('Address', address, setAddress, ADDRESS, 'default', true, false, true)}
+          {renderEditableRow('Address', address, setAddress, ADDRESS)}
           <View style={styles.rowDivider} />
-          <View style={styles.dobFieldBlock}>
-            <View style={styles.dobLabelSide}>
-              <Image source={USER} style={styles.rowIcon} />
-              <Text style={styles.dobLabel}>
-                Gender<Text style={styles.requiredMark}> *</Text>
-              </Text>
+          <View style={styles.inputWrapper}>
+            <View style={styles.inputLabelRow}>
+              <Text style={styles.inputLabel}>Gender</Text>
             </View>
-            <View style={styles.dobInputSide}>
-              <View style={styles.genderPickerWrapper}>
-                <View style={styles.genderPickerContainer}>
-                  <View style={styles.genderPickerTextContainer}>
-                    <Text
-                      style={[
-                        styles.genderPickerText,
-                        !String(gender || '').trim() && styles.genderPickerPlaceholder,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {getGenderDisplayLabel(gender)}
-                    </Text>
-                  </View>
-                  <Picker
-                    selectedValue={gender || ''}
-                    onValueChange={setGender}
-                    style={styles.genderPickerOverlay}
-                    dropdownIconColor="#6B7280"
-                    itemStyle={styles.genderPickerItem}
-                  >
-                    {GENDER_OPTIONS.map((opt) => (
-                      <Picker.Item key={opt.value || 'placeholder'} label={opt.label} value={opt.value} />
-                    ))}
-                  </Picker>
-                  <Image source={DROPDOWN} style={styles.genderDropdownIcon} resizeMode="contain" />
-                </View>
-              </View>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={gender}
+                onValueChange={setGender}
+                style={styles.picker}
+                dropdownIconColor="#6B7280"
+              >
+                <Picker.Item label="Select Gender" value="" />
+                <Picker.Item label="Male" value="male" />
+                <Picker.Item label="Female" value="female" />
+                <Picker.Item label="Other" value="other" />
+              </Picker>
             </View>
           </View>
           <View style={styles.rowDivider} />
-          <View style={styles.dobFieldBlock}>
-            <View style={styles.dobLabelSide}>
-              <Image source={DOB} style={styles.rowIcon} />
-              <Text style={styles.dobLabel}>
-                Date of Birth<Text style={styles.requiredMark}> *</Text>
+          <View style={styles.dobField}>
+            <Text style={styles.rowLabel}>Date of Birth</Text>
+            <DateComponent
+              value={dob}
+              onChange={setDob}
+              format="DD/MM/YYYY"
+              placeholder="Select Date"
+              minDate={new Date(1956, 0, 1)}
+              maxDate={new Date(2026, 11, 31)}
+              containerStyle={styles.dobDateContainer}
+              triggerStyle={styles.dobDateTrigger}
+            />
+          </View>
+          <View style={styles.rowDivider} />
+          {renderEditableRow('LinkedIn', linkedin, setLinkedin, MAIL)}
+        </View>
+
+        {/* Accessibility Section */}
+        <View style={styles.sectionCard}>
+          <View style={styles.accessibilityHeaderRow}>
+            <View style={styles.accessibilityHeaderText}>
+              <Text style={styles.sectionHeader}>Accessibility</Text>
+              <Text style={styles.accessibilitySubtitle}>
+                Let us know if you need any accommodations — completely optional.
               </Text>
             </View>
-            <View style={styles.dobInputSide}>
-              <DateComponent
-                value={dob}
-                onChange={setDob}
-                format="DD/MM/YYYY"
-                placeholder="Select Date"
-                minDate={new Date(1956, 0, 1)}
-                maxDate={new Date(2026, 11, 31)}
-                containerStyle={styles.dobDateWrap}
-                triggerStyle={styles.dobDateTrigger}
+            <View style={styles.accessibilityToggleWrap}>
+              <Text style={styles.accessibilityToggleLabel}>
+                {hasDisability ? "On" : "Off"}
+              </Text>
+              <Switch
+                value={hasDisability}
+                onValueChange={(value) => {
+                  setHasDisability(value);
+                  if (!value) {
+                    setDisabilityDetails("");
+                    setAccommodationNeeds("");
+                  }
+                }}
+                trackColor={{ false: "#CBD5E1", true: BRANDCOLOR }}
+                thumbColor={WHITE}
+                ios_backgroundColor="#CBD5E1"
               />
             </View>
           </View>
+
+          {hasDisability && (
+            <View style={styles.accessibilityFields}>
+              <Text style={styles.accessibilityFieldLabel}>Disability / condition</Text>
+              <TextInput
+                style={styles.summaryTextInput}
+                value={disabilityDetails}
+                onChangeText={setDisabilityDetails}
+                placeholder="e.g. locomotor disability, hearing impaired, visually impaired"
+                multiline
+                numberOfLines={3}
+                placeholderTextColor="#9CA3AF"
+              />
+              <Text style={[styles.accessibilityFieldLabel, { marginTop: 14 }]}>
+                Accommodation needs
+              </Text>
+              <TextInput
+                style={styles.summaryTextInput}
+                value={accommodationNeeds}
+                onChangeText={setAccommodationNeeds}
+                placeholder="e.g. needs a sign language interpreter, wheelchair accessible interview location"
+                multiline
+                numberOfLines={3}
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+          )}
         </View>
 
-        {/* Portfolio and Other Section */}
+        {/* Profile Summary Section */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeader}>Portfolio and Other</Text>
-          <View style={styles.rowDivider} />
-          {renderEditableRow('LinkedIn', linkedin, setLinkedin, LINKEDIN, 'url', true, false, true)}
-          <View style={styles.rowDivider} />
-          {renderEditableRow('GitHub', github, setGithub, GITHUB, 'url', true, false, true)}
-          <View style={styles.rowDivider} />
-          {renderEditableRow('Portfolio', portfolio, setPortfolio, PORTFOLIO, 'url', true, false, true)}
-          <View style={styles.rowDivider} />
-          {renderEditableRow('Other', others, setOthers, OTHERS, 'url', true, false, true)}
+          <Text style={styles.sectionHeader}>Profile Summary</Text>
+          <TextInput
+            style={styles.summaryTextInput}
+            value={slogan}
+            onChangeText={setSlogan}
+            placeholder="Experienced software developer with a background in web and mobile applications."
+            multiline
+            numberOfLines={4}
+            placeholderTextColor="#9CA3AF"
+          />
         </View>
 
         {/* Resume Section */}
@@ -1663,7 +1556,7 @@ const EditUserProfileScreen = ({ navigation, route }) => {
         textColor={WHITE}
         type={toastMessage.type}
         duration={3000}
-        image={LOGO}
+        image={PROFILE}
       />
     </View>
   );
@@ -1828,9 +1721,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     marginRight: 10,
-  },
-  rowIconTinted: {
-    tintColor: '#6B7280',
+    tintColor: '#6B7280'
   },
   rowContentWrapper: {
     flex: 1,
@@ -1841,10 +1732,6 @@ const styles = StyleSheet.create({
     fontFamily: FIRASANSSEMIBOLD,
     color: '#374151',
     marginBottom: 4
-  },
-  requiredMark: {
-    color: '#DC2626',
-    fontFamily: FIRASANSSEMIBOLD,
   },
   rowInput: {
     fontSize: 13,
@@ -1869,93 +1756,30 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginLeft: 8
   },
-  dobFieldBlock: {
+  birthRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    width: '100%',
-    gap: 10,
+    paddingVertical: 8,
   },
-  dobLabelSide: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 0.42,
-    paddingRight: 4,
+  birthLabelWrapper: {
+    flex: 0.45,
   },
-  dobLabel: {
-    fontSize: 12,
-    fontFamily: FIRASANSSEMIBOLD,
-    color: '#374151',
-    flexShrink: 1,
+  dobField: {
+    paddingVertical: 10,
   },
-  dobInputSide: {
-    flex: 0.58,
-    minWidth: 0,
-  },
-  dobDateWrap: {
+  dobDateContainer: {
     marginBottom: 0,
-    width: '100%',
+    marginTop: 2,
   },
   dobDateTrigger: {
-    width: '100%',
-    minHeight: 44,
-    maxHeight: 44,
-    height: 44,
-    paddingVertical: 0,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    minHeight: 36,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#E4E8F0',
-    justifyContent: 'center',
-  },
-  genderPickerWrapper: {
-    width: '100%',
-  },
-  genderPickerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    height: 44,
-    minHeight: 44,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E4E8F0',
-    backgroundColor: WHITE,
-    paddingHorizontal: 10,
-    overflow: 'hidden',
-  },
-  genderPickerTextContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingRight: 6,
-  },
-  genderPickerText: {
-    fontSize: 13,
-    fontFamily: UBUNTU,
-    color: '#111827',
-  },
-  genderPickerPlaceholder: {
-    color: '#9CA3AF',
-  },
-  genderPickerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-    opacity: 0,
-  },
-  genderPickerItem: {
-    fontSize: 13,
-    fontFamily: UBUNTU,
-  },
-  genderDropdownIcon: {
-    width: 14,
-    height: 14,
-    tintColor: '#6B7280',
+    backgroundColor: '#FCFCFD',
   },
   dateRow: {
     flexDirection: 'row',
@@ -2001,6 +1825,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     fontFamily: FIRASANSSEMIBOLD
+  },
+  accessibilityHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  accessibilityHeaderText: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  accessibilitySubtitle: {
+    fontSize: 12,
+    fontFamily: UBUNTU,
+    color: '#64748B',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  accessibilityToggleWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingTop: 2,
+  },
+  accessibilityToggleLabel: {
+    fontSize: 12,
+    fontFamily: FIRASANSSEMIBOLD,
+    color: '#64748B',
+  },
+  accessibilityFields: {
+    marginTop: 16,
+  },
+  accessibilityFieldLabel: {
+    fontSize: 13,
+    fontFamily: FIRASANSSEMIBOLD,
+    color: '#334155',
+    marginBottom: 8,
   },
   subCard: {
     backgroundColor: '#F8FAFC',

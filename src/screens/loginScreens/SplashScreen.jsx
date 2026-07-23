@@ -1,583 +1,304 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, StatusBar, StyleSheet, View, Platform, SafeAreaView, Text } from "react-native";
-import { BLACK, WHITE } from "../../constant/color";
-import { LOGO, UP } from "../../constant/imagePath";
-import { UBUNTUBOLD } from "../../constant/fontPath";
-// import 'firebase/auth'
-import { PermissionsAndroid } from 'react-native';
-import { getObjByKey, getStringByKey, storeStringByKey } from "../../utils/Storage";
+import React, { useEffect, useRef } from "react";
+import {
+    Animated,
+    Dimensions,
+    Image,
+    ImageBackground,
+    StatusBar,
+    StyleSheet,
+    Text,
+    View,
+    Platform,
+    SafeAreaView,
+} from "react-native";
+import { SPLASHSCREEN, UP } from "../../constant/imagePath";
+import { UBUNTUBOLD, UBUNTU } from "../../constant/fontPath";
+import { PermissionsAndroid } from "react-native";
+import { getStringByKey } from "../../utils/Storage";
 import { NotificationListener, requestUserPermission } from "../../utils/PushNotification";
 import SpInAppUpdates, { IAUUpdateKind } from "sp-react-native-in-app-updates";
 import { BASE_URL } from "../../constant/url";
-import messaging from '@react-native-firebase/messaging';
+import messaging from "@react-native-firebase/messaging";
+import { useTranslation } from "../../hooks/useTranslation";
 import { ensureLanguageLoaded } from "../../i18n";
-import i18n from "../../i18n";
 
-const LETTER_ENTER_MS = 55;
-const LETTER_EXIT_MS = 42;
-const HOLD_AFTER_SLOGAN_MS = 1400;
+const TEXT_GREEN = "#1B5E3B";
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-const createLetterAnims = (count) =>
-    Array.from({ length: count }, () => ({
-        opacity: new Animated.Value(0),
-        translateY: new Animated.Value(14),
-        scale: new Animated.Value(0.55),
-    }));
-
-const animateLettersIn = (letterAnims) =>
-    Animated.stagger(
-        LETTER_ENTER_MS,
-        letterAnims.map(({ opacity, translateY, scale }) =>
-            Animated.parallel([
-                Animated.timing(opacity, {
-                    toValue: 1,
-                    duration: 240,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(translateY, {
-                    toValue: 0,
-                    duration: 240,
-                    useNativeDriver: true,
-                }),
-                Animated.spring(scale, {
-                    toValue: 1,
-                    friction: 7,
-                    tension: 90,
-                    useNativeDriver: true,
-                }),
-            ])
-        )
-    );
-
-const animateLettersOut = (letterAnims) =>
-    Animated.stagger(
-        LETTER_EXIT_MS,
-        letterAnims.map(({ opacity, translateY, scale }) =>
-            Animated.parallel([
-                Animated.timing(opacity, {
-                    toValue: 0,
-                    duration: 170,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(translateY, {
-                    toValue: -16,
-                    duration: 170,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(scale, {
-                    toValue: 0.45,
-                    duration: 170,
-                    useNativeDriver: true,
-                }),
-            ])
-        )
-    );
-
-const resetLetterAnims = (letterAnims) => {
-    letterAnims.forEach(({ opacity, translateY, scale }) => {
-        opacity.setValue(0);
-        translateY.setValue(14);
-        scale.setValue(0.55);
-    });
-};
-
-const SplashScreen = ({ navigation }) => {
-    const [splashReady, setSplashReady] = useState(false);
-    const [sloganLines, setSloganLines] = useState([]);
-    const hasNavigatedRef = useRef(false);
-
-    const logoScale = useRef(new Animated.Value(0.8)).current;
+export default function SplashScreen({ navigation, onFinish }) {
+    const { t } = useTranslation();
+    const logoScale = useRef(new Animated.Value(0.7)).current;
     const logoOpacity = useRef(new Animated.Value(0)).current;
-    const sloganOpacity = useRef(new Animated.Value(0)).current;
-    const sloganTranslate = useRef(new Animated.Value(-10)).current;
-    const letterAnimsRef = useRef([]);
-    const inAppUpdates = new SpInAppUpdates(false);
+    const textOpacity = useRef(new Animated.Value(0)).current;
+    const textTranslate = useRef(new Animated.Value(16)).current;
+    const contentOpacity = useRef(new Animated.Value(1)).current;
+    const finishedRef = useRef(false);
+    const inAppUpdates = useRef(new SpInAppUpdates(false)).current;
+
+    const finishSplash = async () => {
+        if (finishedRef.current) return;
+        finishedRef.current = true;
+
+        if (typeof onFinish === "function") {
+            onFinish();
+            return;
+        }
+
+        if (!navigation?.navigate) return;
+
+        const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
+        if (hasSeenOnboarding === "true") {
+            navigation.navigate("MainTabs");
+        } else {
+            navigation.navigate("OnBoarding");
+        }
+    };
+
+    /* Play Store in-app update check */
+    const triggerInAppUpdate = async () => {
+        try {
+            const result = await inAppUpdates.checkNeedsUpdate();
+            if (result?.shouldUpdate) {
+                await inAppUpdates.startUpdate({
+                    updateType: IAUUpdateKind.FLEXIBLE,
+                });
+            }
+        } catch (error) {
+            console.log("Update check error:", error?.message || error);
+        }
+    };
 
     useEffect(() => {
-        let mounted = true;
+        triggerInAppUpdate();
+
+        const onStatusUpdate = (status) => {
+            console.log("Update status:", status);
+        };
+
+        try {
+            inAppUpdates.addStatusUpdateListener(onStatusUpdate);
+        } catch (_) {
+            /* ignore */
+        }
+
+        return () => {
+            try {
+                inAppUpdates.removeStatusUpdateListener(onStatusUpdate);
+            } catch (_) {
+                /* ignore */
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        let safetyTimer = null;
 
         const prepareSplash = async () => {
             try {
                 await ensureLanguageLoaded();
-            } catch {
+            } catch (_) {
                 /* continue with English */
             }
-            if (!mounted) return;
 
-            const lines = [
-                i18n.t('splash.sloganLine1'),
-                i18n.t('splash.sloganLine2'),
-            ];
-            const count = lines.reduce((sum, line) => sum + line.length, 0);
-            letterAnimsRef.current = createLetterAnims(Math.max(count, 1));
-            setSloganLines(lines);
-            setSplashReady(true);
+            if (cancelled) return;
+
+            Animated.sequence([
+                Animated.parallel([
+                    Animated.timing(logoOpacity, {
+                        toValue: 1,
+                        duration: 450,
+                        useNativeDriver: true,
+                    }),
+                    Animated.spring(logoScale, {
+                        toValue: 1,
+                        friction: 6,
+                        tension: 80,
+                        useNativeDriver: true,
+                    }),
+                ]),
+                Animated.delay(180),
+                Animated.parallel([
+                    Animated.timing(textOpacity, {
+                        toValue: 1,
+                        duration: 450,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(textTranslate, {
+                        toValue: 0,
+                        duration: 450,
+                        useNativeDriver: true,
+                    }),
+                ]),
+                Animated.delay(1700),
+                Animated.timing(contentOpacity, {
+                    toValue: 0,
+                    duration: 350,
+                    useNativeDriver: true,
+                }),
+            ]).start(({ finished }) => {
+                if (finished && !cancelled) {
+                    finishSplash();
+                }
+            });
+
+            // Never leave the user stuck on splash
+            safetyTimer = setTimeout(() => {
+                if (!cancelled) finishSplash();
+            }, 5000);
         };
 
         prepareSplash();
 
         return () => {
-            mounted = false;
-        };
-    }, []);
-
-    const navigateFromSplash = async () => {
-        if (hasNavigatedRef.current) return;
-        hasNavigatedRef.current = true;
-
-        try {
-            const skipSplash = await getStringByKey("skipSplash");
-            if (skipSplash === "true") {
-                await storeStringByKey("skipSplash", "");
-            }
-
-            const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
-            const target = hasSeenOnboarding === "true" ? "MainTabs" : "OnBoarding";
-            navigation.replace(target);
-        } catch {
-            navigation.replace("OnBoarding");
-        }
-    };
-
-    /* ✅ PlayStore Update Concept Start */
-    const isPlayStoreOwnershipError = (error) => {
-        const errorText = String(error?.message || error || "").toLowerCase();
-        return (
-            errorText.includes("error_app_not_owned") ||
-            errorText.includes("install error(-10)") ||
-            errorText.includes("installexception: -10") ||
-            errorText.includes("not owned by any user") ||
-            errorText.includes("app is not owned")
-        );
-    };
-
-    const triggerInAppUpdate = async () => {
-        if (Platform.OS !== "android") return;
-
-        if (__DEV__) {
-            // console.log("ℹ️ In-app update skipped in debug/dev build. Test with Play Store installed release build.");
-            return;
-        }
-
-        try {
-            // console.log("🔍 Checking for update...");
-
-            const result = await inAppUpdates.checkNeedsUpdate();
-
-            // console.log("📦 Update result:", result);
-
-            if (result.shouldUpdate) {
-                // console.log("🚀 Update available → launching Play Store UI");
-
-                await inAppUpdates.startUpdate({
-                    updateType: IAUUpdateKind.FLEXIBLE,
-                });
-
-                // console.log("✅ Update flow started");
-            } else {
-                // console.log("✅ App is already up to date");
-            }
-        } catch (error) {
-            if (isPlayStoreOwnershipError(error)) {
-                // console.log("ℹ️ Update check skipped: this app build is not owned by Play Store on this device.");
-                // console.log("✅ App update status cannot be verified via in-app updates for this build.");
-                return;
-            }
-            // console.log("❌ Update error:", error);
-        }
-    };
-    /* ✅ PlayStore Update Concept Start */
-
-    /* ✅ PlayStore App Update Check Starts */
-    useEffect(() => {
-        triggerInAppUpdate();
-
-        inAppUpdates.addStatusUpdateListener((status) => {
-            // console.log("📊 Update status:", status);
-
-            if (status === 11) {
-                // console.log("✅ Update downloaded (ready to install)");
-            }
-        });
-
-        return () => {
-            try {
-                inAppUpdates.removeStatusUpdateListener();
-            } catch (e) {
-                // console.log("⚠️ Listener cleanup error:", e);
-            }
-        };
-    }, []);
-    /* ✅ Playstore App Update Check Ends */
-
-
-    useEffect(() => {
-        if (!splashReady) return;
-
-        let cancelled = false;
-        const safetyTimer = setTimeout(() => {
-            if (!cancelled) navigateFromSplash();
-        }, 10000);
-
-        const runSplashFlow = async () => {
-            const skipSplash = await getStringByKey("skipSplash");
-            if (cancelled) return;
-
-            if (skipSplash === "true") {
-                clearTimeout(safetyTimer);
-                await navigateFromSplash();
-                return;
-            }
-
-            resetLetterAnims(letterAnimsRef.current);
-            sloganOpacity.setValue(0);
-            sloganTranslate.setValue(-10);
-
-            Animated.sequence([
-            Animated.parallel([
-                Animated.timing(logoOpacity, {
-                    toValue: 1,
-                    duration: 300,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(logoScale, {
-                    toValue: 1.4,
-                    duration: 800,
-                    useNativeDriver: true,
-                }),
-            ]),
-            Animated.delay(300),
-            Animated.timing(logoScale, {
-                toValue: 0.95,
-                duration: 300,
-                useNativeDriver: true,
-            }),
-            Animated.timing(logoScale, {
-                toValue: 1,
-                duration: 180,
-                useNativeDriver: true,
-            }),
-            Animated.parallel([
-                Animated.timing(sloganOpacity, {
-                    toValue: 1,
-                    duration: 400,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(sloganTranslate, {
-                    toValue: 12,
-                    duration: 400,
-                    useNativeDriver: true,
-                }),
-            ]),
-            animateLettersIn(letterAnimsRef.current),
-            Animated.delay(HOLD_AFTER_SLOGAN_MS),
-            animateLettersOut(letterAnimsRef.current),
-            ]).start(({ finished }) => {
-                if (cancelled) return;
-                clearTimeout(safetyTimer);
-                if (finished) {
-                    navigateFromSplash();
-                }
-            });
-        };
-
-        runSplashFlow();
-
-        return () => {
             cancelled = true;
-            clearTimeout(safetyTimer);
+            if (safetyTimer) clearTimeout(safetyTimer);
         };
-    }, [splashReady, navigation]);
-
-    // Your Firebase configuration
-    const firebaseConfig = {
-        apiKey: "AIzaSyCxDi368BvYNPrFb0n_OWN54iw16-eTSaM",
-        authDomain: "uptula-d1894.firebaseapp.com",
-        projectId: "uptula-d1894",
-        storageBucket: "uptula-d1894.firebasestorage.app",
-        messagingSenderId: "193282547247",
-        appId: "1:193282547247:android:54aee546fa7e7e4bbbb0da"
-    };
-
-    // Searching for the Device through Which FCM token is being generated and Posted
-    const getPlatform = () => {
-        const ua = navigator.userAgent || navigator.vendor || window.opera;
-
-        if (/android/i.test(ua)) return "mobile";
-        if (/iPhone|iPad|iPod/i.test(ua)) return "mobile";
-
-        return "desktop";
-    };
+    }, []);
 
     useEffect(() => {
-        const platform = getPlatform();
         const initializeNotifications = async () => {
             try {
-                if (Platform.OS === 'android') {
+                if (Platform.OS === "android") {
                     await PermissionsAndroid.request(
                         PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
                     );
                 }
 
-                // console.log('📱 Initializing push notifications...');
                 await requestUserPermission();
-                NotificationListener(navigation);
+                NotificationListener();
 
-                // ✅ GET FCM TOKEN
                 const token = await messaging().getToken();
-                // console.log('🔥 FCM Token:', token);
+                const user = await getStringByKey("user");
+                const parsedUser = user ? JSON.parse(user) : null;
 
-                // Read login response stored after login
-                const loginResponse = await getObjByKey("loginResponse");
-                const authToken = loginResponse?.token || null;
-                const userId = loginResponse?.user?.id || loginResponse?.id || null;
-
-                // ✅ SEND TO BACKEND USING BASE_URL
-                const saveFcmResponse = await fetch(`${BASE_URL}profile/save-fcm-token`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-                    },
-                    body: JSON.stringify({
-                        userId: userId,
-                        token: token,
-                        platform: platform
-                    })
-                });
-
-                // console.log('📡 Save FCM token response status:', saveFcmResponse.status);
-                const saveFcmData = await saveFcmResponse.json().catch(() => null);
-
-                if (saveFcmResponse.ok) {
-                    
-                    // console.log('✅ FCM token posted successfully:', saveFcmData?.message || 'Success');
-                } else {
-                    // console.log('❌ FCM token post failed:', saveFcmData?.message || 'Unknown server error');
-                    // console.log('🧾 FCM token post debug:', { hasAuthToken: !!authToken, userId });
+                if (token) {
+                    await fetch(`${BASE_URL}profile/save-fcm-token`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            userId: parsedUser?.id,
+                            token: token,
+                        }),
+                    });
                 }
-
             } catch (error) {
-                // console.log('❌ Error initializing notifications:', error);
+                console.error("Error initializing notifications:", error);
             }
         };
         initializeNotifications();
     }, []);
 
     const Container = Platform.OS === "ios" ? SafeAreaView : View;
+    const sloganLine1 = t("splash.sloganLine1");
+    const sloganLine2 = t("splash.sloganLine2");
 
     return (
         <>
             <StatusBar
-                backgroundColor={WHITE}
-                barStyle={Platform.OS === "ios" ? "dark-content" : "dark-content"}
-                translucent={Platform.OS === "android"}
+                backgroundColor="transparent"
+                barStyle="dark-content"
+                translucent
             />
 
-            {/* Conatiner */}
-            <Container style={[
-                styles.container,
-                Platform.OS === "ios" && styles.containerIOS,
-                Platform.OS === "android" && styles.containerAndroid
-            ]}>
-                {/* Child Conatiner */}
-                <View style={[
-                    styles.childConatiner,
-                    Platform.OS === "ios" && styles.childConatinerIOS,
-                    Platform.OS === "android" && styles.childConatinerAndroid
-                ]}>
-
+            <ImageBackground
+                source={SPLASHSCREEN}
+                style={styles.background}
+                resizeMode="cover"
+            >
+                <Container style={styles.container}>
                     <Animated.View
                         style={[
-                            styles.imgConatiner,
-                            Platform.OS === "ios" && styles.imgConatinerIOS,
-                            Platform.OS === "android" && styles.imgConatinerAndroid,
-                            {
-                                transform: [{ scale: logoScale }],
-                                opacity: logoOpacity,
-                            },
+                            styles.brandBlock,
+                            { opacity: contentOpacity },
                         ]}
                     >
-                        <Animated.Image
+                        <Animated.View
                             style={[
-                                styles.imgLogo,
-                                Platform.OS === "ios" && styles.imgLogoIOS,
-                                Platform.OS === "android" && styles.imgLogoAndroid
+                                styles.logoWrap,
+                                {
+                                    opacity: logoOpacity,
+                                    transform: [{ scale: logoScale }],
+                                },
                             ]}
-                            source={UP}
-                            resizeMode="contain"
-                        />
-                    </Animated.View>
+                        >
+                            <Image
+                                style={styles.logo}
+                                source={UP}
+                                resizeMode="contain"
+                            />
+                        </Animated.View>
 
-                    <Animated.View style={[
-                        styles.txtConatiner,
-                        Platform.OS === "ios" && styles.txtConatinerIOS,
-                        Platform.OS === "android" && styles.txtConatinerAndroid,
-                        { opacity: sloganOpacity },
-                    ]}>
-                        <Animated.Image
-                            source={LOGO}
+                        <Animated.View
                             style={[
-                                styles.sloganLogo,
-                                Platform.OS === "ios" && styles.sloganLogoIOS,
-                                Platform.OS === "android" && styles.sloganLogoAndroid,
-                                { transform: [{ translateY: sloganTranslate }] },
+                                styles.textWrap,
+                                {
+                                    opacity: textOpacity,
+                                    transform: [{ translateY: textTranslate }],
+                                },
                             ]}
-                            resizeMode="contain"
-                        />
-
-                        <View style={styles.sloganTextBlock}>
-                            {splashReady && sloganLines.map((line, lineIndex) => {
-                                const lineStartIndex = sloganLines.slice(0, lineIndex)
-                                    .reduce((sum, l) => sum + l.length, 0);
-
-                                return (
-                                    <View
-                                        key={`slogan-line-${lineIndex}`}
-                                        style={[
-                                            styles.sloganRow,
-                                            lineIndex > 0 && styles.sloganRowSecond,
-                                        ]}
-                                    >
-                                        {[...line].map((char, charIndex) => {
-                                            const index = lineStartIndex + charIndex;
-                                            const letterAnim = letterAnimsRef.current[index];
-                                            if (!letterAnim) return null;
-                                            return (
-                                                <Animated.Text
-                                                    key={`slogan-${lineIndex}-${charIndex}`}
-                                                    style={[
-                                                        styles.sloganLetter,
-                                                        Platform.OS === "ios" && styles.sloganLetterIOS,
-                                                        Platform.OS === "android" && styles.sloganLetterAndroid,
-                                                        {
-                                                            opacity: letterAnim.opacity,
-                                                            transform: [
-                                                                { translateY: letterAnim.translateY },
-                                                                { scale: letterAnim.scale },
-                                                            ],
-                                                        },
-                                                    ]}
-                                                >
-                                                    {char === " " ? "\u00A0" : char}
-                                                </Animated.Text>
-                                            );
-                                        })}
-                                    </View>
-                                );
-                            })}
-                        </View>
+                        >
+                            <Text style={styles.brandName}>Uptula</Text>
+                            <Text style={styles.tagline}>
+                                {sloganLine1}
+                                {"\n"}
+                                {sloganLine2}
+                            </Text>
+                        </Animated.View>
                     </Animated.View>
-                </View>
-            </Container>
+                </Container>
+            </ImageBackground>
         </>
-    )
-};
-
-export default SplashScreen;
+    );
+}
 
 const styles = StyleSheet.create({
+    background: {
+        flex: 1,
+        width: "100%",
+        height: "100%",
+    },
     container: {
         flex: 1,
-        backgroundColor: WHITE
-    },
-    containerIOS: {
-        paddingTop: Platform.OS === "ios" ? 0 : 0,
-    },
-    containerAndroid: {
-        paddingTop: Platform.OS === "android" ? 0 : 0,
-    },
-    childConatiner: {
-        flex: 1,
-        backgroundColor: 'transparent',
-        justifyContent: "center",
-        alignItems: 'center',
-    },
-    childConatinerIOS: {
-        paddingTop: Platform.OS === "ios" ? 20 : 0,
-    },
-    childConatinerAndroid: {
-        paddingTop: Platform.OS === "android" ? 10 : 0,
-    },
-    imgLogo: {
-        height: 340,
-        width: 340,
-    },
-    imgLogoIOS: {
-        height: Platform.OS === "ios" ? 360 : 340,
-        width: Platform.OS === "ios" ? 360 : 340,
-    },
-    imgLogoAndroid: {
-        height: Platform.OS === "android" ? 320 : 340,
-        width: Platform.OS === "android" ? 320 : 340,
-    },
-    imgConatiner: {
-        overflow: 'visible',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    imgConatinerIOS: {
-        marginBottom: Platform.OS === "ios" ? 15 : 0,
-    },
-    imgConatinerAndroid: {
-        marginBottom: Platform.OS === "android" ? 10 : 0,
-    },
-    txtConatiner: {
-        justifyContent: "center",
+        backgroundColor: "transparent",
         alignItems: "center",
-        marginTop: 10,
-        width: 300,
+        // Place logo + text inside the white glow area of the splash art
+        paddingTop: SCREEN_HEIGHT * 0.26,
     },
-    txtConatinerIOS: {
-        marginTop: Platform.OS === "ios" ? 15 : 10,
-        width: Platform.OS === "ios" ? 320 : 300,
-    },
-    txtConatinerAndroid: {
-        marginTop: Platform.OS === "android" ? 8 : 10,
-        width: Platform.OS === "android" ? 280 : 300,
-    },
-    sloganLogo: {
-        width: 280,
-        height: 280,
-    },
-    sloganLogoIOS: {
-        width: Platform.OS === "ios" ? 300 : 280,
-        height: Platform.OS === "ios" ? 300 : 280,
-    },
-    sloganLogoAndroid: {
-        width: Platform.OS === "android" ? 260 : 280,
-        height: Platform.OS === "android" ? 260 : 280,
-    },
-    sloganTextBlock: {
-        marginTop: 12,
+    brandBlock: {
+        alignItems: "center",
+        justifyContent: "center",
         width: "100%",
-        alignItems: "center",
-        paddingHorizontal: 4,
+        paddingHorizontal: 28,
     },
-    sloganRow: {
-        flexDirection: "row",
-        flexWrap: "nowrap",
+    logoWrap: {
+        alignItems: "center",
         justifyContent: "center",
+    },
+    logo: {
+        height: 92,
+        width: 92,
+    },
+    textWrap: {
         alignItems: "center",
+        marginTop: 8,
     },
-    sloganRowSecond: {
-        marginTop: 6,
-    },
-    sloganLetter: {
-        color: BLACK,
+    brandName: {
+        color: TEXT_GREEN,
+        fontSize: 30,
         fontFamily: UBUNTUBOLD,
-        fontWeight: "bold",
-        fontSize: 24,
-        lineHeight: 30,
         textAlign: "center",
-        includeFontPadding: false,
+        letterSpacing: 0.3,
+        lineHeight: 34,
     },
-    sloganLetterIOS: {
-        fontSize: Platform.OS === "ios" ? 26 : 24,
-        lineHeight: Platform.OS === "ios" ? 32 : 30,
+    tagline: {
+        marginTop: 4,
+        color: TEXT_GREEN,
+        fontSize: 13,
+        fontFamily: UBUNTU,
+        textAlign: "center",
+        lineHeight: 18,
     },
-    sloganLetterAndroid: {
-        fontSize: Platform.OS === "android" ? 23 : 24,
-        lineHeight: Platform.OS === "android" ? 29 : 30,
-    },
-})
+});

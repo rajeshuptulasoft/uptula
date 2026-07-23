@@ -16,7 +16,7 @@ import { PROFILE, LOGOUT } from '../constant/imagePath';
 import { useDispatch } from 'react-redux';
 import { checkuserToken, logoutUser } from '../redux/actions/auth';
 import { store } from '../redux/store';
-import { deleteByKeys, getObjByKey, storeStringByKey } from '../utils/Storage';
+import { deleteByKeys, getObjByKey } from '../utils/Storage';
 import { HEIGHT, WIDTH } from '../constant/config';
 import { WHITE } from '../constant/color';
 import { BASE_URL } from '../constant/url';
@@ -702,8 +702,7 @@ const CustomDrawerContent = (props) => {
 
   const confirmLogout = () => {
     // Remove auth-related entries but keep onboarding flag so users are not shown onboarding again
-    deleteByKeys(['loginResponse', 'fcmtoken']).then(async () => {
-      await storeStringByKey('skipSplash', 'true');
+    deleteByKeys(['loginResponse', 'fcmtoken']).then(() => {
       dispatch(checkuserToken());
     });
     setLogoutModalVisible(false);

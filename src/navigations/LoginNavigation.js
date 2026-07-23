@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import SplashScreen from "../screens/loginScreens/SplashScreen";
 import LoginScreen from "../screens/loginScreens/LoginScreen";
 import RegisterScreen from "../screens/loginScreens/RegisterScreen";
 import OnBoardingScreen from "../screens/loginScreens/OnBoardingScreen";
 import BottomTabNavigation from "./BottomTabNavigation";
-import { getStringByKey, storeStringByKey } from "../utils/Storage";
+import { getStringByKey } from "../utils/Storage";
 
 const Stack = createStackNavigator();
 
@@ -14,14 +13,10 @@ const LoginNavigation = () => {
 
   useEffect(() => {
     const resolveInitialRoute = async () => {
-      const skipSplash = await getStringByKey("skipSplash");
-      if (skipSplash === "true") {
-        await storeStringByKey("skipSplash", "");
-        const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
-        setInitialRoute(hasSeenOnboarding === "true" ? "MainTabs" : "OnBoarding");
-        return;
-      }
-      setInitialRoute("Splash");
+      // Splash is shown at app root on every launch.
+      // After splash, guest users land on MainTabs or OnBoarding.
+      const hasSeenOnboarding = await getStringByKey("hasSeenOnboarding");
+      setInitialRoute(hasSeenOnboarding === "true" ? "MainTabs" : "OnBoarding");
     };
 
     resolveInitialRoute();
@@ -39,7 +34,6 @@ const LoginNavigation = () => {
       initialRouteName={initialRoute}
       key={initialRoute}
     >
-      <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="OnBoarding" component={OnBoardingScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
